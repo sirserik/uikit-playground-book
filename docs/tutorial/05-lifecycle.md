@@ -318,7 +318,7 @@ Objective-C API. Его замыкание не знает про Swift acotr-is
 `.main`), но компилятор этого не знает.
 
 `MainActor.assumeIsolated { ... }` — это **обещание** компилятору: «я
-знаю, что мы уже на main, не блокируй меня». Если на самом деле мы не
+знаю, что мы уже на main, не блокируй меня». А если мы окажемся не
 на main — будет фатальный краш в рантайме.
 
 Это компромисс между новым Swift Concurrency и старым UIKit API.
@@ -400,6 +400,17 @@ playground'е и появятся в Части V (production):
   которые точно вызываются на main, но компилятор не знает.
 
 ---
+
+## Apple Developer Documentation
+
+- [`UIApplication`](https://developer.apple.com/documentation/uikit/uiapplication) — singleton процесса, верхний уровень иерархии.
+- [`UIApplicationDelegate`](https://developer.apple.com/documentation/uikit/uiapplicationdelegate) — куда складывать push-токен, BGTaskScheduler, аналитику.
+- [`UISceneDelegate`](https://developer.apple.com/documentation/uikit/uiscenedelegate) и [`UIWindowSceneDelegate`](https://developer.apple.com/documentation/uikit/uiwindowscenedelegate) — события окна; здесь живёт `scene(_:willConnectTo:options:)`.
+- [`UIScene.ConnectionOptions`](https://developer.apple.com/documentation/uikit/uiscene/connectionoptions) — параметры, с которыми iOS соединяет сцену (URL Contexts, shortcut item, notification response).
+- [`UISceneSession`](https://developer.apple.com/documentation/uikit/uiscenesession) — сама сессия сцены, через неё iOS восстанавливает окна.
+- [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/3197982-willdeactivatenotification) и [`didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/3197970-didactivatenotification) — нотификации, на которые подписан `LifecycleSecurityController`.
+- [Concurrency — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — async/await, actors, structured concurrency.
+- [`MainActor`](https://developer.apple.com/documentation/swift/mainactor) — sample про правила main-actor изоляции и переходы `await MainActor.run`.
 
 🎉 **Это конец Части I.** Дальше — Часть II про launch-гейты:
 onboarding, permission primer, auth, force-update, region/age,

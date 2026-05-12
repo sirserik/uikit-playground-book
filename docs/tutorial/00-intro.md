@@ -132,4 +132,11 @@ let example = "это код, который можно (и нужно) набр
 
 Поехали.
 
+## Apple Developer Documentation
+
+- [The Swift Programming Language](https://docs.swift.org/swift-book/) — официальный референс по языку. Книга предполагает, что базовые конструкции отсюда уже знакомы.
+- [UIKit](https://developer.apple.com/documentation/uikit) — каталог фреймворка, на котором построены все mini-apps.
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines) — продуктовые правила Apple. На них опираемся, когда обсуждаем UX-решения (splash, onboarding, permission primer).
+- [Xcode Help](https://developer.apple.com/documentation/xcode) — справочник по самой IDE и схемам сборки.
+
 → [Глава 1. LaunchScreen vs AnimatedSplash — два экрана, оба «splash»](./01-launch-screen-vs-splash.md)

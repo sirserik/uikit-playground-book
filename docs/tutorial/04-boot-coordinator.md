@@ -10,7 +10,7 @@ picker, age gate, force-update, maintenance, auth, lifecycle security.
 
 Кто-то должен это собрать в правильную цепочку: посмотреть в манифест,
 решить какой гейт сейчас актуален, поставить нужный VC, дождаться его
-callback'а, перейти к следующему. Этот «кто-то» и есть
+callback'а, перейти к тому, что идёт дальше. Этот «кто-то» и есть
 **BootCoordinator**.
 
 ## 4.1 Зачем отдельный класс
@@ -29,7 +29,7 @@ func scene(_ scene: UIScene, willConnectTo ...) {
 ```
 
 И каждый из этих `show*` был длинным замыканием, которое заканчивалось
-вызовом следующего `show*`. SceneDelegate раздулся, стал нечитаемым,
+вызовом очередного `show*`. SceneDelegate раздулся, стал нечитаемым,
 любое добавление гейта ломало два соседних.
 
 Решение — выделить **отдельный объект**, который держит:
@@ -99,7 +99,7 @@ func start() {
 выходим в лаунчер (см. Главу 3 про `PlaygroundWindow.onShake`).
 
 Вторая — стартуем цепочку. Если в манифесте `hasAnimatedSplash`, идём
-через splash. Если нет — сразу к следующему шагу.
+через splash. Если нет — сразу к тому, что идёт дальше.
 
 > 💡 **Идея.** Каждый гейт — это **опционален**. Есть два состояния:
 > «гейт нужен, показываем» и «гейт не нужен, пропускаем». Координатор
@@ -128,7 +128,7 @@ private func showOnboarding() {
 }
 
 private func proceedAfterOnboarding() {
-    // ... решение про следующий гейт ...
+    // ... решение про очередной гейт ...
 }
 ```
 
@@ -139,7 +139,7 @@ private func proceedAfterOnboarding() {
    проскакивает в `proceedAfterOnboarding()`.
 2. **`showOnboarding()`** — создаёт VC, ставит его как root. В callback
    `onFinish` передаёт `proceedAfterOnboarding()`.
-3. **`proceedAfterOnboarding()`** — точка входа в следующий гейт-блок
+3. **`proceedAfterOnboarding()`** — точка входа в очередной гейт-блок
    (permission). Логика та же: нужен ли, показывать или пропускать.
 
 Эта тройка повторяется для **каждого** гейта. Не самое короткое
@@ -285,8 +285,8 @@ private func showAgeGate() {
 ок — к врачу».
 
 Сами стойки (`splash`, `onboarding`, `permission`...) не знают друг
-про друга. Каждая делает свою работу и зовёт «следующего». Решает
-**кто** следующий — администратор.
+про друга. Каждая делает свою работу и зовёт «того, кто дальше». Решает,
+кто именно — администратор.
 
 Если бы стойки знали друг про друга, переставить очередь было бы
 адом. С администратором — поменял две строчки в координаторе, и
@@ -336,7 +336,7 @@ private func showAgeGate() {
 - Зависимости: `manifest` (что), `window` (куда ставить root, `weak`),
   `onExit` (callback в лаунчер).
 - Один гейт = три метода: `proceedAfterX()` (решает нужен/нет),
-  `showX()` (создаёт VC), и `onFinish`-callback зовёт следующий.
+  `showX()` (создаёт VC), и `onFinish`-callback зовёт то, что идёт дальше.
 - `setRoot` меняет `window.rootViewController` целиком, с
   cross-dissolve анимацией. Не nav-push — потому что возвращаться к
   предыдущему гейту нельзя.
@@ -344,5 +344,17 @@ private func showAgeGate() {
   Без этого деаллоцируется сразу после `start()`.
 - Гейт может иметь несколько callback'ов (`onPass`/`onTooYoung`), и
   координатор решает, какой выход куда ведёт.
+
+## Apple Developer Documentation
+
+Coordinator-паттерна нет в Apple-доках (это сообщественная идиома), но
+все API, на которых он стоит, — каноничные UIKit и Swift.
+
+- [`UIViewController`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — координатор работает поверх корневых VC; смотри раздел про root view controller и transitions.
+- [Implementing a Container View Controller](https://developer.apple.com/documentation/uikit/view_controllers/creating_a_custom_container_view_controller) — официальный гид по containment API, родственный нашему подходу со сменой root.
+- [`addChild(_:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621394-addchild) и [`willMove(toParent:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621405-willmove) — методы containment, которые пригодятся, если решишь делать гейты как child-VC, а не подменой root.
+- [`UIView.transition(with:duration:options:animations:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622574-transition) — анимация cross-dissolve при смене `rootViewController`.
+- [Closures — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/closures) — для callback'ов `onPass`/`onTooYoung`/`onExit` и capture-list `[weak self]`.
+- [Automatic Reference Counting — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting) — почему координатор обязательно должен висеть на сильной ссылке у лаунчера.
 
 → [Глава 5. Lifecycle App→Scene→VC и @MainActor](./05-lifecycle.md)

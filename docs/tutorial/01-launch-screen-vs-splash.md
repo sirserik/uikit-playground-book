@@ -7,8 +7,8 @@
 система iOS показывает картинку, которую ты задал заранее. На второй —
 уже твоё приложение что-то рисует своим кодом.
 
-Эти две стадии часто путают и называют общим словом «splash». На самом
-деле это разные механизмы, и они решают разные задачи.
+Эти две стадии часто путают и называют общим словом «splash». Но это
+разные механизмы, и решают они разные задачи.
 
 В этой главе разбираем оба, и заодно понимаем, почему в нашем
 playground'е лежит и `LaunchScreen.storyboard`, и
@@ -221,7 +221,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + manifest.splashDuration) { [wea
 
 Через `manifest.splashDuration` секунд (по умолчанию 1.4) скрываем
 индикатор и зовём `onFinish` — координатор переключит root на
-следующий гейт.
+очередной гейт.
 
 `[weak self]` — обязательно. Если пользователь успеет уйти в лаунчер
 (shake-жест) до конца таймера, `self` уже не существует. Без `weak`
@@ -287,7 +287,7 @@ private func showSplash() {
 
 Координатор передаёт splash'у callback, и когда splash зовёт его, идёт
 дальше — к onboarding, permission primer, auth и так далее. Splash сам
-**ничего не знает** о существовании этих следующих экранов.
+**ничего не знает** про существование этих экранов.
 
 Эту схему — координатор владеет цепочкой, экраны зовут callback — мы
 разберём подробно в Главе 4. Сейчас важно одно: **splash должен быть
@@ -310,5 +310,13 @@ private func showSplash() {
 - Stagger — задержки между элементами 0.1–0.4 секунды — делает
   появление элементов более продуктовым.
 - Splash сам не знает, что идёт после него. Решает координатор.
+
+## Apple Developer Documentation
+
+- [Launching — Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/launching) — что Apple ожидает от первой секунды запуска и почему splash-экран не должен «развлекать».
+- [`UILaunchStoryboardName`](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchstoryboardname) — ключ Info.plist, который указывает iOS на наш `LaunchScreen.storyboard`.
+- [`UIViewController`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — базовый класс для `AnimatedSplashViewController`; смотри жизненный цикл `viewDidLoad` / `viewDidAppear`.
+- [`UIView.animate(withDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:)`](https://developer.apple.com/documentation/uikit/uiview/1622594-animate) — точная сигнатура spring-анимации, которую мы используем в `runAnimation()`.
+- [Closures — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/closures) — как работают capture lists и почему `[weak self]` обязателен в `DispatchQueue.main.asyncAfter`.
 
 → [Глава 2. AppManifest — конфиг одного mini-app](./02-app-manifest.md)

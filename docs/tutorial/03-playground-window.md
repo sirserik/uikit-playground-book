@@ -238,4 +238,13 @@ playground'а — лучший вариант: не требует UI-элеме
 - В симуляторе shake — Ctrl+Cmd+Z или Device → Shake. На устройстве —
   буквально встряхнуть.
 
+## Apple Developer Documentation
+
+- [`UIWindow`](https://developer.apple.com/documentation/uikit/uiwindow) — базовый класс окна, который мы наследуем в `PlaygroundWindow`.
+- [`UIWindowScene`](https://developer.apple.com/documentation/uikit/uiwindowscene) — сцена, к которой привязывается окно; инициализатор `UIWindow(windowScene:)`.
+- [`UIResponder.motionEnded(_:with:)`](https://developer.apple.com/documentation/uikit/uiresponder/1621090-motionended) — точка, куда iOS доставляет shake после прохода по responder chain.
+- [`UIEvent.EventSubtype.motionShake`](https://developer.apple.com/documentation/uikit/uievent/eventsubtype/motionshake) — единственный публичный подтип motion-события, который и проверяем в `guard`.
+- [`UIResponder`](https://developer.apple.com/documentation/uikit/uiresponder) — общий обзор responder chain, в которой окно — последняя инстанция.
+- [Multitasking — Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/multitasking) — продуктовый контекст, когда у приложения может быть несколько окон одной сцены.
+
 → [Глава 4. BootCoordinator — оркестратор гейтов](./04-boot-coordinator.md)
