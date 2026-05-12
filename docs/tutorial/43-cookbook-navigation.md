@@ -335,4 +335,18 @@ navigationController?.navigationBar.compactAppearance = appearance
 - **`UINavigationBarAppearance`** — обязательно все три аппеаранса
   (standard, scrollEdge, compact).
 
+## Apple Developer Documentation
+
+- [`UINavigationController`](https://developer.apple.com/documentation/uikit/uinavigationcontroller) — стек экранов с nav-баром.
+- [`UINavigationBar`](https://developer.apple.com/documentation/uikit/uinavigationbar) — сам бар, `prefersLargeTitles`, аппеарансы.
+- [`UINavigationBarAppearance`](https://developer.apple.com/documentation/uikit/uinavigationbarappearance) — конфиг внешнего вида; крепится в `standardAppearance` / `scrollEdgeAppearance` / `compactAppearance`.
+- [`UINavigationItem.largeTitleDisplayMode`](https://developer.apple.com/documentation/uikit/uinavigationitem/largetitledisplaymode) — `.always` / `.never` / `.automatic`.
+- [`UINavigationItem.titleView`](https://developer.apple.com/documentation/uikit/uinavigationitem/1624965-titleview) — слот для произвольной view (двухстрочный заголовок).
+- [`UITabBarItem.badgeValue`](https://developer.apple.com/documentation/uikit/uitabbaritem/1623445-badgevalue) — текст красного бейджа.
+- [`UIViewControllerTransitioningDelegate`](https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioningdelegate) — фабрика анимаций для модальных переходов.
+- [`UIViewControllerAnimatedTransitioning`](https://developer.apple.com/documentation/uikit/uiviewcontrolleranimatedtransitioning) — конкретная анимация с `animateTransition(using:)`.
+- [`UIPercentDrivenInteractiveTransition`](https://developer.apple.com/documentation/uikit/uipercentdriveninteractivetransition) — interactive-driven (swipe-to-dismiss).
+- [`UINavigationController.interactivePopGestureRecognizer`](https://developer.apple.com/documentation/uikit/uinavigationcontroller/1621847-interactivepopgesturerecognizer) — стандартный swipe-back; ломается при кастомном `leftBarButtonItem`.
+- [HIG — Navigation](https://developer.apple.com/design/human-interface-guidelines/navigation) — Apple про push vs modal, иерархию, табы.
+
 → [Глава 27. Cookbook: разные типы ячеек](./44-cookbook-cells.md)

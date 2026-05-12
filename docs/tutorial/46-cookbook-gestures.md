@@ -269,7 +269,7 @@ swipe.delegate = self
 «поглощает» pan. С разрешением одновременного — можно делать кастомные
 жесты.
 
-## 29.11 Гesture inside UITableView
+## 29.11 Gesture inside UITableView
 
 Tap по cell — обрабатывается `didSelectRowAt`. Если хочешь **tap
 по конкретному элементу внутри cell** (например, аватарке):
@@ -316,5 +316,17 @@ Recognizer'ы — это **сенсоры в комнате**. Каждый ло
   через `delegate = nil` при кастомном `leftBarButtonItem`.
 - **Конфликт recognizer'ов** — `simultaneouslyWith: true` через
   delegate.
+
+## Apple Developer Documentation
+
+- [`UIGestureRecognizer`](https://developer.apple.com/documentation/uikit/uigesturerecognizer) — базовый класс всех recognizer'ов, состояния `began/changed/ended/cancelled/failed`.
+- [`UIGestureRecognizerDelegate`](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate) — `shouldRecognizeSimultaneouslyWith:`, `gestureRecognizerShouldBegin:`.
+- [`UITapGestureRecognizer`](https://developer.apple.com/documentation/uikit/uitapgesturerecognizer), [`UILongPressGestureRecognizer`](https://developer.apple.com/documentation/uikit/uilongpressgesturerecognizer), [`UIPanGestureRecognizer`](https://developer.apple.com/documentation/uikit/uipangesturerecognizer), [`UIPinchGestureRecognizer`](https://developer.apple.com/documentation/uikit/uipinchgesturerecognizer), [`UISwipeGestureRecognizer`](https://developer.apple.com/documentation/uikit/uiswipegesturerecognizer), [`UIScreenEdgePanGestureRecognizer`](https://developer.apple.com/documentation/uikit/uiscreenedgepangesturerecognizer) — все стандартные recognizer'ы.
+- [`UIContextMenuConfiguration`](https://developer.apple.com/documentation/uikit/uicontextmenuconfiguration) — конфигурация меню (preview + actions).
+- [`UIContextMenuInteraction`](https://developer.apple.com/documentation/uikit/uicontextmenuinteraction) — `addInteraction(_:)` на любую view (iOS 13+).
+- [`UISwipeActionsConfiguration`](https://developer.apple.com/documentation/uikit/uiswipeactionsconfiguration) и [`UIContextualAction`](https://developer.apple.com/documentation/uikit/uicontextualaction) — leading/trailing swipe-actions в `UITableView`.
+- [`UIDragInteraction`](https://developer.apple.com/documentation/uikit/uidraginteraction) и [`UIDropInteraction`](https://developer.apple.com/documentation/uikit/uidropinteraction) — drag-and-drop между приложениями.
+- [`UINavigationController.interactivePopGestureRecognizer`](https://developer.apple.com/documentation/uikit/uinavigationcontroller/1621847-interactivepopgesturerecognizer) — встроенный swipe-back.
+- [HIG — Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures) — Apple про стандартные жесты и их семантику.
 
 → [Глава 30. Cookbook: формы и валидация](./47-cookbook-forms.md)

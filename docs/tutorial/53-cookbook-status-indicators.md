@@ -338,4 +338,16 @@ enum ConnectionQuality {
 - **Animated badge** — pop при обновлении (scaleX/Y 1.3).
 - **`allowsContinuousInteraction`** на UIPageControl (iOS 14+).
 
+## Apple Developer Documentation
+
+- [UIProgressView](https://developer.apple.com/documentation/uikit/uiprogressview) — линейный progress bar с `progress` / `setProgress(_:animated:)`.
+- [UIProgressView.Style](https://developer.apple.com/documentation/uikit/uiprogressview/style) — `.default` и `.bar` для размещения в nav bar.
+- [UIPageControl](https://developer.apple.com/documentation/uikit/uipagecontrol) — индикатор страниц и `allowsContinuousInteraction` (iOS 14+).
+- [UIActivityIndicatorView](https://developer.apple.com/documentation/uikit/uiactivityindicatorview) — стандартный «спиннер» с `.medium` / `.large`.
+- [UITabBarItem/badgeValue](https://developer.apple.com/documentation/uikit/uitabbaritem/1623454-badgevalue) — текст бейджа на вкладке.
+- [UITabBarItem/badgeColor](https://developer.apple.com/documentation/uikit/uitabbaritem/2865930-badgecolor) — цвет бейджа.
+- [CAShapeLayer](https://developer.apple.com/documentation/quartzcore/cashapelayer) — `strokeEnd` для circular progress.
+- [UIBezierPath](https://developer.apple.com/documentation/uikit/uibezierpath) — рисование дуги для кругового индикатора.
+- [CABasicAnimation](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — бесконечная анимация typing dots через `transform.translation.y`.
+
 → [Глава 37. Cookbook: photo viewer](./54-cookbook-photo-viewer.md)

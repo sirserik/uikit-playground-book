@@ -349,4 +349,18 @@ present(vc, animated: true)
 - **`UIViewControllerTransitioningDelegate`** + `.custom` —
   полный контроль над анимацией модала.
 
+## Apple Developer Documentation
+
+- [`UISheetPresentationController`](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller) — bottom sheet с детентами (iOS 15+).
+- [`UISheetPresentationController.Detent`](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller/detent) — `.medium()`, `.large()`, `.custom { ... }` (iOS 16+).
+- [`UIViewController.sheetPresentationController`](https://developer.apple.com/documentation/uikit/uiviewcontroller/3801906-sheetpresentationcontroller) — слот контроллера для конфигурации sheet'а.
+- [`UIViewController.presentationController`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621426-presentationcontroller) — общий presentation controller, отсюда получаем popover, sheet, alert.
+- [`UIModalPresentationStyle`](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle) — `.fullScreen`, `.overFullScreen`, `.pageSheet`, `.formSheet`, `.popover`, `.custom`.
+- [`UIAlertController`](https://developer.apple.com/documentation/uikit/uialertcontroller) — `.alert` и `.actionSheet`.
+- [`UIAlertAction.Style`](https://developer.apple.com/documentation/uikit/uialertaction/style) — `.default`, `.cancel`, `.destructive`.
+- [`UIPopoverPresentationController`](https://developer.apple.com/documentation/uikit/uipopoverpresentationcontroller) — `sourceView`/`sourceRect`/`barButtonItem`, обязательно при `.actionSheet` на iPad.
+- [`UIPopoverPresentationControllerDelegate`](https://developer.apple.com/documentation/uikit/uipopoverpresentationcontrollerdelegate) — `adaptivePresentationStyle(for:traitCollection:)` для popover'а на iPhone.
+- [`UIViewControllerTransitioningDelegate`](https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioningdelegate) и [`UIViewControllerAnimatedTransitioning`](https://developer.apple.com/documentation/uikit/uiviewcontrolleranimatedtransitioning) — кастомные модальные переходы.
+- [HIG — Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) и [HIG — Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) — Apple про когда какой модал использовать.
+
 → [Глава 29. Cookbook: жесты](./46-cookbook-gestures.md)

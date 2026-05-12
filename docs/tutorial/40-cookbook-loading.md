@@ -405,4 +405,16 @@ func showOverlay() {
 - **Loading overlay** — полупрозрачный чёрный + спиннер для долгих
   blocking-операций.
 
+## Apple Developer Documentation
+
+- [`UIRefreshControl`](https://developer.apple.com/documentation/uikit/uirefreshcontrol) — стандартный контрол pull-to-refresh.
+- [`UIScrollView.refreshControl`](https://developer.apple.com/documentation/uikit/uiscrollview/2127691-refreshcontrol) — слот для `UIRefreshControl` (iOS 10+); работает в `UITableView`, `UICollectionView`, голом `UIScrollView`.
+- [`UIScrollViewDelegate.scrollViewDidScroll(_:)`](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/1619392-scrollviewdidscroll) — обработчик скролла; используется для infinite scroll и shrinking-header.
+- [`UITableViewDelegate.tableView(_:willDisplay:forRowAt:)`](https://developer.apple.com/documentation/uikit/uitableviewdelegate/1614883-tableview) — точка триггера пагинации за N ячеек до конца.
+- [`UIActivityIndicatorView`](https://developer.apple.com/documentation/uikit/uiactivityindicatorview) — встроенный спиннер для overlay'ев.
+- [`UIButton.Configuration.showsActivityIndicator`](https://developer.apple.com/documentation/uikit/uibutton/configuration/3784627-showsactivityindicator) — спиннер внутри кнопки (iOS 15+).
+- [`CAGradientLayer`](https://developer.apple.com/documentation/quartzcore/cagradientlayer) и [`CABasicAnimation`](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — основа shimmer-анимации для skeleton'ов.
+- [`URLSession.dataTask(with:)`](https://developer.apple.com/documentation/foundation/urlsession/1411554-datatask) — асинхронная загрузка изображений; в современном коде используется `data(from:)` с async/await.
+- [HIG — Loading](https://developer.apple.com/design/human-interface-guidelines/loading) — рекомендации Apple по показу прогресса и пустых состояний во время загрузки.
+
 → [Глава 24. Cookbook: empty/error states + offline](./41-cookbook-empty-error.md)

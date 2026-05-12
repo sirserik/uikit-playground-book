@@ -308,4 +308,20 @@ handles (≡), можно перетаскивать.
 - **Drag-to-reorder** — `isEditing = true` + `moveRowAt`. Скрыть
   minus через `editingStyleForRowAt: .none`.
 
+## Apple Developer Documentation
+
+- [`UITableViewCell`](https://developer.apple.com/documentation/uikit/uitableviewcell) — базовая ячейка таблицы.
+- [`UICollectionViewListCell`](https://developer.apple.com/documentation/uikit/uicollectionviewlistcell) — list-cell для современных collection views (iOS 14+).
+- [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — `defaultContentConfiguration()`, `cell()`, `subtitleCell()` и т.п. (iOS 14+).
+- [`UIListContentConfiguration.ImageProperties`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration/imageproperties) — `cornerRadius`, `maximumSize`, `tintColor`.
+- [`UICellAccessory`](https://developer.apple.com/documentation/uikit/uicellaccessory) — современный набор accessory'ев (`.disclosureIndicator()`, `.checkmark()`, кастомные) (iOS 14+).
+- [`UIBackgroundConfiguration`](https://developer.apple.com/documentation/uikit/uibackgroundconfiguration) — фон ячейки; нормальное и selected состояния.
+- [`UISwitch`](https://developer.apple.com/documentation/uikit/uiswitch) — toggle в `accessoryView`.
+- [`UIStepper`](https://developer.apple.com/documentation/uikit/uistepper) — `+`/`−` контрол.
+- [`UISlider`](https://developer.apple.com/documentation/uikit/uislider) — ползунок диапазона.
+- [`UISegmentedControl`](https://developer.apple.com/documentation/uikit/uisegmentedcontrol) — сегмент-control.
+- [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) и [`UIDatePicker.Style`](https://developer.apple.com/documentation/uikit/uidatepicker/style) — `.compact`, `.inline`, `.wheels` (iOS 14+).
+- [`UIMenu`](https://developer.apple.com/documentation/uikit/uimenu) и [`UIAction`](https://developer.apple.com/documentation/uikit/uiaction) — inline picker через меню.
+- [`UITableView.automaticDimension`](https://developer.apple.com/documentation/uikit/uitableview/automaticdimension) — авто-высота ячейки по Auto Layout.
+
 → [Глава 28. Cookbook: модалки и листы](./45-cookbook-modals.md)

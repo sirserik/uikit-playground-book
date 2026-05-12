@@ -322,4 +322,20 @@ duration) — резко. Медленно — плавно.
 - **`UIViewPropertyAnimator`** (iOS 10+) — для interactive animations
   с pause/scrub.
 
+## Apple Developer Documentation
+
+- [UIView.animate(withDuration:animations:)](https://developer.apple.com/documentation/uikit/uiview/1622418-animate) — базовый block-based animation API.
+- [UIView.animate(withDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:)](https://developer.apple.com/documentation/uikit/uiview/1622594-animate) — spring-анимация.
+- [UIView.animateKeyframes(withDuration:delay:options:animations:completion:)](https://developer.apple.com/documentation/uikit/uiview/1622552-animatekeyframes) — последовательность через keyframes.
+- [UIView.transition(with:duration:options:animations:completion:)](https://developer.apple.com/documentation/uikit/uiview/1622574-transition) — cross-dissolve и flip между view.
+- [UIViewPropertyAnimator](https://developer.apple.com/documentation/uikit/uiviewpropertyanimator) — pause / scrub / reverse, iOS 10+.
+- [UISpringTimingParameters](https://developer.apple.com/documentation/uikit/uispringtimingparameters) — spring-параметры для `UIViewPropertyAnimator`.
+- [UICubicTimingParameters](https://developer.apple.com/documentation/uikit/uicubictimingparameters) — кастомные кубические кривые.
+- [CABasicAnimation](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — анимация свойств `CALayer`.
+- [CAKeyframeAnimation](https://developer.apple.com/documentation/quartzcore/cakeyframeanimation) — несколько ключевых кадров (shake-error и др.).
+- [CAEmitterLayer](https://developer.apple.com/documentation/quartzcore/caemitterlayer) — particle-система (confetti).
+- [UIViewControllerTransitioningDelegate](https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioningdelegate) — точка входа для custom-перехода (hero animation).
+- [UIViewControllerAnimatedTransitioning](https://developer.apple.com/documentation/uikit/uiviewcontrolleranimatedtransitioning) — собственно протокол анимации перехода.
+- [UIImageView/addSymbolEffect(_:options:animated:)](https://developer.apple.com/documentation/uikit/uiimageview/4218778-addsymboleffect) — анимация SF Symbol (`.bounce`, `.pulse`, `.scale`), iOS 17+.
+
 → [Глава 33. Cookbook: haptics](./50-cookbook-haptics.md)

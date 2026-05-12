@@ -309,4 +309,20 @@ items.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
 - **`ByteCountFormatter`** для размеров файлов.
 - **`.localizedStandardCompare`** для сортировки строк.
 
+## Apple Developer Documentation
+
+- [UIDatePicker](https://developer.apple.com/documentation/uikit/uidatepicker) — UIKit-контрол выбора даты/времени.
+- [UIDatePicker.Style](https://developer.apple.com/documentation/uikit/uidatepicker/style) — `.compact` / `.inline` / `.wheels` / `.automatic` (iOS 14+).
+- [DateFormatter](https://developer.apple.com/documentation/foundation/dateformatter) — форматирование `Date` ↔ `String` с учётом локали.
+- [RelativeDateTimeFormatter](https://developer.apple.com/documentation/foundation/relativedatetimeformatter) — «5 минут назад» / «через 2 дня», iOS 13+.
+- [DateComponentsFormatter](https://developer.apple.com/documentation/foundation/datecomponentsformatter) — длительности вида «1 ч 23 мин».
+- [ISO8601DateFormatter](https://developer.apple.com/documentation/foundation/iso8601dateformatter) — парсинг и сериализация ISO 8601.
+- [Date.ISO8601FormatStyle](https://developer.apple.com/documentation/foundation/date/iso8601formatstyle) — современный formatter-style API, iOS 15+.
+- [NumberFormatter](https://developer.apple.com/documentation/foundation/numberformatter) — `.currency` / `.percent` / `.decimal` / `.ordinal`.
+- [Decimal](https://developer.apple.com/documentation/foundation/decimal) — точная десятичная арифметика для денег.
+- [Calendar](https://developer.apple.com/documentation/foundation/calendar) — календарные операции вместо ручной арифметики с `TimeInterval`.
+- [TimeZone](https://developer.apple.com/documentation/foundation/timezone) — часовые пояса при отображении дат.
+- [ByteCountFormatter](https://developer.apple.com/documentation/foundation/bytecountformatter) — размеры файлов «1.23 GB» / «456 KB».
+- [CADisplayLink](https://developer.apple.com/documentation/quartzcore/cadisplaylink) — синхронизация с frame rate экрана для плавной анимации чисел.
+
 → [Глава 32. Cookbook: анимации](./49-cookbook-animations.md)

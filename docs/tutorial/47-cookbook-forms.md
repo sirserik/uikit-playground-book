@@ -95,7 +95,7 @@ class PhoneField: UITextField, UITextFieldDelegate {
         let raw = ((textField.text ?? "") as NSString).replacingCharacters(in: range, with: string)
         let digits = raw.filter(\.isNumber)
         textField.text = format(digits: digits)
-        return false  // мы сами обновили, шла не нужно
+        return false  // мы сами обновили, UIKit пусть не трогает
     }
 
     private func format(digits: String) -> String {
@@ -313,7 +313,7 @@ extension MyVC: UITextFieldDelegate {
 }
 ```
 
-Юзер жмёт Next в клавиатуре → фокус прыгает на следующее поле. Done
+Юзер жмёт Next в клавиатуре → фокус прыгает на соседнее поле. Done
 на последнем → закрывается клавиатура + submit.
 
 ## 30.11 TextField suggestions / textContentType
@@ -368,5 +368,19 @@ emailField.spellCheckingType = .no
   полями.
 - **`textContentType`** — даёт iOS возможность автозаполнения.
 - **Отключи autocorrect** для email / username / password.
+
+## Apple Developer Documentation
+
+- [`UITextField`](https://developer.apple.com/documentation/uikit/uitextfield) — однострочное поле ввода.
+- [`UITextFieldDelegate`](https://developer.apple.com/documentation/uikit/uitextfielddelegate) — `shouldChangeCharactersIn:replacementString:` для фильтра, `textFieldShouldReturn:` для return-flow.
+- [`UITextField.textContentType`](https://developer.apple.com/documentation/uikit/uitextfield/1649656-textcontenttype) и [`UITextContentType`](https://developer.apple.com/documentation/uikit/uitextcontenttype) — `.emailAddress`, `.password`, `.newPassword`, `.oneTimeCode`, `.telephoneNumber` (автозаполнение iCloud Keychain + SMS).
+- [`UITextField.isSecureTextEntry`](https://developer.apple.com/documentation/uikit/uitextinputtraits/1624427-issecuretextentry) — маскирование пароля.
+- [`UITextField.rightView`](https://developer.apple.com/documentation/uikit/uitextfield/1619636-rightview) и [`rightViewMode`](https://developer.apple.com/documentation/uikit/uitextfield/1619607-rightviewmode) — кнопка-«глаз» внутри поля.
+- [`UITextView`](https://developer.apple.com/documentation/uikit/uitextview) и [`UITextViewDelegate`](https://developer.apple.com/documentation/uikit/uitextviewdelegate) — многострочный ввод; `isScrollEnabled = false` + `sizeThatFits(_:)` для auto-grow.
+- [`UIPageViewController`](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — контейнер для wizard-flow между шагами.
+- [`UIView.keyboardLayoutGuide`](https://developer.apple.com/documentation/uikit/uiview/3752221-keyboardlayoutguide) — один-строчная привязка к клавиатуре (iOS 15+).
+- [`UIResponder.keyboardWillChangeFrameNotification`](https://developer.apple.com/documentation/uikit/uiresponder/1621534-keyboardwillchangeframenotificat) — фолбэк для iOS 14 и ниже.
+- [`UITextInputTraits`](https://developer.apple.com/documentation/uikit/uitextinputtraits) — `autocapitalizationType`, `autocorrectionType`, `spellCheckingType`, `returnKeyType`, `keyboardType`.
+- [HIG — Forms](https://developer.apple.com/design/human-interface-guidelines/text-fields) — Apple про text fields, валидацию, password rules.
 
 → [Глава 31. Cookbook: дата, время, деньги](./48-cookbook-date-money.md)

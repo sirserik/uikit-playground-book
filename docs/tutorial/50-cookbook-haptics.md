@@ -247,4 +247,15 @@ light для отпускания.
 - **Slider с засечками** — bucket подход на каждые 5% значения.
 - **Sync с анимацией** — haptic в начале анимации, не после.
 
+## Apple Developer Documentation
+
+- [UIFeedbackGenerator](https://developer.apple.com/documentation/uikit/uifeedbackgenerator) — базовый класс тактильной отдачи и метод `prepare()`.
+- [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator) — «удар» при действиях UI.
+- [UIImpactFeedbackGenerator.FeedbackStyle](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/feedbackstyle) — `.light` / `.medium` / `.heavy` / `.soft` / `.rigid`.
+- [UINotificationFeedbackGenerator](https://developer.apple.com/documentation/uikit/uinotificationfeedbackgenerator) — `.success` / `.warning` / `.error`.
+- [UISelectionFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiselectionfeedbackgenerator) — короткий тик при смене значения.
+- [CHHapticEngine](https://developer.apple.com/documentation/corehaptics/chhapticengine) — Core Haptics для кастомных паттернов, iOS 13+.
+- [CHHapticPattern](https://developer.apple.com/documentation/corehaptics/chhapticpattern) — описание сложной haptic-последовательности.
+- [HIG — Playing haptics](https://developer.apple.com/design/human-interface-guidelines/playing-haptics) — гайдлайн Apple о том, когда уместна тактильная отдача.
+
 → [Глава 34. Cookbook: accessibility](./51-cookbook-accessibility.md)
