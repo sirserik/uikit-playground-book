@@ -288,6 +288,19 @@ Anatomy — это **витрина с инструментами в магаз�
 - Debug-flow с #if DEBUG или 7-tap-secret — стандартные паттерны для
   скрытого доступа к dev-инструментам.
 
+## Apple Developer Documentation
+
+- [HIG: App architecture](https://developer.apple.com/design/human-interface-guidelines/app-architecture) — обзорный гайд: launch experience, навигация, modality. Anatomy — наглядный тур по этим элементам.
+- [HIG: Launching](https://developer.apple.com/design/human-interface-guidelines/launching) — рекомендации Apple по splash/первому запуску. Полезно сверить наш `AnimatedSplashViewController` с гайдлайном.
+- [HIG: Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding) — про объём и тон onboarding'а; в Anatomy этот гейт доступен изолированно.
+- [HIG: Modality](https://developer.apple.com/design/human-interface-guidelines/modality) — когда использовать `.fullScreen` vs `.pageSheet`. Anatomy всегда `.fullScreen`, чтобы гейт выглядел как root запуска.
+- [UIViewController](https://developer.apple.com/documentation/uikit/uiviewcontroller) — базовый класс; `present(_:animated:completion:)` и `dismiss(animated:completion:)` управляют модальной презентацией.
+- [UIApplicationDelegate](https://developer.apple.com/documentation/uikit/uiapplicationdelegate) — точка входа приложения и lifecycle на уровне процесса.
+- [UISceneDelegate](https://developer.apple.com/documentation/uikit/uiscenedelegate) — современный lifecycle для multi-window iOS; в нашем playground'е сцена одна, но Anatomy показывает гейты, которые поднимаются на старте сцены.
+- [UIWindow](https://developer.apple.com/documentation/uikit/uiwindow) — корневое окно; в `PlaygroundWindow` мы держим один `rootViewController`, который меняем при переходе между гейтами.
+- [Swift Book — Concurrency](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/) — `async/await` и `MainActor`. Anatomy и большинство гейтов запускаются на main actor, и storage-сбросы (`RegionStorage.reset`) синхронны, потому что UI-state.
+- [#if DEBUG / Active Compilation Conditions](https://developer.apple.com/documentation/swift/conditional-compilation-block) — официальный способ скрыть debug-меню в release-сборке.
+
 ---
 
 🎉 **Это конец Части III.** Дальше — Часть IV, UI Cookbook. Это не

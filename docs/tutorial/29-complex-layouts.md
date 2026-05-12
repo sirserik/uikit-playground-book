@@ -408,4 +408,18 @@ Stretchy header — это **продвинутый паттерн**. Хорош
   всегда внизу, при растяжении просто появляется больше градиента
   сверху.
 
+## Apple Developer Documentation
+
+- [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview) — базовый класс, через `contentOffset` и `contentInset` строится вся stretchy-логика.
+- [UIScrollViewDelegate.scrollViewDidScroll(_:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/1619392-scrollviewdidscroll) — главный callback, в нём пересчитываем height/top header'а.
+- [UIScrollView.contentOffset](https://developer.apple.com/documentation/uikit/uiscrollview/1619404-contentoffset) — текущая позиция скролла. Отрицательная — при pull-down за начальную позицию.
+- [UIScrollView.adjustedContentInset](https://developer.apple.com/documentation/uikit/uiscrollview/2902259-adjustedcontentinset) — итоговый inset с учётом safeArea; используется в формуле `offset`.
+- [UIScrollView.contentInsetAdjustmentBehavior](https://developer.apple.com/documentation/uikit/uiscrollview/2902261-contentinsetadjustmentbehavior) — `.never` отключает авто-инсеты, чтобы мы сами рулили top-inset'ом под header.
+- [UITableView.Style.insetGrouped](https://developer.apple.com/documentation/uikit/uitableview/style/insetgrouped) — стиль без sticky-section-header'ов; они ломали бы наш header.
+- [CAGradientLayer](https://developer.apple.com/documentation/quartzcore/cagradientlayer) — фон header'а. `gradient.frame = bounds` обновляем в `layoutSubviews`.
+- [CGAffineTransform](https://developer.apple.com/documentation/coregraphics/cgaffinetransform) — `translationX/Y` для параллакса subview'ов внутри header'а.
+- [UICollectionViewCompositionalLayout](https://developer.apple.com/documentation/uikit/uicollectionviewcompositionallayout) — современная альтернатива `UITableView` для multi-section sticky-layout'ов с supplementary item'ами.
+- [NSCollectionLayoutBoundarySupplementaryItem](https://developer.apple.com/documentation/uikit/nscollectionlayoutboundarysupplementaryitem) — настоящий sticky header в compositional layout через `pinToVisibleBounds = true`.
+- [HIG: Designing for iOS — Layout](https://developer.apple.com/design/human-interface-guidelines/layout) — отступы и safe areas для full-bleed header'ов под navigation bar'ом.
+
 → [Глава 22. Anatomy — тур по всем гейтам через modal preview](./30-anatomy.md)

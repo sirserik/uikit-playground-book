@@ -89,8 +89,7 @@ final class MusicPlayer {
 }
 ```
 
-`AVAudioSession.setCategory(.playback)` — критически важная строка.
-Без неё:
+`AVAudioSession.setCategory(.playback)` — ключевая строка. Без неё:
 
 - На устройстве **в беззвучном режиме** музыка не играет.
 - При свёрнутом приложении iOS останавливает воспроизведение.
@@ -176,7 +175,7 @@ func skipForward() {
 на первый. С первого назад — на последний (через `(index == 0 ?
 count - 1 : index - 1)`).
 
-## 17.6 `loadTrack` — конфигурация AVPlayer
+## 17.6 `loadTrack` по строкам — конфигурация AVPlayer
 
 ```swift
 private func loadTrack(_ track: Track) {
@@ -465,5 +464,23 @@ playerItem'а. С `object` — только нашего конкретного.
   scrubbing.
 - HapticSlider — `valueChanged` → проверка bucket'а → `impactOccurred`
   каждые 5% движения.
+
+## Apple Developer Documentation
+
+- [AVAudioPlayer](https://developer.apple.com/documentation/avfaudio/avaudioplayer) — проигрыватель для локальных файлов; в нашей mini-app мы выбрали `AVPlayer`, потому что mp3 удалённые.
+- [AVPlayer](https://developer.apple.com/documentation/avfoundation/avplayer) — универсальный медиа-плеер, играет локальные и сетевые URL.
+- [AVPlayerItem](https://developer.apple.com/documentation/avfoundation/avplayeritem) — обёртка над конкретным контентом, который проигрывает `AVPlayer`.
+- [AVAudioSession](https://developer.apple.com/documentation/avfaudio/avaudiosession) — сессия аудио для приложения, через неё iOS понимает категорию и поведение в фоне.
+- [AVAudioSession.Category.playback](https://developer.apple.com/documentation/avfaudio/avaudiosession/category/playback) — категория для музыкального плеера: играет в mute, играет в фоне.
+- [addPeriodicTimeObserver(forInterval:queue:using:)](https://developer.apple.com/documentation/avfoundation/avplayer/addperiodictimeobserver(forinterval:queue:using:)) — периодический callback по прогрессу воспроизведения. Парный метод — `removeTimeObserver(_:)`.
+- [AVPlayerItem.didPlayToEndTimeNotification](https://developer.apple.com/documentation/foundation/nsnotification/name/1389391-avplayeritemdidplaytoendtime) — уведомление об окончании трека для авто-перехода на следующий.
+- [CMTime](https://developer.apple.com/documentation/coremedia/cmtime) — рациональное представление времени для precise audio seek.
+- [MPNowPlayingInfoCenter](https://developer.apple.com/documentation/mediaplayer/mpnowplayinginfocenter) — Now Playing на lockscreen и в Control Center. Мы это пропустили; добавляется в production.
+- [MPRemoteCommandCenter](https://developer.apple.com/documentation/mediaplayer/mpremotecommandcenter) — обработка remote-команд play/pause/skip с lockscreen и наушников.
+- [UISlider](https://developer.apple.com/documentation/uikit/uislider) — базовый ползунок, наследуем для `HapticSlider`.
+- [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator) — тактильная отдача для slider-tick'ов.
+- [UISheetPresentationController](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller) — sheet с детентами для NowPlaying экрана.
+- [UIViewControllerTransitioningDelegate](https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioningdelegate) — точка кастомных переходов; нам хватило стандартного sheet'а, но это и есть API для собственных анимаций mini-player → full-screen.
+- [HIG: Playing audio](https://developer.apple.com/design/human-interface-guidelines/playing-audio) — гайдлайны Apple по поведению аудио в фоне, mute-режиме и interruption'ах.
 
 → [Глава 18. Chat — двусторонние ячейки, keyboardLayoutGuide, typing indicator](./26-chat.md)

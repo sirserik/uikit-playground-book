@@ -171,30 +171,27 @@ final class TodoStorage {
 }
 ```
 
-Ключевые моменты:
-
-**Зачем `v1` в ключе.** Если завтра ты поменяешь модель `Todo` (добавишь
+Зачем `v1` в ключе. Если завтра поменяешь модель `Todo` (добавишь
 обязательное поле `assignee`), `JSONDecoder().decode([Todo].self,
 from: oldData)` упадёт — старого поля в файле нет. С версионированием
-(`todo.items.v1` → `todo.items.v2`) ты можешь начать с пустого
-массива для новой версии, без падений.
+(`todo.items.v1` → `todo.items.v2`) можно начать с пустого массива для
+новой версии, без падений.
 
-**`init` принимает `defaults`**. По умолчанию `.standard`, но можно
-передать другой `UserDefaults` (например, в `applicationGroup` для
-shared с widget'ом). Это **dependency injection** — хранилище легко
-тестировать, передав `UserDefaults(suiteName: "test")`.
+`init` принимает `defaults`. По умолчанию `.standard`, но можно передать
+другой `UserDefaults` (например, в `applicationGroup` для shared с
+widget'ом). Это dependency injection — хранилище легко тестировать,
+передав `UserDefaults(suiteName: "test")`.
 
-**`@MainActor`**. Хотя UserDefaults thread-safe, наш сторадж зовётся
-из UI, и публикует уведомления о изменениях (`notify()`), которые
-обновляют tableView. Уведомления **обязаны** идти с main. Проще
-объявить весь класс main-actor — компилятор сам не даст вызвать его
-с background.
+`@MainActor` на классе. UserDefaults thread-safe, но наш сторадж зовётся
+из UI и публикует уведомления о изменениях (`notify()`), которые
+обновляют tableView. Уведомления обязаны идти с main. Проще объявить
+весь класс main-actor — компилятор сам не даст вызвать его с
+background.
 
-**`dateEncodingStrategy = .iso8601`**. JSON не знает про Date — по
-умолчанию `JSONEncoder` сохраняет как `Double` (timestamp с
-millisecond). ISO8601 (`"2026-05-12T15:30:00Z"`) **человекочитабельный**
-— если ты откроешь preferences в Finder и заглянешь, поймёшь что
-там лежит.
+`dateEncodingStrategy = .iso8601`. JSON не знает про Date — по умолчанию
+`JSONEncoder` сохраняет как `Double` (timestamp с millisecond). ISO8601
+(`"2026-05-12T15:30:00Z"`) человекочитаемый — если откроешь preferences
+в Finder и заглянешь, поймёшь что там лежит.
 
 ## 12.4 Observer pattern — для перерисовки UI
 
@@ -578,5 +575,17 @@ Storage observer — это **глаза**, которые следят за х�
   `[.medium(), .large()]` detent'ами.
 - `nonisolated` static функция сортировки — компилятор не требует
   main-actor контекста.
+
+## Apple Developer Documentation
+
+- [UITableView](https://developer.apple.com/documentation/uikit/uitableview) — список с секциями и переиспользуемыми ячейками, основа экрана Todo.
+- [UITableViewDataSource](https://developer.apple.com/documentation/uikit/uitableviewdatasource) — протокол, отвечающий за количество секций/строк и `cellForRowAt`.
+- [UITableViewDelegate](https://developer.apple.com/documentation/uikit/uitableviewdelegate) — отдельный протокол про взаимодействие (selection, swipe actions, высоты).
+- [UITableViewDiffableDataSource](https://developer.apple.com/documentation/uikit/uitableviewdiffabledatasource) — альтернатива классическому DataSource через снапшоты; пригодится, если уйдёшь от `reloadData()` к diff-апдейтам.
+- [UISwipeActionsConfiguration](https://developer.apple.com/documentation/uikit/uiswipeactionsconfiguration) — конфигурация trailing/leading свайпов c `UIContextualAction`.
+- [UserDefaults](https://developer.apple.com/documentation/foundation/userdefaults) — простое key-value хранилище, в нашей главе хранит JSON задач.
+- [Codable](https://developer.apple.com/documentation/swift/codable) — type alias `Encodable & Decodable`, делает `Todo` сериализуемым в JSON.
+- [JSONEncoder](https://developer.apple.com/documentation/foundation/jsonencoder) и [JSONDecoder](https://developer.apple.com/documentation/foundation/jsondecoder) — сериализация в JSON и обратно, с настройкой стратегии дат.
+- [URLSession](https://developer.apple.com/documentation/foundation/urlsession) — стандартный сетевой клиент iOS; используем для seed-запроса в dummyjson.
 
 → [Глава 13. Notes — UITextView, FileManager, UISearchController](./21-notes.md)

@@ -497,4 +497,17 @@ Composer — это **карандаш и стикер**, в которые ты
 - `scrollToRow(at:at:animated:)` в `DispatchQueue.main.async` —
   гарантия что layout успел пересчитаться.
 
+## Apple Developer Documentation
+
+- [UITableView](https://developer.apple.com/documentation/uikit/uitableview) — основа списка сообщений с динамической высотой ячеек.
+- [UITableView.automaticDimension](https://developer.apple.com/documentation/uikit/uitableview/automaticdimension) — авто-расчёт высоты по констрейнтам, важно для multi-line «баблов».
+- [UIView.keyboardLayoutGuide](https://developer.apple.com/documentation/uikit/uiview/3752221-keyboardlayoutguide) — system layout guide, который отслеживает клавиатуру (iOS 15+). Composer следует за ней одной строкой Auto Layout.
+- [UIResponder.keyboardWillShowNotification](https://developer.apple.com/documentation/uikit/uiresponder/1621576-keyboardwillshownotification) — старый путь до iOS 15 через `NotificationCenter`. Использовать только при поддержке iOS 14 и ниже.
+- [UITextView](https://developer.apple.com/documentation/uikit/uitextview) — многострочный composer с `isScrollEnabled = false` для auto-grow.
+- [UITextViewDelegate.textViewDidChange(_:)](https://developer.apple.com/documentation/uikit/uitextviewdelegate/1618599-textviewdidchange) — callback на каждое изменение, дёргаем `adjustHeight()`.
+- [UIScrollView.contentInsetAdjustmentBehavior](https://developer.apple.com/documentation/uikit/uiscrollview/2902261-contentinsetadjustmentbehavior) — управление авто-инсетами под safeArea; при кастомных containerах часто ставят `.never`.
+- [UIContextMenuConfiguration](https://developer.apple.com/documentation/uikit/uicontextmenuconfiguration) — long-press menu с реакциями и pre-view; в Главе мы это пропустили, но это правильный API для emoji-реакций.
+- [CABasicAnimation](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — анимация прыгающих точек typing-indicator через `transform.translation.y`.
+- [HIG: Designing for iOS — Layout](https://developer.apple.com/design/human-interface-guidelines/layout) — общие правила инсетов и safe areas для чат-вёрсток.
+
 → [Глава 19. Profile / Settings — insetGrouped с разными типами ячеек](./27-profile.md)

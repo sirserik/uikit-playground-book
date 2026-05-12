@@ -625,4 +625,15 @@ scrollView, ширина — больше). `showsHorizontalScrollIndicator = fa
 - `RelativeDateTimeFormatter` — «N минут назад» с поддержкой плюралов
   для русского.
 
+## Apple Developer Documentation
+
+- [URLSession](https://developer.apple.com/documentation/foundation/urlsession) — стандартный сетевой клиент, через `URLSession.shared` тянем погоду.
+- [URLSession.data(for:)](https://developer.apple.com/documentation/foundation/urlsession/3767353-data) — нативная async-обёртка над сетевым запросом, возвращает `(Data, URLResponse)`.
+- [URLRequest](https://developer.apple.com/documentation/foundation/urlrequest) — параметризованный запрос с `cachePolicy` и `timeoutInterval`.
+- [URLCache](https://developer.apple.com/documentation/foundation/urlcache) — системный кеш URL-запросов; мы его отключаем, потому что строим свой.
+- [UIRefreshControl](https://developer.apple.com/documentation/uikit/uirefreshcontrol) — стандартный pull-to-refresh, привязывается к `tableView.refreshControl`.
+- [RelativeDateTimeFormatter](https://developer.apple.com/documentation/foundation/relativedatetimeformatter) — «N минут назад» / «через N часов» с локализованными плюралами.
+- [JSONDecoder](https://developer.apple.com/documentation/foundation/jsondecoder) — декодер JSON, превращает ответ open-meteo в DTO.
+- [Concurrency](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — Swift Book про async/await, `Task`, `TaskGroup`, акторы.
+
 → [Глава 16. Gallery — UICollectionView compositional, пагинация, photo viewer](./24-gallery.md)

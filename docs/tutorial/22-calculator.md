@@ -504,7 +504,7 @@ UI — это **табло**, которое показывает что бух�
 
 > 🛠 **Упражнение.** Открой Калькулятор. Введи `7 × 8 =`. Дальше
 > сразу `+ 2 =` — получишь 58. Это потому что после `=` `accumulator`
-> остался 56, и следующий `+ 2 =` использует его. Стандартное
+> остался 56, и `+ 2 =` использует его как левый операнд. Стандартное
 > поведение калькулятора. Теперь попробуй сделать «двойной плюс»:
 > `5 + + 3 =`. Получишь 8 — второй `+` просто заменил первый.
 
@@ -529,5 +529,15 @@ UI — это **табло**, которое показывает что бух�
   `UINotificationFeedbackGenerator(.error)` (для ошибок).
 - `overrideUserInterfaceStyle = .dark` — принудительная тёмная тема
   для этого VC.
+
+## Apple Developer Documentation
+
+- [UIStackView](https://developer.apple.com/documentation/uikit/uistackview) — контейнер для горизонтальных/вертикальных раскладок, основа сетки кнопок калькулятора.
+- [UIButton](https://developer.apple.com/documentation/uikit/uibutton) — кнопка; `UIButton.Configuration.filled()` (iOS 15+) задаёт фон, форму и attributedTitle.
+- [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator) — тактильный «удар» с настраиваемой `intensity` для обычных тапов.
+- [UISelectionFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiselectionfeedbackgenerator) — тонкий «щёлк», уместен для смены выбора (например, активного оператора).
+- [Decimal](https://developer.apple.com/documentation/foundation/decimal) — точная десятичная арифметика без бинарных погрешностей Double; апгрейд для серьёзного калькулятора.
+- [NumberFormatter](https://developer.apple.com/documentation/foundation/numberformatter) — форматирование чисел; в главе используем для отображения результата.
+- [Enumerations](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/enumerations) — Swift Book про enum, на котором держится наш `Key`/`BinaryOp` state machine.
 
 → [Глава 15. Weather — open-meteo, pull-to-refresh, skeleton, offline](./23-weather.md)

@@ -543,4 +543,18 @@ Drawer — **выдвижной шкафчик** под раковиной. По
 - **`navigationItem.titleView = segmented`** — сегмент-control вместо
   заголовка для переключения режимов.
 
+## Apple Developer Documentation
+
+- [UIViewController — Implementing a Container View Controller](https://developer.apple.com/documentation/uikit/uiviewcontroller#1652844) — официальный гайд по containment'у: `addChild(_:)`, `view.addSubview(_:)`, `didMove(toParent:)`.
+- [addChild(_:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621394-addchild) — присоединение child VC; парный — `removeFromParent()`.
+- [willMove(toParent:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621432-willmove) — уведомление перед удалением child'а из родителя. Вызывается с `nil`.
+- [didMove(toParent:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621405-didmove) — финальный шаг при добавлении child'а; без него lifecycle ломается.
+- [UITabBarController](https://developer.apple.com/documentation/uikit/uitabbarcontroller) — стандартный container для сравнения. Мы делаем три кастомные альтернативы.
+- [UIPageViewController](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — листающие страницы для top-tabs варианта; те же data source / delegate, что в onboarding.
+- [UIPanGestureRecognizer](https://developer.apple.com/documentation/uikit/uipangesturerecognizer) — pan gesture для drawer'а, читаем `translation(in:)` и маппим в constraint.
+- [NSLayoutConstraint](https://developer.apple.com/documentation/uikit/nslayoutconstraint) — менять `.constant` под animation block — классический способ анимировать перемещение drawer'а.
+- [UISegmentedControl](https://developer.apple.com/documentation/uikit/uisegmentedcontrol) — компактный switch стилей в `navigationItem.titleView`.
+- [HIG: Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars) — гайдлайн по количеству и поведению табов; ограничения, на которые опирается стандартный `UITabBarController`.
+- [HIG: Navigation bars](https://developer.apple.com/design/human-interface-guidelines/navigation-bars) — про размещение `titleView` и обращение с заголовками при кастомных контейнерах.
+
 → [Глава 21. Complex Layouts — параллакс, sticky header, stretchy](./29-complex-layouts.md)

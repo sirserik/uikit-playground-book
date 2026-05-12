@@ -243,7 +243,7 @@ case .picker(let title, let key, let options):
     cell.selectionStyle = .none
 ```
 
-Идея: вместо отдельного picker'а, кладём `UIButton` с прикреплённым
+Вместо отдельного picker'а кладём `UIButton` с прикреплённым
 `UIMenu`. Тап — открывается popup со списком, выбор → обновляем
 сторадж и UI.
 
@@ -444,5 +444,22 @@ iOS сама красит и форматирует header/footer для `insetG
 - **Destructive actions** — `UIAlertController(.actionSheet)` или
   `.alert` с `UIAlertAction(style: .destructive)`.
 - **Footer** — стандарт для пояснения «зачем это» под секцией.
+
+## Apple Developer Documentation
+
+- [UITableView.Style.insetGrouped](https://developer.apple.com/documentation/uikit/uitableview/style/insetgrouped) — стиль настроек: скруглённые секции с отступом, как в Settings.app.
+- [UITableViewCell.CellStyle.value1](https://developer.apple.com/documentation/uikit/uitableviewcell/cellstyle/value1) — классический «title слева, value справа». Сегодня предпочтительнее `UIListContentConfiguration.prefersSideBySideTextAndSecondaryText`.
+- [UIListContentConfiguration](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — современный способ конфигурировать стандартные ячейки (iOS 14+). Заменяет прямую работу с `textLabel`/`detailTextLabel`.
+- [UISwitch](https://developer.apple.com/documentation/uikit/uiswitch) — toggle в `cell.accessoryView`.
+- [UIStepper](https://developer.apple.com/documentation/uikit/uistepper) — две кнопки «+/−», для целых значений в ограниченном диапазоне.
+- [UISlider](https://developer.apple.com/documentation/uikit/uislider) — непрерывный регулятор; не помещается в `accessoryView`, поэтому собираем кастомный `UIStackView` в `contentView`.
+- [UIMenu](https://developer.apple.com/documentation/uikit/uimenu) — popup-меню с галочкой `UIAction.State.on`, заменяющее старый push-picker.
+- [UIButton.showsMenuAsPrimaryAction](https://developer.apple.com/documentation/uikit/uibutton/3601219-showsmenuasprimaryaction) — превращает обычный тап по кнопке в открытие меню.
+- [UIAction](https://developer.apple.com/documentation/uikit/uiaction) — closure-based обработчик, прикладывается через `addAction(_:for:)` без `@objc`.
+- [UIAlertController](https://developer.apple.com/documentation/uikit/uialertcontroller) — подтверждалки для destructive-действий (выход, удаление). Стили `.alert` и `.actionSheet`.
+- [UserDefaults](https://developer.apple.com/documentation/foundation/userdefaults) — стандартный сторадж пользовательских настроек.
+- [LAContext](https://developer.apple.com/documentation/localauthentication/lacontext) — Face ID / Touch ID. В нашем экране пока не интегрирован; добавится в production-настройках «Заблокировать приложение биометрией».
+- [LAPolicy.deviceOwnerAuthenticationWithBiometrics](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthenticationwithbiometrics) — политика, проверяющая Face ID / Touch ID без fallback на passcode.
+- [HIG: Toggles](https://developer.apple.com/design/human-interface-guidelines/toggles) — гайдлайн поведения switch'ей и подписи под ними.
 
 → [Глава 20. Custom Tab Bar — три стиля кастомного контейнера](./28-custom-tab-bar.md)

@@ -2,8 +2,8 @@
 
 ![Список заметок](../images/notes.png){width=45%}
 
-Заметки — следующий после Todo «канонический» иос-проект. Если в
-Todo главный экран — таблица с действиями, то в Notes — экран
+Заметки — второй после Todo «канонический» иос-проект. Если в Todo
+главный экран — таблица с действиями, то в Notes — экран
 **редактирования**. Свободный текст, без полей.
 
 Технически отличий три: хранилище (вместо UserDefaults — FileManager),
@@ -67,21 +67,19 @@ struct Note: Codable, Equatable, Sendable, Identifiable {
 }
 ```
 
-Главное:
+Что в этой модели важного:
 
-**`body` — это всё**. Заголовок и тело не разделены. Так делает Apple
-Notes, Notion, многие другие. Первая строка тела автоматически
-становится заголовком. Зачем так:
+`body` — это всё. Заголовок и тело не разделены. Так делает Apple Notes,
+Notion, многие другие. Первая строка тела автоматически становится
+заголовком — меньше полей в UI (одно `UITextView`, не два) и гибче:
+пользователь сам решает, нужен ли заголовок. Если первая строка
+короткая — она и есть заголовок. Если сразу пошёл текст — заголовок
+«Новая заметка».
 
-- **Меньше полей в UI** — одно `UITextView`, не два.
-- **Гибче** — пользователь сам решает, нужен ли заголовок. Если первая
-  строка короткая — она заголовок. Если сразу пошёл текст — заголовок
-  «Новая заметка».
+`title` и `preview` — computed свойства, в файл не пишутся. JSON хранит
+только `body` + метадату.
 
-**`title` и `preview`** — computed свойства, не хранятся в файле. При
-сохранении JSON содержит только `body` + метадату.
-
-**`pinned`** — для важных заметок, которые крепятся наверху. Аналог
+`pinned` — для важных заметок, которые крепятся наверху. Аналог
 закрепления в мессенджерах.
 
 ## 13.3 Хранилище через FileManager
@@ -526,7 +524,7 @@ Auto-save — это как **ленинградский гипноз стено
   CloudKit или iCloud Documents container.
 
 > 🛠 **Упражнение.** Открой Notes (жёлтая ячейка в лаунчере), создай
-> заметку. Напиши первой строкой «Список покупок», следующими — товары.
+> заметку. Напиши первой строкой «Список покупок», за ней — товары.
 > Выйди обратно. Увидишь в списке: заголовок «Список покупок», превью
 > с товарами. Закрепи свайпом вправо — переехала в «Закреплённые».
 > Найди заметку через поиск — введи «покупок».
@@ -551,5 +549,15 @@ Auto-save — это как **ленинградский гипноз стено
   `UIAlertController(.actionSheet)`.
 - `UIActivityViewController` для share. На iPad обязательно
   `popoverPresentationController?.barButtonItem`.
+
+## Apple Developer Documentation
+
+- [UITextView](https://developer.apple.com/documentation/uikit/uitextview) — многострочное редактируемое поле, основной экран редактора заметок.
+- [UISearchController](https://developer.apple.com/documentation/uikit/uisearchcontroller) — встраивается в `navigationItem.searchController`, даёт нативный searchbar.
+- [UISearchResultsUpdating](https://developer.apple.com/documentation/uikit/uisearchresultsupdating) — протокол с `updateSearchResults(for:)`, вызывается при каждом нажатии клавиши.
+- [FileManager](https://developer.apple.com/documentation/foundation/filemanager) — единая точка доступа к файловой системе, через неё получаем `Documents/` и создаём папки.
+- [URL (filesystem)](https://developer.apple.com/documentation/foundation/url) — тип-«адрес» файла; `appendingPathComponent(_:isDirectory:)` собирает путь корректно для папки.
+- [Data](https://developer.apple.com/documentation/foundation/data) — байтовый буфер; `data.write(to:options: .atomic)` даёт атомарную запись.
+- [String.Encoding](https://developer.apple.com/documentation/swift/string/encoding) — кодировки для конвертации `String ↔ Data`; для JSON-файлов используем `.utf8`.
 
 → [Глава 14. Calculator — UIStackView grid, state machine, haptics](./22-calculator.md)

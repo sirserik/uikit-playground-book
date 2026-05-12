@@ -459,4 +459,14 @@ func collectionView(_ collectionView: UICollectionView,
 - `contextMenuConfigurationForItemAt` — long-press меню на ячейке.
 - `NSDirectionalEdgeInsets` вместо `UIEdgeInsets` для RTL-совместимости.
 
+## Apple Developer Documentation
+
+- [UICollectionView](https://developer.apple.com/documentation/uikit/uicollectionview) — сеточный/любой кастомный layout для коллекций; в Gallery — основной экран.
+- [UICollectionViewCompositionalLayout](https://developer.apple.com/documentation/uikit/uicollectionviewcompositionallayout) — современный (iOS 13+) layout через секции/группы/items, поддерживает environment-based responsive.
+- [NSCollectionLayoutSection](https://developer.apple.com/documentation/uikit/nscollectionlayoutsection) — секция compositional layout; в неё кладём группу и `boundarySupplementaryItems`.
+- [UICollectionViewDiffableDataSource](https://developer.apple.com/documentation/uikit/uicollectionviewdiffabledatasource) — снапшот-ориентированный DataSource, удобный апгрейд от наших `reloadData()`.
+- [UICollectionViewCell](https://developer.apple.com/documentation/uikit/uicollectionviewcell) — переиспользуемая ячейка; в `GalleryCell` подписываем картинку и сверяем `currentURL`.
+- [HIG — Collections](https://developer.apple.com/design/human-interface-guidelines/collections) — рекомендации Apple по сеткам, плотности, навигации и пустому состоянию.
+- [HIG — Image views](https://developer.apple.com/design/human-interface-guidelines/image-views) — про подачу изображений: aspect, скругления, content modes, плейсхолдеры.
+
 → [Глава 17. Music Player — AVPlayer, mini-player, haptic slider](./25-music.md)
