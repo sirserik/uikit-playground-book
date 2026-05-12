@@ -4,8 +4,8 @@
 **вне** своего основного UI: на главном экране, в Spotlight, в Siri,
 в Shortcuts.
 
-В этой главе — короткий обзор обоих, без deep dive (это отдельная
-большая тема).
+Здесь короткий обзор обоих, без deep dive — каждый из этих
+фреймворков тянет на отдельную книгу.
 
 ## 42.1 WidgetKit — что это
 
@@ -81,7 +81,7 @@ struct TodoProvider: TimelineProvider {
 ```
 
 `getTimeline` — iOS зовёт периодически, виджет получает обновлённые
-данные. `policy: .after(date)` — следующее обновление в это время.
+данные. `policy: .after(date)` — очередное обновление в указанное время.
 
 **Виджет НЕ всегда обновляется** в указанное время. iOS решает по
 бюджету (battery, использование). Чем чаще обновляется виджет, тем
@@ -305,5 +305,17 @@ widget значительно повышает retention. Юзер видит д
 - **Live Activities** — динамический widget с `ActivityKit`. Dynamic
   Island.
 - **Testing** через `xcrun simctl` или Shortcuts app.
+
+## Apple Developer Documentation
+
+- [WidgetKit](https://developer.apple.com/documentation/widgetkit) — фреймворк виджетов; даже если основное приложение на UIKit, сами виджеты пишутся в SwiftUI.
+- [`TimelineProvider`](https://developer.apple.com/documentation/widgetkit/timelineprovider) — протокол поставщика обновлений (`placeholder`, `getSnapshot`, `getTimeline`).
+- [`TimelineEntry`](https://developer.apple.com/documentation/widgetkit/timelineentry) — единичный «слепок» данных виджета на момент времени.
+- [Keeping a widget up to date](https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date) — политика обновлений, бюджет iOS, `WidgetCenter.reloadTimelines`.
+- [App Intents](https://developer.apple.com/documentation/appintents) — фреймворк для Siri, Shortcuts, Spotlight, Focus filter.
+- [`AppShortcutsProvider`](https://developer.apple.com/documentation/appintents/appshortcutsprovider) — регистрирует фразы, по которым Siri и Shortcuts видят твои intents.
+- [ActivityKit / Live Activities](https://developer.apple.com/documentation/activitykit) — динамические виджеты на lock screen и Dynamic Island.
+- [Sharing data with your containing app](https://developer.apple.com/documentation/widgetkit/sharing-data-with-your-containing-app) — App Group для UserDefaults и FileManager между приложением и виджетом.
+- [`Link` и `widgetURL(_:)`](https://developer.apple.com/documentation/widgetkit/linking-to-content-in-your-app) — открыть приложение по deep link из виджета.
 
 → [Глава 43. Production: accessibility audit](./65-production-accessibility-audit.md)

@@ -235,6 +235,19 @@ Settings → Accessibility → Display & Text Size → Color Filters.
 - **Final submission checklist** — build, permissions, metadata,
   account, network, submission.
 
+## Apple Developer Documentation
+
+- [`UIAccessibility`](https://developer.apple.com/documentation/uikit/uiaccessibility) — корневой namespace с константами, notification'ами и helper-функциями для accessibility.
+- [`UIAccessibilityIdentification`](https://developer.apple.com/documentation/uikit/uiaccessibilityidentification) — протокол `accessibilityIdentifier`, опора UI-тестов и audit-инструментов.
+- [`UIAccessibilityElement`](https://developer.apple.com/documentation/uikit/uiaccessibilityelement) — программный элемент для случаев, когда `isAccessibilityElement` недостаточно (custom drawing, canvas).
+- [`UIAccessibility.isVoiceOverRunning`](https://developer.apple.com/documentation/uikit/uiaccessibility/1615187-isvoiceoverrunning) — проверка, что VoiceOver включён; основа для условного рендеринга вспомогательных подсказок.
+- [`UIAccessibility.isReduceMotionEnabled`](https://developer.apple.com/documentation/uikit/uiaccessibility/1615133-isreducemotionenabled) — флаг «уменьшить движение»; на нём вешаем упрощённые анимации.
+- [`accessibilityElements`](https://developer.apple.com/documentation/objectivec/nsobject/1615147-accessibilityelements) — управляемый порядок чтения VoiceOver для контейнеров.
+- [`UIFontMetrics`](https://developer.apple.com/documentation/uikit/uifontmetrics) — масштабирование кастомных шрифтов под Dynamic Type.
+- [Accessibility Inspector](https://developer.apple.com/documentation/accessibility/accessibility-inspector) — встроенный инструмент Xcode для аудита иерархии и contrast'а.
+- [HIG — Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) — общая методичка по доступному дизайну (VoiceOver, Dynamic Type, контраст, motion).
+- [HIG — Inclusion](https://developer.apple.com/design/human-interface-guidelines/inclusion) — про colorblind-дружественные палитры, локализацию и культурную чувствительность.
+
 ---
 
 🎉 **Это конец книги.**

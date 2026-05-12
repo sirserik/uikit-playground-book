@@ -201,4 +201,14 @@ Apple показывает разным юзерам, замеряет conversio
 - **9:41 AM** — стандартное время в Apple marketing-скриншотах.
 - **A/B testing** в App Store Connect для оптимизации conversion.
 
+## Apple Developer Documentation
+
+- [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) — точные размеры, форматы и количество скриншотов на каждое устройство.
+- [App Store product page](https://developer.apple.com/app-store/product-page/) — рекомендации Apple по оформлению листинга и скриншотов.
+- [HIG — App Icons](https://developer.apple.com/design/human-interface-guidelines/app-icons) — параллельно со скриншотами обновляй иконку, требования совпадают.
+- [Apple Marketing Resources](https://developer.apple.com/app-store/marketing/guidelines/) — лого, mockup-frames и правила использования бренда в маркетинге.
+- [`UIScreen`](https://developer.apple.com/documentation/uikit/uiscreen) — размер экрана и `nativeScale` для предсказуемого рендеринга маркетинговых ассетов.
+- [`UIScene`](https://developer.apple.com/documentation/uikit/uiscene) — состояния сцен, важно при автоматизации скриншотов из UI-тестов.
+- [`xcrun simctl`](https://developer.apple.com/documentation/xcode/running-your-app-in-simulator-or-on-a-device) — команды для снятия скриншотов и записи видео из симулятора.
+
 → [Глава 39. Production: App Privacy и Privacy Manifest](./61-production-privacy.md)
