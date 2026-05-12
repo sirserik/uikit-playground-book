@@ -89,3 +89,20 @@
 \newunicodechar{⇧}{{\menlosym ⇧}}
 \newunicodechar{▶}{{\menlosym ▶}}
 \newunicodechar{■}{{\menlosym ■}}
+
+% Эмодзи в заголовках книги. У xelatex/tectonic нет встроенного emoji-фонта,
+% поэтому заменяем на текстовые маркеры.
+\newunicodechar{📋}{[ITOG]\,}
+\newunicodechar{🎉}{[!]\,}
+\newunicodechar{🛠}{[TASK]\,}
+\newunicodechar{💡}{[IDEA]\,}
+\newunicodechar{⚠}{[!]\,}
+\newunicodechar{🚧}{[WIP]\,}
+\newunicodechar{☕}{[coffee]\,}
+\newunicodechar{⏳}{[..]\,}
+\newunicodechar{✅}{\ensuremath{\checkmark}\,}
+% Валютные символы — нет в Menlo Italic.
+\newunicodechar{₸}{T}
+\newunicodechar{₽}{R}
+\newunicodechar{₾}{L}
+\newunicodechar{֏}{D}

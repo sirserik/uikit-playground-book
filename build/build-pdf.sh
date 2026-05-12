@@ -101,13 +101,24 @@ if ! command -v "$PANDOC" >/dev/null 2>&1; then
 fi
 
 XELATEX="${XELATEX:-xelatex}"
+USE_TECTONIC=0
 if ! command -v "$XELATEX" >/dev/null 2>&1; then
   for candidate in /Library/TeX/texbin/xelatex /usr/local/texlive/*/bin/*/xelatex; do
     if [ -x "$candidate" ]; then XELATEX="$candidate"; break; fi
   done
 fi
 if ! command -v "$XELATEX" >/dev/null 2>&1; then
-  echo "xelatex не найден. Установи: brew install --cask mactex-no-gui"
+  # Fallback на tectonic — компактный TeX-движок (~16MB) без mactex.
+  for candidate in /opt/homebrew/bin/tectonic /usr/local/bin/tectonic tectonic; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      XELATEX="$candidate"
+      USE_TECTONIC=1
+      break
+    fi
+  done
+fi
+if ! command -v "$XELATEX" >/dev/null 2>&1; then
+  echo "Нужен xelatex или tectonic. Установи: brew install tectonic"
   exit 1
 fi
 
@@ -133,13 +144,22 @@ EOF
   -o "$TMP/book.tex"
 
 cd "$TMP"
-for i in 1 2 3; do
-  echo "  xelatex pass $i/3..."
-  "$XELATEX" -interaction=batchmode -halt-on-error book.tex >/dev/null 2>&1 || {
-    "$XELATEX" -interaction=nonstopmode book.tex 2>&1 | tail -30
-    exit 1
+if [ "$USE_TECTONIC" = "1" ]; then
+  # tectonic сам делает нужное число проходов для TOC, plus auto-download
+  # отсутствующих пакетов в локальный кэш.
+  echo "  tectonic..."
+  "$XELATEX" --keep-logs --outdir "$TMP" book.tex 2>&1 | tail -30 || {
+    echo "tectonic failed"; exit 1
   }
-done
+else
+  for i in 1 2 3; do
+    echo "  xelatex pass $i/3..."
+    "$XELATEX" -interaction=batchmode -halt-on-error book.tex >/dev/null 2>&1 || {
+      "$XELATEX" -interaction=nonstopmode book.tex 2>&1 | tail -30
+      exit 1
+    }
+  done
+fi
 
 mv "$TMP/book.pdf" "$OUT"
 cd "$ROOT"
