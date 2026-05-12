@@ -434,4 +434,16 @@ update.
 - В production нужен **кеш** на remote-config, чтобы не делать
   запрос на каждый запуск.
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — App architecture](https://developer.apple.com/design/human-interface-guidelines/app-architecture) — общий раздел про launch experience: блокирующие экраны допустимы только когда без них приложение реально неработоспособно.
+- [`Bundle.main`](https://developer.apple.com/documentation/foundation/bundle/main) — точка входа за `Info.plist`; отсюда читаем текущую версию для сравнения с `minVersion` от сервера.
+- [`CFBundleShortVersionString` (Information Property List)](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleshortversionstring) — каноничный ключ маркетинговой версии («1.2.3»); сравнивать `minVersion` нужно именно с ним, а не с `CFBundleVersion` (build number).
+- [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) — настоящий remote-config обычно дёргается через `URLSession.shared.data(for:)`; наш `AppConfigService` — мок поверх той же async-абстракции.
+- [`OperationQueue`](https://developer.apple.com/documentation/foundation/operationqueue) — альтернатива async/await, если remote-config уже встроен в сетевой слой на `Operation`-ах.
+- [`UIApplication.open(_:options:completionHandler:)`](https://developer.apple.com/documentation/uikit/uiapplication/open(_:options:completionhandler:)) — открывает App Store по `https://apps.apple.com/...` или `itms-apps://`.
+- [`Timer.scheduledTimer(withTimeInterval:repeats:block:)`](https://developer.apple.com/documentation/foundation/timer/scheduledtimer(withtimeinterval:repeats:block:)) — таймер для countdown'а в maintenance-экране; обязательный `[weak self]` чтобы не словить retain-cycle.
+- [`DateComponentsFormatter`](https://developer.apple.com/documentation/foundation/datecomponentsformatter) — форматирует длительности с учётом локали («1 ч 23 мин»), не нужно склонять самим.
+- [App Store Connect API](https://developer.apple.com/documentation/appstoreconnectapi) — REST-API (не SDK), чтобы тянуть актуальную версию из App Store, если хочется sanity-check без своего бэкенда.
+
 → [Глава 10. Region + Age gates — фильтры по локации и возрасту](./14-region-language.md)

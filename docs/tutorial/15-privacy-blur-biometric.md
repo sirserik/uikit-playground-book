@@ -432,6 +432,20 @@ state. Но визуально пользователь свернул и ушё
 - Симулятор: `Features → Face ID → Enrolled / Matching / Non-matching`
   для тестирования.
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy) — общий принцип: чувствительный UI нельзя оставлять на снимке, который iOS делает при сворачивании.
+- [`UIBlurEffect`](https://developer.apple.com/documentation/uikit/uiblureffect) — стили блюра; `.systemMaterial` — оптимальный для privacy-overlay, адаптивный к light/dark.
+- [`UIVisualEffectView`](https://developer.apple.com/documentation/uikit/uivisualeffectview) — view-обёртка над эффектом; добавляем напрямую в `window.subviews`, чтобы быть выше всех modal'ов.
+- [`UIApplication.willResignActiveNotification`](https://developer.apple.com/documentation/uikit/uiapplication/willresignactivenotification) — лёгкий случай деактивации (входящий звонок, control center); часто блюрить тут не надо.
+- [`UIApplication.didBecomeActiveNotification`](https://developer.apple.com/documentation/uikit/uiapplication/didbecomeactivenotification) — обратное событие; парный момент, когда снимаем блюр или запускаем биометрию.
+- [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/willdeactivatenotification) — то же, но per-scene (актуально для iPad multi-window); используем именно её, чтобы корректно работать на iPad.
+- [`UIScene.didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/didactivatenotification) — парное активирование сцены.
+- [`LAContext`](https://developer.apple.com/documentation/localauthentication/lacontext) — точка входа в биометрию; на каждый запрос новый экземпляр, иначе результат кешируется на 30 секунд.
+- [`LAPolicy.deviceOwnerAuthenticationWithBiometrics`](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthenticationwithbiometrics) — только Face ID / Touch ID, без fallback на passcode.
+- [`LAPolicy.deviceOwnerAuthentication`](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthentication) — биометрия с fallback на пароль устройства; для банкинга чаще берут именно её.
+- [`NSFaceIDUsageDescription`](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfaceidusagedescription) — обязательная строка в Info.plist, иначе крах при первом `evaluatePolicy`.
+
 ---
 
 🎉 **Это конец Части II.** Дальше — Часть III, mini-приложения:

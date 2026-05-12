@@ -391,4 +391,12 @@ flag «видел» + кнопки skip/next.
 - Флаг «видел» — per-manifest в UserDefaults
   (`"onboarding.seen.\(manifest.id)"`).
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding) — какие три вопроса должен закрывать первый запуск и почему длинный туториал убивает retention.
+- [`UIPageViewController`](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — контейнер для пейджеров; `transitionStyle: .scroll`, `navigationOrientation: .horizontal` — наша конфигурация.
+- [`UIPageControl`](https://developer.apple.com/documentation/uikit/uipagecontrol) — точечный индикатор; кликабельность из коробки, в iOS 14+ ещё и `preferredIndicatorImage` под кастомные иконки.
+- [`UIScrollView`](https://developer.apple.com/documentation/uikit/uiscrollview) — низкоуровневая альтернатива (`isPagingEnabled = true`), когда `UIPageViewController` уже не хватает.
+- [`UserDefaults`](https://developer.apple.com/documentation/foundation/userdefaults) — простое хранилище под флаг «онбординг пройден»; идеально для одиночных булевых, а не для секретов.
+
 → [Глава 7. Permission primer — объяснение перед системным диалогом](./11-permission-primer.md)

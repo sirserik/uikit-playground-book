@@ -414,4 +414,14 @@ Permission primer — это **консьерж в твоём отеле**, ко
 - `shouldShow(for: manifest)` показывает primer только если статус
   `nil` (notDetermined). Granted/denied — primer не нужен.
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — Requesting permission](https://developer.apple.com/design/human-interface-guidelines/requesting-permission) — Apple прямо рекомендует объяснять «зачем» **до** системного диалога; наш primer — реализация этой рекомендации.
+- [`UNUserNotificationCenter.requestAuthorization(options:)`](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/requestauthorization(options:)) — нативный async API для пушей, единственный из permission-API без continuation.
+- [`CLLocationManager.requestWhenInUseAuthorization()`](https://developer.apple.com/documentation/corelocation/cllocationmanager/requestwheninuseauthorization()) — геолокация «когда приложение открыто»; результат приходит делегатом, поэтому в `PermissionService` обёрнут в `withCheckedContinuation`.
+- [`AVCaptureDevice.requestAccess(for:)`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/requestaccess(for:)) — доступ к камере; completion-based, превращается в async через continuation.
+- [`PHPhotoLibrary.requestAuthorization(for:)`](https://developer.apple.com/documentation/photos/phphotolibrary/requestauthorization(for:)) — доступ к фото с разделением `.readWrite` / `.addOnly` и отдельным состоянием `.limited`.
+- [`ATTrackingManager.requestTrackingAuthorization`](https://developer.apple.com/documentation/apptrackingtransparency/attrackingmanager/requesttrackingauthorization) — App Tracking Transparency; даже если у тебя нет рекламы, primer перед этим диалогом критичен.
+- [Bundle resources — Information Property List keys](https://developer.apple.com/documentation/bundleresources/information_property_list) — справочник `NSXxxUsageDescription`-ключей; без них iOS крашит приложение при первом запросе.
+
 → [Глава 8. Auth gate — Login / Register / Forgot](./12-auth-gate.md)

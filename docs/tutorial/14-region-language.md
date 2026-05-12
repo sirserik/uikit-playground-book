@@ -464,4 +464,16 @@ Age gate — **кассир в магазине алкоголя**. Просит
 - Блокирующее состояние реализовано не отдельным VC, а через
   скрытие/показ subview'ов того же экрана.
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — Right to left](https://developer.apple.com/design/human-interface-guidelines/right-to-left) — если поддерживаешь арабский/иврит, region picker и age gate должны зеркалиться; UIKit делает это автоматически, если не лезть в `frame`.
+- [`Locale`](https://developer.apple.com/documentation/foundation/locale) — точка входа в локализацию; `Locale.current` отражает выбор пользователя в Settings → General → Language & Region.
+- [`Locale.current`](https://developer.apple.com/documentation/foundation/locale/current) — текущая локаль приложения; в iOS 16+ оттуда читаем `region?.identifier`.
+- [`Locale.preferredLanguages`](https://developer.apple.com/documentation/foundation/locale/preferredlanguages) — упорядоченный список языков пользователя; для language picker'а это правильный источник, а не `Locale.current.language` (там только один).
+- [`Bundle.preferredLocalizations(from:forPreferences:)`](https://developer.apple.com/documentation/foundation/bundle/preferredlocalizations(from:forpreferences:)) — пересечение языков приложения и предпочтений пользователя; полезно когда показываешь свой language picker и хочешь дефолт.
+- [`NSLocalizedString`](https://developer.apple.com/documentation/foundation/nslocalizedstring) — стандартный путь к локализованным строкам; в Swift есть и `String(localized:)` (iOS 15+), но `NSLocalizedString` всё ещё каноничен в `.strings`-флоу.
+- [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) — `preferredDatePickerStyle = .wheels` для age gate, `maximumDate = Date()` чтобы не выбрать будущее.
+- [`Calendar.dateComponents(_:from:to:)`](https://developer.apple.com/documentation/foundation/calendar/datecomponents(_:from:to:)) — единственный корректный способ посчитать возраст в годах; не делить секунды на 365.25.
+- [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — современный API для содержимого ячейки таблицы (iOS 14+); вытесняет `UITableViewCell(style:)`.
+
 → [Глава 11. Privacy blur + Biometric on resume](./15-privacy-blur-biometric.md)

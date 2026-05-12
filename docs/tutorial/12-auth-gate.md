@@ -495,4 +495,16 @@ clear() из Keychain).
 - `shouldShow(for:)` — два условия: манифест требует auth, и в
   Keychain ещё нет токена.
 
+## Apple Developer Documentation
+
+- [Human Interface Guidelines — Authentication](https://developer.apple.com/design/human-interface-guidelines/authentication) — когда гейт оправдан, когда лучше отложить, и почему Sign in with Apple обязателен, если предлагаешь сторонние OAuth-провайдеры.
+- [`UINavigationController`](https://developer.apple.com/documentation/uikit/uinavigationcontroller) — наш auth-стек: login как root, register/forgot — `pushViewController` со штатным back-жестом.
+- [`UIButton.Configuration`](https://developer.apple.com/documentation/uikit/uibutton/configuration) — `showsActivityIndicator = true` даёт встроенный спиннер без отдельного `UIActivityIndicatorView`.
+- [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) — когда мок заменится на реальный бэкенд, `data(for:)` async/await — отправная точка.
+- [`LocalizedError`](https://developer.apple.com/documentation/foundation/localizederror) — протокол, благодаря которому `error.localizedDescription` возвращает нашу строку, а не дефолтное «The operation couldn't be completed».
+- [Keychain Services](https://developer.apple.com/documentation/security/keychain_services) — `SecItemAdd` / `SecItemDelete` / `SecItemCopyMatching`; именно сюда кладём токен, а не в UserDefaults.
+- [Accessibility constants for Keychain items](https://developer.apple.com/documentation/security/ksecattraccessible) — `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` для токенов: не уезжает в iCloud, доступен после первой разблокировки.
+- [`ASAuthorizationAppleIDProvider`](https://developer.apple.com/documentation/authenticationservices/asauthorizationappleidprovider) — Sign in with Apple; App Store Review требует его, если есть любой third-party login.
+- [The Swift Programming Language — Concurrency](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — `async`/`await` и `Task` из главы про login: что значит «cooperative cancellation» и почему `Task { [weak self] in ... }` пишется именно так.
+
 → [Глава 9. Force-update + Maintenance — серверные гейты](./13-force-update.md)
