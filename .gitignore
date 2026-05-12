@@ -1,0 +1,19 @@
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Final PDFs commited intentionally (uncomment to ignore):
+# UIKit-Playground-Book.pdf

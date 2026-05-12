@@ -1,0 +1,29 @@
+---
+title: "UIKit Playground"
+subtitle: "10 мини-приложений и каталог UI-паттернов от LaunchScreen до App Store"
+author: "Учебник"
+lang: ru
+documentclass: book
+classoption:
+  - oneside
+  - 11pt
+  - openany
+geometry:
+  - margin=2.3cm
+  - top=2.5cm
+  - bottom=2.5cm
+mainfont: "PT Serif"
+sansfont: "Helvetica Neue"
+monofont: "Menlo"
+monofontoptions:
+  - Scale=0.82
+fontsize: 11pt
+linkcolor: black
+urlcolor: blue
+toccolor: black
+colorlinks: true
+toc: true
+toc-depth: 2
+numbersections: true
+secnumdepth: 3
+---
