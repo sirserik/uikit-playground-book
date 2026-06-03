@@ -41,7 +41,9 @@
 
 ## 39.2 Privacy Manifest (`PrivacyInfo.xcprivacy`)
 
-С iOS 17 / Xcode 15 — обязателен для **новых** apps и обновлений.
+Требование исходит от App Store Review (а не от версии iOS): с весны
+2024 года (дедлайн 1 мая 2024) сборки, использующие Required Reason
+API или перечисленные SDK, без манифеста на ревью **не пропускают**.
 
 Это XML/Plist файл, где ты декларируешь:
 
@@ -79,9 +81,9 @@
 
 ## 39.3 Required Reason APIs
 
-Apple ввели список **«chink» API**, которые часто используют для
-fingerprint'инга. Если используешь — должен указать legitimate
-reason в Privacy Manifest.
+Apple ввели список **Required Reason API** — это API, которые часто
+используют для fingerprint'инга. Если используешь — должен указать
+конкретную причину (reason code) в Privacy Manifest.
 
 Категории и примеры:
 
@@ -133,7 +135,8 @@ reason в Privacy Manifest.
 них **обязательно** свой `PrivacyInfo.xcprivacy`. Если у SDK нет —
 Apple отказывает в submission.
 
-С 2024 года Apple **отзывает** apps использующие SDKs без манифеста.
+С 2024 года Apple **отклоняет новые сборки** с такими SDK без
+манифеста (уже опубликованные приложения из App Store не удаляют).
 
 Проверь: в навигаторе Xcode → выдвинь `Frameworks` → у каждой
 зависимости должен быть `PrivacyInfo.xcprivacy`. Если нет — обнови
@@ -236,8 +239,8 @@ iOS освобождает эту директорию при нехватке �
 ## 39.10 Что **запрещено**
 
 - **Fingerprinting** — определять юзера по hardware-параметрам
-  (mac address, IMEI, точная конфигурация). Apple banned.
-- **Прокачка `UDID`** через workaround'ы — мгновенный bann.
+  (mac address, IMEI, точная конфигурация). Apple это запрещает.
+- **Прокачка `UDID`** через workaround'ы — мгновенный бан.
 - **Trade user data** — продавать кому-то без согласия.
 
 ## 39.11 Network security

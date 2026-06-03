@@ -511,7 +511,7 @@ private func presentEditor(_ editor: TodoEditorViewController) {
 ```
 
 `UISheetPresentationController` (iOS 15+) — нативный «вытяжной»
-бottom sheet с двумя позициями: половинная (`.medium`) и полная
+bottom sheet с двумя позициями: половинная (`.medium`) и полная
 (`.large`). Можно тянуть пальцем между ними.
 
 `prefersGrabberVisible = true` — серый «крючок» сверху sheet'а, по

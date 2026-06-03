@@ -536,7 +536,7 @@ Drawer — **выдвижной шкафчик** под раковиной. По
   синхронизация (tap ↔ swipe).
 - **Drawer** — constraint, который меняем (`-drawerWidth ↔ 0`),
   анимация через `view.layoutIfNeeded()` внутри `UIView.animate`.
-- **Pan gesture** — `translation` мapping в constraint, проверка
+- **Pan gesture** — `translation` mapping в constraint, проверка
   `> -drawerWidth/2` на отпускании для решения «открыть или закрыть».
 - **Overlay** — полупрозрачный view над контентом, alpha
   пропорциональна openness, тап закрывает drawer.

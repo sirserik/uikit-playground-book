@@ -134,6 +134,14 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 `didReceive` — когда юзер тапает по push notification (в Notification
 Center).
 
+> 💡 **Swift 6 и поток.** `UNUserNotificationCenterDelegate` в свежих
+> SDK помечен `@MainActor`, и наш `AppDelegate` тоже на main actor —
+> поэтому `handleDeepLink(url)` (метод того же класса) зовётся без
+> ошибок изоляции. Если же ты вынесешь обработку в обычный
+> nonisolated-тип, любое касание UI оборачивай в
+> `Task { @MainActor in handleDeepLink(url) }`, иначе Swift 6 не
+> пропустит.
+
 ## 41.7 Silent push
 
 Push без UI, только для **фоновой работы**:
@@ -192,8 +200,10 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 
 private func handleDeepLink(_ url: URL) {
     // myapp://chat/1234
+    // pathComponents для "/1234" вернёт ["/", "1234"] —
+    // первый элемент это сам слеш, поэтому берём last.
     let components = url.pathComponents
-    if url.host == "chat", let chatId = components.first {
+    if url.host == "chat", let chatId = components.last, chatId != "/" {
         showChat(id: chatId)
     }
 }

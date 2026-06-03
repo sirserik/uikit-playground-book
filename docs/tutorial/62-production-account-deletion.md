@@ -53,7 +53,9 @@ private func performDelete() {
         try? await API.deleteAccount()
         // 2. Очистить локальные данные
         AuthStorage.shared.clear()
-        UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
         // 3. Очистить FileManager
         try? FileManager.default.removeItem(at: documentsURL.appendingPathComponent("Notes"))
         // 4. Перейти на login или закрыть app

@@ -292,12 +292,17 @@ alert'е Face ID. «Touch ID хочет получить доступ к ...». 
 и получаешь нужный результат.
 
 > 💡 **Production-важно.** `LAContext` нужно держать **новый на каждый
-> запрос**. Если ты переиспользуешь один и тот же `LAContext`,
-> результат предыдущей проверки **кешируется** на 30 секунд (по
-> умолчанию). Это сделано Apple для UX (не спрашивать FaceID при
-> каждой purchase), но для security-критичных сценариев — баг.
-> Поэтому в нашем `authenticate()` каждый раз создаётся новый
-> `LAContext()`.
+> запрос**. По умолчанию переиспользование результата выключено
+> (`touchIDAuthenticationAllowableReuseDuration == 0`), то есть
+> биометрию спросят заново при каждом `evaluatePolicy`. Кеширование
+> можно включить, выставив этому свойству значение до
+> `LATouchIDAuthenticationMaximumAllowableReuseDuration` (10 минут) —
+> тогда повторная проверка в пределах окна пройдёт без запроса.
+> Новый контекст на каждый раз нужен по другой причине: у `LAContext`
+> копится внутреннее состояние (он одноразовый по смыслу, его можно
+> отменить через `invalidate()`), поэтому переиспользовать его для
+> новой проверки — плохая идея. В нашем `authenticate()` каждый раз
+> создаётся новый `LAContext()`.
 
 ## 11.8 Privacy blur **без** биометрии
 
@@ -426,7 +431,8 @@ state. Но визуально пользователь свернул и ушё
   WithBiometrics, localizedReason:)`.
 - `canEvaluatePolicy(_:error:)` перед запросом — проверка, доступна
   ли биометрия (девайс / enrolled / settings).
-- Новый `LAContext` на каждый запрос, иначе результат кешируется.
+- Новый `LAContext` на каждый запрос: у контекста копится внутреннее
+  состояние, он одноразовый по смыслу.
 - `Info.plist` нужна строка `NSFaceIDUsageDescription` — иначе крах
   при первом вызове.
 - Симулятор: `Features → Face ID → Enrolled / Matching / Non-matching`
@@ -441,7 +447,7 @@ state. Но визуально пользователь свернул и ушё
 - [`UIApplication.didBecomeActiveNotification`](https://developer.apple.com/documentation/uikit/uiapplication/didbecomeactivenotification) — обратное событие; парный момент, когда снимаем блюр или запускаем биометрию.
 - [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/willdeactivatenotification) — то же, но per-scene (актуально для iPad multi-window); используем именно её, чтобы корректно работать на iPad.
 - [`UIScene.didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/didactivatenotification) — парное активирование сцены.
-- [`LAContext`](https://developer.apple.com/documentation/localauthentication/lacontext) — точка входа в биометрию; на каждый запрос новый экземпляр, иначе результат кешируется на 30 секунд.
+- [`LAContext`](https://developer.apple.com/documentation/localauthentication/lacontext) — точка входа в биометрию; на каждый запрос новый экземпляр, потому что контекст накапливает состояние и одноразовый по смыслу.
 - [`LAPolicy.deviceOwnerAuthenticationWithBiometrics`](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthenticationwithbiometrics) — только Face ID / Touch ID, без fallback на passcode.
 - [`LAPolicy.deviceOwnerAuthentication`](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthentication) — биометрия с fallback на пароль устройства; для банкинга чаще берут именно её.
 - [`NSFaceIDUsageDescription`](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfaceidusagedescription) — обязательная строка в Info.plist, иначе крах при первом `evaluatePolicy`.

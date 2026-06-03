@@ -146,7 +146,7 @@ class HapticEngine {
 - **Scrolling в обычной таблице** — там их и так нет от системы.
 - **На каждое нажатие клавиатуры** — система уже даёт keyboard click
   (если включён в Settings).
-- **Long-running operations** — postlimited, не во время.
+- **Long-running operations** — давай haptic по завершению, не во время.
 - **В Accessibility mode "Reduce Motion"** — Apple рекомендует
   снижать тактильные эффекты тоже.
 

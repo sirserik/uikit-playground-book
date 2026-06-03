@@ -83,7 +83,7 @@ private let pageController = UIPageViewController(
 )
 ```
 
-- `transitionStyle: .scroll` — свайп с inerсией. Альтернатива —
+- `transitionStyle: .scroll` — свайп с инерцией. Альтернатива —
   `.pageCurl`, страница «отлистывается» как в книге. Для приложений
   скевоморфно и устаревший.
 - `navigationOrientation: .horizontal` — листать пальцем влево-вправо.
@@ -285,7 +285,7 @@ private func markSeen() {
 }
 ```
 
-`key(for:)` — uникальный ключ **на каждое mini-app**:
+`key(for:)` — уникальный ключ **на каждое mini-app**:
 `onboarding.seen.todo`, `onboarding.seen.notes`. Если бы был один общий
 ключ, пройдя онбординг Todo, мы бы потеряли возможность увидеть
 онбординг Notes.

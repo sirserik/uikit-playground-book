@@ -276,15 +276,16 @@ nonisolated private static func todoSorter(_ a: Todo, _ b: Todo) -> Bool {
 ```swift
 Task {
     let result = try await api.fetch()
-    // Здесь актор не определён — Swift может выполнить на любом потоке.
-    self.label.text = result.title  // ERROR: main-actor required
+    self.label.text = result.title  // OK
 }
 ```
 
 С `MainActor`-default'ом, если `Task` создан внутри main-actor
-метода, он автоматически наследует main-isolation. Так что код работает.
-Но если ты создал `Task.detached` (отдельная иерархия) — нужно явно
-переходить на main:
+метода, он автоматически наследует main-isolation. Так что этот код
+работает: и до `await`, и после возврата из него мы остаёмся на main.
+А вот `Task.detached` создаёт отдельную иерархию **без** наследования
+изоляции — тогда тот же `self.label.text = ...` уже ошибка
+компиляции, и на main нужно переходить явно:
 
 ```swift
 Task.detached {
@@ -313,8 +314,8 @@ let bgObs = NotificationCenter.default.addObserver(
 ```
 
 Что здесь происходит. `addObserver(forName:object:queue:)` — старый
-Objective-C API. Его замыкание не знает про Swift acotr-isolation. Мы
-**уверены**, что oн прилетит на main queue (потому что мы передали
+Objective-C API. Его замыкание не знает про Swift actor-isolation. Мы
+уверены, что он прилетит на main queue (потому что мы передали
 `.main`), но компилятор этого не знает.
 
 `MainActor.assumeIsolated { ... }` — это **обещание** компилятору: «я

@@ -227,17 +227,23 @@ struct DeliveryAttributes: ActivityAttributes {
     var orderId: String
 }
 
-// Start
+// Start (iOS 16.2+ API — contentState:/update(using:) устарели)
 let activity = try Activity.request(
     attributes: DeliveryAttributes(orderId: "abc"),
-    contentState: .init(stage: "Готовится", minutesRemaining: 25)
+    content: ActivityContent(
+        state: .init(stage: "Готовится", minutesRemaining: 25),
+        staleDate: nil
+    )
 )
 
 // Update
-await activity.update(using: .init(stage: "В пути", minutesRemaining: 15))
+await activity.update(
+    ActivityContent(state: .init(stage: "В пути", minutesRemaining: 15),
+                    staleDate: nil)
+)
 
 // End
-await activity.end(dismissalPolicy: .immediate)
+await activity.end(nil, dismissalPolicy: .immediate)
 ```
 
 Используется в food delivery, ride sharing, sports scores.

@@ -113,7 +113,9 @@ formatter.numberStyle = .spellOut
 formatter.string(from: NSNumber(value: 42))  // "сорок два"
 
 formatter.numberStyle = .ordinal
-formatter.string(from: NSNumber(value: 3))  // "3-й"
+// Для en_US вернёт "3rd". Для русской локали порядковый
+// суффикс не формируется (зависит от рода/падежа) — придёт "3".
+formatter.string(from: NSNumber(value: 3))
 ```
 
 ## 31.7 Number animation

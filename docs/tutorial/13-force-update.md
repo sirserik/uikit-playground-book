@@ -184,6 +184,18 @@ private func apply(remoteConfig: AppConfigStatus) {
 Те же двери для maintenance — только показываем если
 `hasMaintenanceCheck`.
 
+> ⚠️ **Если решаешь сравнивать версии на клиенте** (а не получать
+> готовый вердикт от сервера, как у нас) — не сравнивай строки версий
+> напрямую. `"2.0.0" < "10.0.0"` даст лексикографически **неверный**
+> результат (символ «2» больше «1»). Правильно — через `.numeric`:
+>
+> ```swift
+> let current = Bundle.main
+>     .infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+> let needsUpdate = current.compare(minVersion, options: .numeric)
+>     == .orderedAscending
+> ```
+
 ## 9.5 ForceUpdateViewController — блокирующий
 
 ```swift

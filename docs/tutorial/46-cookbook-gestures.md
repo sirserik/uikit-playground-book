@@ -98,14 +98,14 @@ let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
 draggableView.addGestureRecognizer(pan)
 
 @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+    if gesture.state == .began {
+        dragStart = draggableView.center
+    }
     let translation = gesture.translation(in: view)
     draggableView.center = CGPoint(
         x: dragStart.x + translation.x,
         y: dragStart.y + translation.y
     )
-    if gesture.state == .began {
-        dragStart = draggableView.center
-    }
 }
 ```
 

@@ -151,9 +151,14 @@ func pause() {
 }
 
 func toggle() {
-    guard let _ = state.current else { return }
-    state.isPlaying ? pause() : (player?.play(), state.isPlaying = true).0
-    notify()
+    guard state.current != nil else { return }
+    if state.isPlaying {
+        pause()
+    } else {
+        player?.play()
+        state.isPlaying = true
+        notify()
+    }
 }
 
 func skipForward() {
@@ -167,9 +172,10 @@ func skipForward() {
 `play(_:)` — если трек изменился, перезагружаем. Если тот же —
 просто играем (это case «пауза → play на том же треке»).
 
-`toggle()` — тернарка с tuple `.0` — компактный switch между
-`pause()` и «продолжить играть». Не самый чистый стиль, но
-работает; в production написал бы явный if/else.
+`toggle()` — обычный if/else между `pause()` и «продолжить
+играть». `pause()` сам зовёт `notify()`, поэтому в ветке
+play мы вызываем `notify()` отдельно, чтобы не дёрнуть его
+дважды.
 
 `skipForward` / `skipBackward` — циклические. С последнего трека —
 на первый. С первого назад — на последний (через `(index == 0 ?

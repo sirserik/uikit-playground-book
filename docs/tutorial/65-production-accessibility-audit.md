@@ -26,7 +26,7 @@
 - [ ] Все текст-цвета имеют contrast 4.5:1 минимум (3:1 для large
       text ≥ 24pt).
 - [ ] Custom colors проверены в Accessibility Inspector.
-- [ ] `UIAccessibility.isDarkerSystemColorsEnabled` подхватываeтся.
+- [ ] `UIAccessibility.isDarkerSystemColorsEnabled` подхватывается.
 - [ ] Кнопки имеют отличный border / shadow / contrast — не только
       цвет (для colorblind юзеров).
 
@@ -37,7 +37,7 @@
 ### Motion
 - [ ] Sophisticated animations проверены при
       `UIAccessibility.isReduceMotionEnabled`.
-- [ ] Sring-animations упрощены до fade при Reduce Motion.
+- [ ] Spring-анимации упрощены до fade при Reduce Motion.
 - [ ] Parallax эффекты отключаются при Reduce Motion.
 
 ### Captions / subtitles
@@ -131,7 +131,7 @@ Settings → Accessibility → Display & Text Size → Color Filters.
 - **Battery / performance** — анимации тормозят?
 - **Slower devices** — на iPhone X / 8 анимации могут лагать.
 
-Минимум — proверь на устройстве 2-3 года назад (не latest).
+Минимум — проверь на устройстве 2-3 года назад (не latest).
 
 ## 43.8 Localization
 

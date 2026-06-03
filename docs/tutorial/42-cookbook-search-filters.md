@@ -168,17 +168,25 @@ present(alert, animated: true)
 
 `actionSheet` хорош для 3-6 опций. Больше — отдельный picker-screen.
 
-Текущая сортировка — отметка `state: .on` в `UIAlertAction` (галочка
-рядом):
+У `UIAlertAction` нет публичного способа поставить галочку у текущей
+опции (есть только приватный `setValue(true, forKey: "checked")` — его
+использовать **нельзя**: это не public API, ревью может отклонить, и в
+любой версии iOS оно может отвалиться).
+
+Если нужна отметка текущего выбора — бери `UIMenu`: у `UIAction` есть
+публичное свойство `state`, и `.on` рисует галочку само:
 
 ```swift
-let action = UIAlertAction(title: title, style: .default) { ... }
-if sort == currentSort {
-    action.setValue(true, forKey: "checked")  // не public API, но работает
+let actions = options.map { title, sort in
+    UIAction(title: title,
+             state: sort == currentSort ? .on : .off) { [weak self] _ in
+        self?.currentSort = sort
+        self?.applyFilter()
+    }
 }
+sortButton.menu = UIMenu(title: "Сортировка", children: actions)
+sortButton.showsMenuAsPrimaryAction = true
 ```
-
-В production лучше через `UIMenu` или кастомный VC.
 
 ## 25.7 Live API search (autocomplete)
 
