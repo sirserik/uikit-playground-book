@@ -248,7 +248,7 @@ duration вытащить из notification'а, чтобы синхронизи�
 > 💡 **Apple-style клавиатура.** Если используешь
 > `keyboardLayoutGuide`, анимация подъёма синхронизирована с iOS из
 > коробки. Без него — `animate(withDuration: 0.25)` всегда даёт
-> разсинхрон.
+> рассинхрон.
 
 ## 18.7 Composer — ComposerView
 

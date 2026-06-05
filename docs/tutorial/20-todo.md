@@ -183,7 +183,7 @@ widget'ом). Это dependency injection — хранилище легко те
 передав `UserDefaults(suiteName: "test")`.
 
 `@MainActor` на классе. UserDefaults thread-safe, но наш сторадж зовётся
-из UI и публикует уведомления о изменениях (`notify()`), которые
+из UI и публикует уведомления об изменениях (`notify()`), которые
 обновляют tableView. Уведомления обязаны идти с main. Проще объявить
 весь класс main-actor — компилятор сам не даст вызвать его с
 background.

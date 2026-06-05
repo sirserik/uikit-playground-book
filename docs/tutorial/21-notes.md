@@ -211,7 +211,7 @@ private func setupSearch() {
 
 Что делают параметры:
 
-- `searchResultsUpdater = self` — кто получает уведомления о изменении
+- `searchResultsUpdater = self` — кто получает уведомления об изменении
   текста. Реализуем `UISearchResultsUpdating`.
 - `obscuresBackgroundDuringPresentation = false` — основной экран не
   затемняется во время поиска. Это правильно: мы фильтруем **прямо

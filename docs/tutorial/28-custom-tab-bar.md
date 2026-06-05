@@ -276,7 +276,7 @@ private func setupTabsBar() {
 }
 ```
 
-`indicatorConstraint` — leading const'rint линии. Будем менять его
+`indicatorConstraint` — leading constraint линии. Будем менять его
 при смене таба, линия будет ехать:
 
 ```swift

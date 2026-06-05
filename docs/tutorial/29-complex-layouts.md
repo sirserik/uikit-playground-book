@@ -319,7 +319,7 @@ A, B, C — буква текущей секции висит сверху).
 Header идёт **от view.topAnchor**, не от safeArea. Это значит — он
 залезает под navigation bar (если бы он был). У нас в
 `BootCoordinator.showMain` mini-app оборачивается в
-`UINavigationController` с translucent baranavigation bar.
+`UINavigationController` с translucent navigation bar.
 
 Прозрачный nav bar **поверх** header'а — нормально. Под ним виден
 градиент, размытый эффектом translucent material. Это даёт ощущение

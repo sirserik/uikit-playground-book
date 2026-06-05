@@ -119,7 +119,7 @@ Apple не диктует, но **рекомендует** soft delete с grace 
 
 ## 40.6 Apple ID / Sign in with Apple
 
-Если используешь Sign in with Apple — должен **революок** Apple
+Если используешь Sign in with Apple — должен **revoke** Apple
 credential:
 
 ```swift
