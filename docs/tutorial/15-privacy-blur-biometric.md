@@ -145,7 +145,9 @@ queue. Это важно: UIKit-операции (showing/hiding views) с main 
 про Swift Concurrency) и нашими main-actor методами. Мы знаем, что
 блок выполнится на main (потому что `queue: .main`), но компилятор
 этого не знает. `assumeIsolated` обещает «я уже на main, пускай»
-(см. Главу 5).
+(см. Главу 5). Доступность: `MainActor.assumeIsolated` — iOS 17+; для
+iOS 15–16 помечай метод `@available(iOS 17, *)` либо мости через
+`Task { @MainActor in self?.handleEnterBackground() }`.
 
 `[weak self]` — обязательно. Иначе observer держит controller вечно.
 

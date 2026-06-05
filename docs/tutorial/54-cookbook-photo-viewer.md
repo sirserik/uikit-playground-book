@@ -6,7 +6,7 @@
 
 ```swift
 final class PhotoViewerViewController: UIViewController {
-    private let imageURL: URL
+    let imageURL: URL   // не private: dataSource pageVC читает его снаружи (viewer.imageURL)
     private let scrollView = UIScrollView()
     private let imageView = UIImageView()
 

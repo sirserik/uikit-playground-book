@@ -70,7 +70,7 @@ private var hasMore = true
 
 func tableView(_ tableView: UITableView,
                willDisplay cell: UITableViewCell,
-               forItemAt indexPath: IndexPath) {
+               forRowAt indexPath: IndexPath) {
     if indexPath.row >= items.count - 6 {
         loadMore()
     }

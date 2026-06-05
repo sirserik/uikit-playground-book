@@ -42,8 +42,9 @@ struct PicsumPhoto: Decodable, Hashable, Sendable {
 
 `fullURL` — для полноэкранного режима, 1200×1200.
 
-Декодер с snake_case — Swift игнорирует регистр, `download_url`
-декодируется в `download_url` свойство как есть. Camelcase можно
+Декодер с snake_case — имя свойства точно совпадает с ключом JSON,
+`download_url` декодируется в `download_url` свойство как есть (сопоставление
+ключей в Codable регистрозависимое). Camelcase можно
 получить через `CodingKeys` или `JSONDecoder.keyDecodingStrategy =
 .convertFromSnakeCase`.
 

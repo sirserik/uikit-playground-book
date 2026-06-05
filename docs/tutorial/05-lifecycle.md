@@ -326,6 +326,11 @@ Objective-C API. Его замыкание не знает про Swift actor-is
 Использовать только тогда, когда **точно знаешь**, что окружение
 правильное. В нашем случае — `queue: .main` это гарантирует.
 
+Доступность: `MainActor.assumeIsolated` появился в Swift 5.9 (iOS 17). Если
+deployment target — iOS 15–16, либо помечай метод `@available(iOS 17, *)`,
+либо мости иначе — `Task { @MainActor in self?.handleEnterBackground() }`
+(асинхронно, без проверки версии) или `if #available(iOS 17, *) { … }`.
+
 ## 5.8 Бытовая аналогия
 
 `AppDelegate` — это **служба охраны** в здании. Знает, кто включил

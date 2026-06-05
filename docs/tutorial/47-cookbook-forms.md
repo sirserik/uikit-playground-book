@@ -36,7 +36,7 @@ emailField.addTarget(self, action: #selector(check), for: .editingChanged)
 ## 30.2 Submit button enabled только при валидной форме
 
 ```swift
-private func validateForm() {
+@objc private func validateForm() {
     let emailOk = isValidEmail(emailField.text ?? "")
     let passOk = (passwordField.text?.count ?? 0) >= 6
     let ok = emailOk && passOk

@@ -102,8 +102,9 @@ case .toggle(let title, let key):
     cell.contentConfiguration = content
     let toggle = UISwitch()
     toggle.isOn = UserDefaults.standard.bool(forKey: key)
-    toggle.addAction(UIAction { [key] _ in
-        UserDefaults.standard.set(toggle.isOn, forKey: key)
+    toggle.addAction(UIAction { [key] action in
+        let sw = action.sender as! UISwitch
+        UserDefaults.standard.set(sw.isOn, forKey: key)
     }, for: .valueChanged)
     cell.accessoryView = toggle
     cell.selectionStyle = .none
@@ -113,8 +114,10 @@ UISwitch ставится в `cell.accessoryView`. Текст — в content
 configuration.
 
 `addAction(UIAction { ... }, for: .valueChanged)` — closure handler,
-без `@objc` метода. `[key] _ in` захватывает `key` явно (а не `self`
-через дефолтное), это уменьшает риск ошибок памяти.
+без `@objc` метода. Значение читаем из `action.sender`, а не из самого
+`toggle` — иначе замыкание захватило бы контрол, который его же и держит
+(контрол → action → замыкание → контрол), и каждый свитч при скролле
+утекал бы. В списке захвата только `key` (не `self`).
 
 `selectionStyle = .none` — ячейка не должна «подсвечиваться» при тапе
 (только switch реагирует).
@@ -136,8 +139,9 @@ case .stepper(let title, let key, let range):
     stepper.minimumValue = Double(range.lowerBound)
     stepper.maximumValue = Double(range.upperBound)
     stepper.value = Double(value)
-    stepper.addAction(UIAction { [weak self, key] _ in
-        let newValue = Int(stepper.value)
+    stepper.addAction(UIAction { [weak self, key] action in
+        let s = action.sender as! UIStepper
+        let newValue = Int(s.value)
         UserDefaults.standard.set(newValue, forKey: key)
         self?.tableView.reloadRows(at: [indexPath], with: .none)
     }, for: .valueChanged)

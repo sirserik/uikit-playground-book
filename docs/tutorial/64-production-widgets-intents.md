@@ -233,7 +233,8 @@ let activity = try Activity.request(
     content: ActivityContent(
         state: .init(stage: "Готовится", minutesRemaining: 25),
         staleDate: nil
-    )
+    ),
+    pushType: nil   // обязательный аргумент; nil — local-only Live Activity
 )
 
 // Update

@@ -185,7 +185,7 @@ pageControl.addTarget(self, action: #selector(pageControlChanged), for: .valueCh
 
 `UIPageControl` сам по себе — кликабельный. Тап по правой стороне
 точек двигает `currentPage` на +1, по левой — на -1. iOS 14+
-поддерживает **prefersInteractive** и появляется continuous slider при
+поддерживает `allowsContinuousInteraction` — появляется continuous slider при
 зажатии. Мы используем стандартное поведение.
 
 Синхронизация двунаправленная:

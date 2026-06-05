@@ -120,7 +120,7 @@ final class AnimatedSplashViewController: UIViewController {
 ```
 
 Splash получает `manifest` — описание mini-app (имя, иконка, цвет — мы
-разберём `AppManifest` в Главе 3). И callback `onFinish`, который зовём,
+разберём `AppManifest` в Главе 2). И callback `onFinish`, который зовём,
 когда анимация закончилась. Сам splash не знает, что будет дальше — это
 решает координатор сверху.
 
