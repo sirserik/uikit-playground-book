@@ -354,8 +354,8 @@ func pageViewController(_ pageVC: UIPageViewController, didFinishAnimating ...) 
 
 - [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview) — zoom / pan, базис photo viewer.
 - [UIScrollView/minimumZoomScale](https://developer.apple.com/documentation/uikit/uiscrollview/1619428-minimumzoomscale), [UIScrollView/maximumZoomScale](https://developer.apple.com/documentation/uikit/uiscrollview/1619408-maximumzoomscale) — границы зума.
-- [UIScrollView/zoom(to:animated:)](https://developer.apple.com/documentation/uikit/uiscrollview/1619412-zoom) — программный zoom к прямоугольнику (для double-tap to point).
-- [UIScrollViewDelegate/viewForZooming(in:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/1619425-viewforzooming) — какое subview масштабировать при pinch.
+- [UIScrollView/zoom(to:animated:)](https://developer.apple.com/documentation/uikit/uiscrollview) — программный zoom к прямоугольнику (для double-tap to point).
+- [UIScrollViewDelegate/viewForZooming(in:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate) — какое subview масштабировать при pinch.
 - [UIScrollViewDelegate/scrollViewDidZoom(_:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/1619409-scrollviewdidzoom) — реакция на изменение zoom (центрирование контента).
 - [UIPinchGestureRecognizer](https://developer.apple.com/documentation/uikit/uipinchgesturerecognizer) — pinch-жест (UIScrollView использует внутри).
 - [UIPanGestureRecognizer](https://developer.apple.com/documentation/uikit/uipangesturerecognizer) — основа pan-to-dismiss.
@@ -365,7 +365,7 @@ func pageViewController(_ pageVC: UIPageViewController, didFinishAnimating ...) 
 - [UIPercentDrivenInteractiveTransition](https://developer.apple.com/documentation/uikit/uipercentdriveninteractivetransition) — интерактивный swipe-to-dismiss с возможностью «передумать».
 - [UIActivityViewController](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller) — стандартный share sheet.
 - [UIImageWriteToSavedPhotosAlbum(_:_:_:_:)](https://developer.apple.com/documentation/uikit/1619125-uiimagewritetosavedphotosalbum) — C-style сохранение в Photos.
-- [PHPhotoLibrary/performChanges(_:completionHandler:)](https://developer.apple.com/documentation/photokit/phphotolibrary/1620747-performchanges) — современная альтернатива через PhotoKit.
+- [PHPhotoLibrary/performChanges(_:completionHandler:)](https://developer.apple.com/documentation/photokit/phphotolibrary) — современная альтернатива через PhotoKit.
 - [UINavigationBarAppearance](https://developer.apple.com/documentation/uikit/uinavigationbarappearance) — `configureWithTransparentBackground()` для прозрачного nav bar.
 - [HIG — Image views](https://developer.apple.com/design/human-interface-guidelines/image-views) — рекомендации Apple по полноэкранному просмотру изображений.
 

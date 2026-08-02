@@ -414,7 +414,7 @@ playground'е и появятся в Части V (production):
 - [`UISceneDelegate`](https://developer.apple.com/documentation/uikit/uiscenedelegate) и [`UIWindowSceneDelegate`](https://developer.apple.com/documentation/uikit/uiwindowscenedelegate) — события окна; здесь живёт `scene(_:willConnectTo:options:)`.
 - [`UIScene.ConnectionOptions`](https://developer.apple.com/documentation/uikit/uiscene/connectionoptions) — параметры, с которыми iOS соединяет сцену (URL Contexts, shortcut item, notification response).
 - [`UISceneSession`](https://developer.apple.com/documentation/uikit/uiscenesession) — сама сессия сцены, через неё iOS восстанавливает окна.
-- [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/3197982-willdeactivatenotification) и [`didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/3197970-didactivatenotification) — нотификации, на которые подписан `LifecycleSecurityController`.
+- [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/willdeactivatenotification) и [`didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/didactivatenotification) — нотификации, на которые подписан `LifecycleSecurityController`.
 - [Concurrency — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — async/await, actors, structured concurrency.
 - [`MainActor`](https://developer.apple.com/documentation/swift/mainactor) — sample про правила main-actor изоляции и переходы `await MainActor.run`.
 

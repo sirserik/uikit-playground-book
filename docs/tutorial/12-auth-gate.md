@@ -497,7 +497,7 @@ clear() из Keychain).
 
 ## Apple Developer Documentation
 
-- [Human Interface Guidelines — Authentication](https://developer.apple.com/design/human-interface-guidelines/authentication) — когда гейт оправдан, когда лучше отложить, и почему Sign in with Apple обязателен, если предлагаешь сторонние OAuth-провайдеры.
+- [Human Interface Guidelines — Authentication](https://developer.apple.com/design/human-interface-guidelines/managing-accounts) — когда гейт оправдан, когда лучше отложить, и почему Sign in with Apple обязателен, если предлагаешь сторонние OAuth-провайдеры.
 - [`UINavigationController`](https://developer.apple.com/documentation/uikit/uinavigationcontroller) — наш auth-стек: login как root, register/forgot — `pushViewController` со штатным back-жестом.
 - [`UIButton.Configuration`](https://developer.apple.com/documentation/uikit/uibutton/configuration) — `showsActivityIndicator = true` даёт встроенный спиннер без отдельного `UIActivityIndicatorView`.
 - [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) — когда мок заменится на реальный бэкенд, `data(for:)` async/await — отправная точка.

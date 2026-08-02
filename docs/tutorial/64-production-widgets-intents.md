@@ -158,8 +158,8 @@ TodoWidgetView(entry: entry)
 import AppIntents
 
 struct CreateTodoIntent: AppIntent {
-    static var title: LocalizedStringResource = "Создать задачу"
-    static var description: LocalizedStringResource = "Добавить задачу в список дел"
+    static let title: LocalizedStringResource = "Создать задачу"
+    static let description = IntentDescription("Добавить задачу в список дел")
 
     @Parameter(title: "Текст задачи")
     var todoText: String
@@ -171,6 +171,19 @@ struct CreateTodoIntent: AppIntent {
     }
 }
 ```
+
+Два момента, на которых спотыкаются при переносе старых примеров.
+
+`static let`, а не `static var`: в Swift 6 изменяемое статическое
+свойство — это глобальное общее состояние, и компилятор откажется
+собирать («static property 'title' is not concurrency-safe»). Менять
+заголовок интента в рантайме всё равно незачем, так что `let` тут и
+правильнее, и короче.
+
+Тип у `description` — **`IntentDescription`**, а не
+`LocalizedStringResource`. Он умеет больше: кроме текста в нём живут
+`categoryName` для группировки в Shortcuts и флаг
+`searchKeywords`.
 
 После этого юзер может:
 
@@ -322,7 +335,7 @@ widget значительно повышает retention. Юзер видит д
 - [App Intents](https://developer.apple.com/documentation/appintents) — фреймворк для Siri, Shortcuts, Spotlight, Focus filter.
 - [`AppShortcutsProvider`](https://developer.apple.com/documentation/appintents/appshortcutsprovider) — регистрирует фразы, по которым Siri и Shortcuts видят твои intents.
 - [ActivityKit / Live Activities](https://developer.apple.com/documentation/activitykit) — динамические виджеты на lock screen и Dynamic Island.
-- [Sharing data with your containing app](https://developer.apple.com/documentation/widgetkit/sharing-data-with-your-containing-app) — App Group для UserDefaults и FileManager между приложением и виджетом.
-- [`Link` и `widgetURL(_:)`](https://developer.apple.com/documentation/widgetkit/linking-to-content-in-your-app) — открыть приложение по deep link из виджета.
+- [Sharing data with your containing app](https://developer.apple.com/documentation/widgetkit/creating-a-widget-extension) — App Group для UserDefaults и FileManager между приложением и виджетом.
+- [`Link` и `widgetURL(_:)`](https://developer.apple.com/documentation/widgetkit/making-a-configurable-widget) — открыть приложение по deep link из виджета.
 
 → [Глава 43. Production: accessibility audit](./65-production-accessibility-audit.md)

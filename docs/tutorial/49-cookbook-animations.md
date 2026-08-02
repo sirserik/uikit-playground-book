@@ -336,6 +336,6 @@ duration) — резко. Медленно — плавно.
 - [CAEmitterLayer](https://developer.apple.com/documentation/quartzcore/caemitterlayer) — particle-система (confetti).
 - [UIViewControllerTransitioningDelegate](https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioningdelegate) — точка входа для custom-перехода (hero animation).
 - [UIViewControllerAnimatedTransitioning](https://developer.apple.com/documentation/uikit/uiviewcontrolleranimatedtransitioning) — собственно протокол анимации перехода.
-- [UIImageView/addSymbolEffect(_:options:animated:)](https://developer.apple.com/documentation/uikit/uiimageview/4218778-addsymboleffect) — анимация SF Symbol (`.bounce`, `.pulse`, `.scale`), iOS 17+.
+- [UIImageView/addSymbolEffect(_:options:animated:)](https://developer.apple.com/documentation/uikit/uiimageview) — анимация SF Symbol (`.bounce`, `.pulse`, `.scale`), iOS 17+.
 
 → [Глава 33. Cookbook: haptics](./50-cookbook-haptics.md)

@@ -479,9 +479,9 @@ playerItem'а. С `object` — только нашего конкретного.
 - [AVPlayer](https://developer.apple.com/documentation/avfoundation/avplayer) — универсальный медиа-плеер, играет локальные и сетевые URL.
 - [AVPlayerItem](https://developer.apple.com/documentation/avfoundation/avplayeritem) — обёртка над конкретным контентом, который проигрывает `AVPlayer`.
 - [AVAudioSession](https://developer.apple.com/documentation/avfaudio/avaudiosession) — сессия аудио для приложения, через неё iOS понимает категорию и поведение в фоне.
-- [AVAudioSession.Category.playback](https://developer.apple.com/documentation/avfaudio/avaudiosession/category/playback) — категория для музыкального плеера: играет в mute, играет в фоне.
+- [AVAudioSession.Category.playback](https://developer.apple.com/documentation/avfaudio/avaudiosession) — категория для музыкального плеера: играет в mute, играет в фоне.
 - [addPeriodicTimeObserver(forInterval:queue:using:)](https://developer.apple.com/documentation/avfoundation/avplayer/addperiodictimeobserver(forinterval:queue:using:)) — периодический callback по прогрессу воспроизведения. Парный метод — `removeTimeObserver(_:)`.
-- [AVPlayerItem.didPlayToEndTimeNotification](https://developer.apple.com/documentation/foundation/nsnotification/name/1389391-avplayeritemdidplaytoendtime) — уведомление об окончании трека для авто-перехода на следующий.
+- [AVPlayerItem.didPlayToEndTimeNotification](https://developer.apple.com/documentation/foundation/nsnotification) — уведомление об окончании трека для авто-перехода на следующий.
 - [CMTime](https://developer.apple.com/documentation/coremedia/cmtime) — рациональное представление времени для precise audio seek.
 - [MPNowPlayingInfoCenter](https://developer.apple.com/documentation/mediaplayer/mpnowplayinginfocenter) — Now Playing на lockscreen и в Control Center. Мы это пропустили; добавляется в production.
 - [MPRemoteCommandCenter](https://developer.apple.com/documentation/mediaplayer/mpremotecommandcenter) — обработка remote-команд play/pause/skip с lockscreen и наушников.

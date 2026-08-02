@@ -389,10 +389,10 @@ xcrun simctl push booted com.your.app payload.apns
 - [`UNNotificationRequest`](https://developer.apple.com/documentation/usernotifications/unnotificationrequest) — объект request, который ставится в очередь центром уведомлений.
 - [`UNNotificationCategory`](https://developer.apple.com/documentation/usernotifications/unnotificationcategory) — кастомные кнопки-действия в push (категория + actions).
 - [Setting up a remote notification server](https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server) — конфигурация APNs key, токенов и серверной отправки.
-- [Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending_notification_requests_to_apns) — формат HTTP/2-запроса и payload JSON.
+- [Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns) — формат HTTP/2-запроса и payload JSON.
 - [Supporting Universal Links in your app](https://developer.apple.com/documentation/xcode/supporting-universal-links-in-your-app) — Associated Domains и `apple-app-site-association`.
 - [`NSUserActivity`](https://developer.apple.com/documentation/foundation/nsuseractivity) — обработка Universal Links через `continue userActivity`.
 - [`UIApplicationDelegate.application(_:open:options:)`](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623112-application) — точка входа для URL-scheme deep link'ов (legacy путь до scene-based API).
-- [`UISceneDelegate.scene(_:openURLContexts:)`](https://developer.apple.com/documentation/uikit/uiwindowscenedelegate/3238088-scene) — современный обработчик deep link'ов через сцены.
+- [`UISceneDelegate.scene(_:openURLContexts:)`](https://developer.apple.com/documentation/uikit/uiwindowscenedelegate) — современный обработчик deep link'ов через сцены.
 
 → [Глава 42. Production: widgets + App Intents](./64-production-widgets-intents.md)

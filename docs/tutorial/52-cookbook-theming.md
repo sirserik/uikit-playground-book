@@ -265,10 +265,10 @@ VC'ы автоматически получают новый trait. Modal'ы (pr
 - [UITraitCollection/userInterfaceStyle](https://developer.apple.com/documentation/uikit/uitraitcollection/1651063-userinterfacestyle) — текущий dark / light режим.
 - [UIUserInterfaceStyle](https://developer.apple.com/documentation/uikit/uiuserinterfacestyle) — `.unspecified` / `.light` / `.dark`.
 - [UIView/overrideUserInterfaceStyle](https://developer.apple.com/documentation/uikit/uiview/3238086-overrideuserinterfacestyle) — заставить конкретный VC / window работать в нужной теме.
-- [UIColor/init(dynamicProvider:)](https://developer.apple.com/documentation/uikit/uicolor/3238042-init) — adaptive color через closure, iOS 13+.
+- [UIColor/init(dynamicProvider:)](https://developer.apple.com/documentation/uikit/uicolor) — adaptive color через closure, iOS 13+.
 - [UITraitChangeRegistration](https://developer.apple.com/documentation/uikit/uitraitchangeregistration) — `registerForTraitChanges(_:handler:)`, современный способ реагировать на смену трейтов, iOS 17+.
 - [UITraitEnvironment/traitCollectionDidChange(_:)](https://developer.apple.com/documentation/uikit/uitraitenvironment/1623516-traitcollectiondidchange) — legacy-метод (помечен deprecated в iOS 17), нужен для обновления CALayer-цветов в старых версиях.
-- [UITraitCollection/hasDifferentColorAppearance(comparedTo:)](https://developer.apple.com/documentation/uikit/uitraitcollection/3238080-hasdifferentcolorappearance) — отличить смену именно цветовой темы от других trait-изменений.
+- [UITraitCollection/hasDifferentColorAppearance(comparedTo:)](https://developer.apple.com/documentation/uikit/uitraitcollection) — отличить смену именно цветовой темы от других trait-изменений.
 - [UIColor — UI element colors](https://developer.apple.com/documentation/uikit/uicolor/standard_colors#3174519) — semantic colors (`.label`, `.systemBackground`, fill / separator).
 - [HIG — Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode) — гайдлайн Apple по dark mode и Asset Catalog Any/Dark Appearance.
 - [HIG — Color](https://developer.apple.com/design/human-interface-guidelines/color) — палитра системных и semantic цветов.

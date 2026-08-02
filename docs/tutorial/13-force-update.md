@@ -448,7 +448,7 @@ update.
 
 ## Apple Developer Documentation
 
-- [Human Interface Guidelines — App architecture](https://developer.apple.com/design/human-interface-guidelines/app-architecture) — общий раздел про launch experience: блокирующие экраны допустимы только когда без них приложение реально неработоспособно.
+- [Human Interface Guidelines — App architecture](https://developer.apple.com/design/human-interface-guidelines/patterns) — общий раздел про launch experience: блокирующие экраны допустимы только когда без них приложение реально неработоспособно.
 - [`Bundle.main`](https://developer.apple.com/documentation/foundation/bundle/main) — точка входа за `Info.plist`; отсюда читаем текущую версию для сравнения с `minVersion` от сервера.
 - [`CFBundleShortVersionString` (Information Property List)](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleshortversionstring) — каноничный ключ маркетинговой версии («1.2.3»); сравнивать `minVersion` нужно именно с ним, а не с `CFBundleVersion` (build number).
 - [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) — настоящий remote-config обычно дёргается через `URLSession.shared.data(for:)`; наш `AppConfigService` — мок поверх той же async-абстракции.

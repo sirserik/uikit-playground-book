@@ -353,7 +353,7 @@ present(vc, animated: true)
 
 - [`UISheetPresentationController`](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller) — bottom sheet с детентами (iOS 15+).
 - [`UISheetPresentationController.Detent`](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller/detent) — `.medium()`, `.large()`, `.custom { ... }` (iOS 16+).
-- [`UIViewController.sheetPresentationController`](https://developer.apple.com/documentation/uikit/uiviewcontroller/3801906-sheetpresentationcontroller) — слот контроллера для конфигурации sheet'а.
+- [`UIViewController.sheetPresentationController`](https://developer.apple.com/documentation/uikit/uiviewcontroller/sheetpresentationcontroller) — слот контроллера для конфигурации sheet'а.
 - [`UIViewController.presentationController`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621426-presentationcontroller) — общий presentation controller, отсюда получаем popover, sheet, alert.
 - [`UIModalPresentationStyle`](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle) — `.fullScreen`, `.overFullScreen`, `.pageSheet`, `.formSheet`, `.popover`, `.custom`.
 - [`UIAlertController`](https://developer.apple.com/documentation/uikit/uialertcontroller) — `.alert` и `.actionSheet`.

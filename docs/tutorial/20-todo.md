@@ -261,7 +261,10 @@ deinit {
 ```swift
 struct TodoAPI: Sendable {
     func fetchSampleTodos(limit: Int = 8) async throws -> [Todo] {
-        var components = URLComponents(url: baseURL.appendingPathComponent("todos"), ...)!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("todos"),
+            resolvingAgainstBaseURL: false
+        )!
         components.queryItems = [URLQueryItem(name: "limit", value: String(limit))]
         var request = URLRequest(url: components.url!)
         request.timeoutInterval = 10

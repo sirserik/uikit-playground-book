@@ -458,7 +458,7 @@ iOS сама красит и форматирует header/footer для `insetG
 - [UIStepper](https://developer.apple.com/documentation/uikit/uistepper) — две кнопки «+/−», для целых значений в ограниченном диапазоне.
 - [UISlider](https://developer.apple.com/documentation/uikit/uislider) — непрерывный регулятор; не помещается в `accessoryView`, поэтому собираем кастомный `UIStackView` в `contentView`.
 - [UIMenu](https://developer.apple.com/documentation/uikit/uimenu) — popup-меню с галочкой `UIAction.State.on`, заменяющее старый push-picker.
-- [UIButton.showsMenuAsPrimaryAction](https://developer.apple.com/documentation/uikit/uibutton/3601219-showsmenuasprimaryaction) — превращает обычный тап по кнопке в открытие меню.
+- [UIButton.showsMenuAsPrimaryAction](https://developer.apple.com/documentation/uikit/uibutton) — превращает обычный тап по кнопке в открытие меню.
 - [UIAction](https://developer.apple.com/documentation/uikit/uiaction) — closure-based обработчик, прикладывается через `addAction(_:for:)` без `@objc`.
 - [UIAlertController](https://developer.apple.com/documentation/uikit/uialertcontroller) — подтверждалки для destructive-действий (выход, удаление). Стили `.alert` и `.actionSheet`.
 - [UserDefaults](https://developer.apple.com/documentation/foundation/userdefaults) — стандартный сторадж пользовательских настроек.

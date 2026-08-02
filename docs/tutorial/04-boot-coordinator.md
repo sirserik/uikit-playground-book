@@ -352,7 +352,7 @@ Coordinator-паттерна нет в Apple-доках (это сообщест
 
 - [`UIViewController`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — координатор работает поверх корневых VC; смотри раздел про root view controller и transitions.
 - [Implementing a Container View Controller](https://developer.apple.com/documentation/uikit/view_controllers/creating_a_custom_container_view_controller) — официальный гид по containment API, родственный нашему подходу со сменой root.
-- [`addChild(_:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621394-addchild) и [`willMove(toParent:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621405-willmove) — методы containment, которые пригодятся, если решишь делать гейты как child-VC, а не подменой root.
+- [`addChild(_:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621394-addchild) и [`willMove(toParent:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — методы containment, которые пригодятся, если решишь делать гейты как child-VC, а не подменой root.
 - [`UIView.transition(with:duration:options:animations:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622574-transition) — анимация cross-dissolve при смене `rootViewController`.
 - [Closures — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/closures) — для callback'ов `onPass`/`onTooYoung`/`onExit` и capture-list `[weak self]`.
 - [Automatic Reference Counting — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting) — почему координатор обязательно должен висеть на сильной ссылке у лаунчера.

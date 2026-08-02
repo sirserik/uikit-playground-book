@@ -234,7 +234,7 @@ emptyView.configure(
 ## Apple Developer Documentation
 
 - [`UIContentUnavailableConfiguration`](https://developer.apple.com/documentation/uikit/uicontentunavailableconfiguration) — системный API для empty / loading / error state'ов (iOS 17+); содержит готовые `.empty()`, `.loading()`, `.search()`.
-- [`UIViewController.contentUnavailableConfiguration`](https://developer.apple.com/documentation/uikit/uiviewcontroller/4202955-contentunavailableconfiguration) — слот контроллера для подсовывания unavailable-конфигурации (iOS 17+); до этого — `EmptyStateView` вручную.
+- [`UIViewController.contentUnavailableConfiguration`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — слот контроллера для подсовывания unavailable-конфигурации (iOS 17+); до этого — `EmptyStateView` вручную.
 - [`UIImage.SymbolConfiguration`](https://developer.apple.com/documentation/uikit/uiimage/symbolconfiguration) — настройка SF Symbols (размер, вес, иерархия).
 - [`Network/NWPathMonitor`](https://developer.apple.com/documentation/network/nwpathmonitor) — отслеживание доступности сети для offline-баннера.
 - [`Network/NWPath.Status`](https://developer.apple.com/documentation/network/nwpath/status-swift.enum) — состояние пути (`satisfied`, `unsatisfied`, `requiresConnection`).

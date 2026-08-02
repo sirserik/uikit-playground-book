@@ -280,11 +280,11 @@ Accessibility — это **сурдопереводчик в кинотеатр�
 - [UIAccessibility](https://developer.apple.com/documentation/uikit/uiaccessibility) — глобальные accessibility-настройки и нотификации.
 - [UIAccessibility.isVoiceOverRunning](https://developer.apple.com/documentation/uikit/uiaccessibility/1615187-isvoiceoverrunning) — VoiceOver включён.
 - [UIAccessibility.isReduceMotionEnabled](https://developer.apple.com/documentation/uikit/uiaccessibility/1615133-isreducemotionenabled) — пользователь просит упрощать анимации.
-- [UIAccessibility.isDarkerSystemColorsEnabled](https://developer.apple.com/documentation/uikit/uiaccessibility/1615178-isdarkersystemcolorsenabled) — Increase Contrast.
+- [UIAccessibility.isDarkerSystemColorsEnabled](https://developer.apple.com/documentation/uikit/uiaccessibility/isdarkersystemcolorsenabled) — Increase Contrast.
 - [UIView/accessibilityLabel](https://developer.apple.com/documentation/objectivec/nsobject/1615181-accessibilitylabel) — короткое имя элемента для VoiceOver.
 - [UIView/accessibilityHint](https://developer.apple.com/documentation/objectivec/nsobject/1615093-accessibilityhint) — подсказка о действии.
 - [UIView/accessibilityValue](https://developer.apple.com/documentation/objectivec/nsobject/1615117-accessibilityvalue) — текущее значение для slider / stepper.
-- [UIView/accessibilityTraits](https://developer.apple.com/documentation/objectivec/nsobject/1615197-accessibilitytraits) — `.button`, `.image`, `.adjustable` и т. д.
+- [UIView/accessibilityTraits](https://developer.apple.com/documentation/objectivec/nsobject) — `.button`, `.image`, `.adjustable` и т. д.
 - [UIAccessibilityIdentification](https://developer.apple.com/documentation/uikit/uiaccessibilityidentification) — `accessibilityIdentifier` для UI-тестов.
 - [UIAccessibilityCustomAction](https://developer.apple.com/documentation/uikit/uiaccessibilitycustomaction) — кастомные действия (swipe-actions для VoiceOver).
 - [UIContentSizeCategory](https://developer.apple.com/documentation/uikit/uicontentsizecategory) — текущий размер Dynamic Type.

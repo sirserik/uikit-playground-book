@@ -474,7 +474,7 @@ Age gate — **кассир в магазине алкоголя**. Просит
 - [`Bundle.preferredLocalizations(from:forPreferences:)`](https://developer.apple.com/documentation/foundation/bundle/preferredlocalizations(from:forpreferences:)) — пересечение языков приложения и предпочтений пользователя; полезно когда показываешь свой language picker и хочешь дефолт.
 - [`NSLocalizedString`](https://developer.apple.com/documentation/foundation/nslocalizedstring) — стандартный путь к локализованным строкам; в Swift есть и `String(localized:)` (iOS 15+), но `NSLocalizedString` всё ещё каноничен в `.strings`-флоу.
 - [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) — `preferredDatePickerStyle = .wheels` для age gate, `maximumDate = Date()` чтобы не выбрать будущее.
-- [`Calendar.dateComponents(_:from:to:)`](https://developer.apple.com/documentation/foundation/calendar/datecomponents(_:from:to:)) — единственный корректный способ посчитать возраст в годах; не делить секунды на 365.25.
+- [`Calendar.dateComponents(_:from:to:)`](https://developer.apple.com/documentation/foundation/calendar/datecomponents(_:from:to:)-5g20t) — единственный корректный способ посчитать возраст в годах; не делить секунды на 365.25.
 - [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — современный API для содержимого ячейки таблицы (iOS 14+); вытесняет `UITableViewCell(style:)`.
 
 → [Глава 11. Privacy blur + Biometric on resume](./15-privacy-blur-biometric.md)

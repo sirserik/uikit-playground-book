@@ -251,9 +251,9 @@ Best practices:
 - [App Store Review Guidelines — 5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/#5.1.1) — формальное требование «account deletion внутри приложения» для всех app'ов с авторизацией.
 - [`ASAuthorizationAppleIDProvider`](https://developer.apple.com/documentation/authenticationservices/asauthorizationappleidprovider) — проверка состояния Apple ID-учётки и revoke credential при удалении аккаунта.
 - [Revoke tokens — Sign in with Apple REST API](https://developer.apple.com/documentation/sign_in_with_apple/revoke_tokens) — серверный endpoint, через который надо отозвать refresh-token Apple ID.
-- [`SKHelper` / `Transaction.refundRequestSheet`](https://developer.apple.com/documentation/storekit/transaction/3851206-beginrefundrequest) — корректный путь для refund-сценариев при удалении аккаунта (если у юзера есть покупки).
+- [`SKHelper` / `Transaction.refundRequestSheet`](https://developer.apple.com/documentation/storekit/transaction) — корректный путь для refund-сценариев при удалении аккаунта (если у юзера есть покупки).
 - [HIG — Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding) — общие принципы account creation/deletion в UX-разделе HIG.
 - [`UserDefaults.removePersistentDomain(forName:)`](https://developer.apple.com/documentation/foundation/userdefaults/1417339-removepersistentdomain) — атомарная очистка всех пользовательских настроек по bundle id.
-- [Keychain Services — deleting items](https://developer.apple.com/documentation/security/keychain_services/keychain_items/deleting_keychain_items) — как полностью удалить токены и пароли при удалении аккаунта.
+- [Keychain Services — deleting items](https://developer.apple.com/documentation/security/keychain_services) — как полностью удалить токены и пароли при удалении аккаунта.
 
 → [Глава 41. Production: push notifications + deep links](./63-production-push-deeplinks.md)

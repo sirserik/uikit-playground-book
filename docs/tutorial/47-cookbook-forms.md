@@ -373,13 +373,13 @@ emailField.spellCheckingType = .no
 
 - [`UITextField`](https://developer.apple.com/documentation/uikit/uitextfield) — однострочное поле ввода.
 - [`UITextFieldDelegate`](https://developer.apple.com/documentation/uikit/uitextfielddelegate) — `shouldChangeCharactersIn:replacementString:` для фильтра, `textFieldShouldReturn:` для return-flow.
-- [`UITextField.textContentType`](https://developer.apple.com/documentation/uikit/uitextfield/1649656-textcontenttype) и [`UITextContentType`](https://developer.apple.com/documentation/uikit/uitextcontenttype) — `.emailAddress`, `.password`, `.newPassword`, `.oneTimeCode`, `.telephoneNumber` (автозаполнение iCloud Keychain + SMS).
+- [`UITextField.textContentType`](https://developer.apple.com/documentation/uikit/uitextfield) и [`UITextContentType`](https://developer.apple.com/documentation/uikit/uitextcontenttype) — `.emailAddress`, `.password`, `.newPassword`, `.oneTimeCode`, `.telephoneNumber` (автозаполнение iCloud Keychain + SMS).
 - [`UITextField.isSecureTextEntry`](https://developer.apple.com/documentation/uikit/uitextinputtraits/1624427-issecuretextentry) — маскирование пароля.
-- [`UITextField.rightView`](https://developer.apple.com/documentation/uikit/uitextfield/1619636-rightview) и [`rightViewMode`](https://developer.apple.com/documentation/uikit/uitextfield/1619607-rightviewmode) — кнопка-«глаз» внутри поля.
+- [`UITextField.rightView`](https://developer.apple.com/documentation/uikit/uitextfield/rightview) и [`rightViewMode`](https://developer.apple.com/documentation/uikit/uitextfield/1619607-rightviewmode) — кнопка-«глаз» внутри поля.
 - [`UITextView`](https://developer.apple.com/documentation/uikit/uitextview) и [`UITextViewDelegate`](https://developer.apple.com/documentation/uikit/uitextviewdelegate) — многострочный ввод; `isScrollEnabled = false` + `sizeThatFits(_:)` для auto-grow.
 - [`UIPageViewController`](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — контейнер для wizard-flow между шагами.
 - [`UIView.keyboardLayoutGuide`](https://developer.apple.com/documentation/uikit/uiview/3752221-keyboardlayoutguide) — один-строчная привязка к клавиатуре (iOS 15+).
-- [`UIResponder.keyboardWillChangeFrameNotification`](https://developer.apple.com/documentation/uikit/uiresponder/1621534-keyboardwillchangeframenotificat) — фолбэк для iOS 14 и ниже.
+- [`UIResponder.keyboardWillChangeFrameNotification`](https://developer.apple.com/documentation/uikit/uiresponder) — фолбэк для iOS 14 и ниже.
 - [`UITextInputTraits`](https://developer.apple.com/documentation/uikit/uitextinputtraits) — `autocapitalizationType`, `autocorrectionType`, `spellCheckingType`, `returnKeyType`, `keyboardType`.
 - [HIG — Forms](https://developer.apple.com/design/human-interface-guidelines/text-fields) — Apple про text fields, валидацию, password rules.
 

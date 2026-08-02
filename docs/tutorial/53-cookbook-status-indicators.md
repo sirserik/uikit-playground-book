@@ -344,8 +344,8 @@ enum ConnectionQuality {
 - [UIProgressView.Style](https://developer.apple.com/documentation/uikit/uiprogressview/style) — `.default` и `.bar` для размещения в nav bar.
 - [UIPageControl](https://developer.apple.com/documentation/uikit/uipagecontrol) — индикатор страниц и `allowsContinuousInteraction` (iOS 14+).
 - [UIActivityIndicatorView](https://developer.apple.com/documentation/uikit/uiactivityindicatorview) — стандартный «спиннер» с `.medium` / `.large`.
-- [UITabBarItem/badgeValue](https://developer.apple.com/documentation/uikit/uitabbaritem/1623454-badgevalue) — текст бейджа на вкладке.
-- [UITabBarItem/badgeColor](https://developer.apple.com/documentation/uikit/uitabbaritem/2865930-badgecolor) — цвет бейджа.
+- [UITabBarItem/badgeValue](https://developer.apple.com/documentation/uikit/uitabbaritem/badgevalue) — текст бейджа на вкладке.
+- [UITabBarItem/badgeColor](https://developer.apple.com/documentation/uikit/uitabbaritem/badgecolor) — цвет бейджа.
 - [CAShapeLayer](https://developer.apple.com/documentation/quartzcore/cashapelayer) — `strokeEnd` для circular progress.
 - [UIBezierPath](https://developer.apple.com/documentation/uikit/uibezierpath) — рисование дуги для кругового индикатора.
 - [CABasicAnimation](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — бесконечная анимация typing dots через `transform.translation.y`.

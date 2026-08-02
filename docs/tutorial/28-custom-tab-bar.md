@@ -547,7 +547,7 @@ Drawer — **выдвижной шкафчик** под раковиной. По
 
 - [UIViewController — Implementing a Container View Controller](https://developer.apple.com/documentation/uikit/uiviewcontroller#1652844) — официальный гайд по containment'у: `addChild(_:)`, `view.addSubview(_:)`, `didMove(toParent:)`.
 - [addChild(_:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621394-addchild) — присоединение child VC; парный — `removeFromParent()`.
-- [willMove(toParent:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621432-willmove) — уведомление перед удалением child'а из родителя. Вызывается с `nil`.
+- [willMove(toParent:)](https://developer.apple.com/documentation/uikit/uiviewcontroller) — уведомление перед удалением child'а из родителя. Вызывается с `nil`.
 - [didMove(toParent:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621405-didmove) — финальный шаг при добавлении child'а; без него lifecycle ломается.
 - [UITabBarController](https://developer.apple.com/documentation/uikit/uitabbarcontroller) — стандартный container для сравнения. Мы делаем три кастомные альтернативы.
 - [UIPageViewController](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — листающие страницы для top-tabs варианта; те же data source / delegate, что в onboarding.

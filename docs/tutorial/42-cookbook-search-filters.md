@@ -262,8 +262,8 @@ cell.titleLabel.attributedText = highlight(item.title, query: currentQuery)
 - [`UISearchResultsUpdating`](https://developer.apple.com/documentation/uikit/uisearchresultsupdating) — протокол обновления результатов при каждом изменении текста.
 - [`UISearchBarDelegate`](https://developer.apple.com/documentation/uikit/uisearchbardelegate) — клики по cancel, scope-сегментам, начало/окончание редактирования.
 - [`UINavigationItem.searchController`](https://developer.apple.com/documentation/uikit/uinavigationitem/2897305-searchcontroller) — встраивание search bar в навигационную область.
-- [`NSAttributedString.Key.backgroundColor`](https://developer.apple.com/documentation/foundation/nsattributedstring/key/1535850-backgroundcolor) — атрибут подсветки совпадения.
-- [`String.range(of:options:)`](https://developer.apple.com/documentation/swift/string/range(of:options:range:locale:)) — поиск с `caseInsensitive` и `diacriticInsensitive`.
+- [`NSAttributedString.Key.backgroundColor`](https://developer.apple.com/documentation/foundation/nsattributedstring/key/backgroundcolor) — атрибут подсветки совпадения.
+- [`String.range(of:options:)`](https://developer.apple.com/documentation/swift/string) — поиск с `caseInsensitive` и `diacriticInsensitive`.
 - [`Task.sleep(nanoseconds:)`](https://developer.apple.com/documentation/swift/task/sleep(nanoseconds:)) и [`Task.isCancelled`](https://developer.apple.com/documentation/swift/task/iscancelled-swift.type.property) — для debounce и отмены прошлого запроса.
 - [HIG — Searching](https://developer.apple.com/design/human-interface-guidelines/searching) — Apple про паттерны поиска, scope-баров, recent searches.
 

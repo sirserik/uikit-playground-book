@@ -320,7 +320,7 @@ handles (≡), можно перетаскивать.
 - [`UIStepper`](https://developer.apple.com/documentation/uikit/uistepper) — `+`/`−` контрол.
 - [`UISlider`](https://developer.apple.com/documentation/uikit/uislider) — ползунок диапазона.
 - [`UISegmentedControl`](https://developer.apple.com/documentation/uikit/uisegmentedcontrol) — сегмент-control.
-- [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) и [`UIDatePicker.Style`](https://developer.apple.com/documentation/uikit/uidatepicker/style) — `.compact`, `.inline`, `.wheels` (iOS 14+).
+- [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) и [`UIDatePicker.Style`](https://developer.apple.com/documentation/uikit/uidatepicker) — `.compact`, `.inline`, `.wheels` (iOS 14+).
 - [`UIMenu`](https://developer.apple.com/documentation/uikit/uimenu) и [`UIAction`](https://developer.apple.com/documentation/uikit/uiaction) — inline picker через меню.
 - [`UITableView.automaticDimension`](https://developer.apple.com/documentation/uikit/uitableview/automaticdimension) — авто-высота ячейки по Auto Layout.
 

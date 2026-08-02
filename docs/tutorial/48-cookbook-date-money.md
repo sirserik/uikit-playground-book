@@ -314,7 +314,7 @@ items.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
 ## Apple Developer Documentation
 
 - [UIDatePicker](https://developer.apple.com/documentation/uikit/uidatepicker) — UIKit-контрол выбора даты/времени.
-- [UIDatePicker.Style](https://developer.apple.com/documentation/uikit/uidatepicker/style) — `.compact` / `.inline` / `.wheels` / `.automatic` (iOS 14+).
+- [UIDatePicker.Style](https://developer.apple.com/documentation/uikit/uidatepicker) — `.compact` / `.inline` / `.wheels` / `.automatic` (iOS 14+).
 - [DateFormatter](https://developer.apple.com/documentation/foundation/dateformatter) — форматирование `Date` ↔ `String` с учётом локали.
 - [RelativeDateTimeFormatter](https://developer.apple.com/documentation/foundation/relativedatetimeformatter) — «5 минут назад» / «через 2 дня», iOS 13+.
 - [DateComponentsFormatter](https://developer.apple.com/documentation/foundation/datecomponentsformatter) — длительности вида «1 ч 23 мин».
