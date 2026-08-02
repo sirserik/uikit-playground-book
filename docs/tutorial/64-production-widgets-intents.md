@@ -67,7 +67,8 @@ struct TodoProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodoEntry) -> Void) {
-        completion(TodoEntry(date: Date(), todos: [...]))
+        // снимок для галереи виджетов — показываем пару демо-задач
+        completion(TodoEntry(date: Date(), todos: Todo.previewList))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodoEntry>) -> Void) {
@@ -82,6 +83,22 @@ struct TodoProvider: TimelineProvider {
 
 `getTimeline` — iOS зовёт периодически, виджет получает обновлённые
 данные. `policy: .after(date)` — очередное обновление в указанное время.
+
+`Todo.previewList` — это просто пара статических задач для снимка:
+
+```swift
+extension Todo {
+    static let previewList = [
+        Todo(title: "Забрать посылку", isDone: false),
+        Todo(title: "Купить продукты", isDone: true),
+    ]
+}
+```
+
+`getSnapshot` вызывают, когда виджет показывают в галерее выбора и когда
+нужен быстрый предпросмотр, — лезть за реальными данными там незачем и
+вредно: если хранилище пустое, пользователь увидит пустой прямоугольник и
+пройдёт мимо.
 
 **Виджет НЕ всегда обновляется** в указанное время. iOS решает по
 бюджету (battery, использование). Чем чаще обновляется виджет, тем
