@@ -1,263 +1,477 @@
 # Глава 43. Production: accessibility audit перед релизом
 
-Финальная глава книги. Перед каждым релизом — пройди этот чек-лист.
-Это **обязательно** по Apple guidelines и часто решает 5-10% юзеров.
+Финальная глава книги. Перед каждым релизом стоит пройти этот чек-лист.
+**Accessibility** («доступность») — это способность приложения работать
+для людей с разными возможностями: незрячих, слабовидящих, с тремором
+рук, с дальтонизмом, с непереносимостью резкой анимации. И заодно для
+всех остальных в неудобной ситуации: на ярком солнце, одной рукой в
+автобусе, без звука.
 
-## 43.1 Полный чек-лист
+Что с требованиями. App Review Guidelines не отклоняют приложение
+только за плохую доступность. Но с 2025 года в App Store Connect есть
+**Accessibility Nutrition Labels** — «этикетка доступности» на странице
+приложения (раздел 43.1), и Apple прямо пишет, что со временем заполнять её
+станет **обязательно** для новых приложений и обновлений. Так что аудит
+доступности постепенно переходит из «хорошего тона» в требование.
+
+Код отдельных приёмов (`accessibilityLabel`, группировка, Dynamic Type,
+Reduce Motion, 44 точки) разобран в главе 34 (Cookbook — accessibility).
+Здесь — как проверить всё приложение целиком.
+
+## 43.1 Accessibility Nutrition Labels
+
+В App Store Connect (страница приложения → раздел про доступность)
+ты отмечаешь, какие функции доступности приложение поддерживает в
+**основных сценариях**. По справке
+[Overview of Accessibility Nutrition Labels](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels)
+их девять:
+
+| Функция                        | Что это значит простыми словами                                          |
+|--------------------------------|--------------------------------------------------------------------------|
+| VoiceOver                      | всем можно пользоваться с экранным диктором                              |
+| Voice Control                  | всем можно управлять голосом («нажми Добавить»)                          |
+| Larger Text                    | текст увеличивается до 200% и больше, и ничего не ломается               |
+| Dark Interface                 | есть тёмная тема                                                          |
+| Differentiate Without Color Alone | важное различается не только цветом, но и формой или текстом           |
+| Sufficient Contrast            | текст и значки достаточно контрастны                                     |
+| Reduced Motion                 | анимации, от которых укачивает, можно уменьшить                          |
+| Captions                       | у видео и аудио есть субтитры                                            |
+| Audio Descriptions             | у видео есть звуковое описание происходящего                              |
+
+Пока заполнение **добровольное**, этикетка видна в App Store на
+устройствах с iOS 26 и новее. Отмечать функцию стоит, только если она
+работает во **всех основных сценариях** приложения: для каждой у Apple
+есть отдельная страница с критериями оценки (evaluation criteria).
+Чек-лист ниже устроен так, чтобы после него можно было честно заполнить
+эту этикетку.
+
+## 43.2 Полный чек-лист
 
 ### VoiceOver
-- [ ] Каждый интерактивный элемент имеет `accessibilityLabel`.
-- [ ] Иконки без текста — `accessibilityLabel` явно.
-- [ ] Декоративные view'ы — `isAccessibilityElement = false`.
-- [ ] Cell'ы группированы в один элемент (не читаются по 5 строк).
-- [ ] Custom actions для swipe-actions (`accessibilityCustomActions`).
-- [ ] Тестирование пройдено: включить VoiceOver (`Cmd+F5` в симуляторе)
-      и пройти main flow.
+
+**VoiceOver** — экранный диктор iOS: читает вслух то, что под пальцем,
+а управление идёт жестами (свайп вправо — к очередному элементу, двойной
+тап — нажать).
+
+- [ ] У каждого интерактивного элемента есть понятный `accessibilityLabel`
+      (глава 34.1).
+- [ ] Кнопки-иконки без текста подписаны: не «кнопка», а «Добавить
+      задачу».
+- [ ] Декоративные картинки скрыты: `isAccessibilityElement = false`.
+- [ ] Ячейка списка читается **одной фразой** («Купить продукты,
+      выполнено»), а не тремя отдельными элементами (34.3).
+- [ ] Swipe-действия продублированы через `accessibilityCustomActions`
+      (34.14): незрячий человек не увидит, что ячейку можно смахнуть.
+- [ ] Порядок чтения логичный (сверху вниз, слева направо); если нет —
+      `accessibilityElements` у контейнера.
+- [ ] Модальный экран закрывается жестом «Z» (двумя пальцами зигзагом)
+      — для этого `accessibilityPerformEscape()` или стандартный
+      `UINavigationController`/`UIAlertController`.
 
 ### Dynamic Type
-- [ ] Все тексты используют `UIFont.preferredFont(forTextStyle:)`.
-- [ ] `adjustsFontForContentSizeCategory = true` везде.
-- [ ] Custom fonts через `UIFontMetrics.scaledFont(for:)`.
-- [ ] Таблицы с `automaticDimension` + `numberOfLines = 0`.
-- [ ] Test на максимальном размере (Settings → Display & Brightness
-      → Text Size → max).
 
-### Color contrast
-- [ ] Все текст-цвета имеют contrast 4.5:1 минимум (3:1 для large
-      text ≥ 24pt).
-- [ ] Custom colors проверены в Accessibility Inspector.
-- [ ] `UIAccessibility.isDarkerSystemColorsEnabled` подхватывается.
-- [ ] Кнопки имеют отличный border / shadow / contrast — не только
-      цвет (для colorblind юзеров).
+**Dynamic Type** — системный размер шрифта, который человек выбирает в
+настройках. Приложение должно подхватывать его.
 
-### Hit targets
-- [ ] Min size 44×44 points для всех tappable элементов.
-- [ ] Маленькие иконки имеют content insets для увеличения hit area.
+- [ ] Все тексты — `UIFont.preferredFont(forTextStyle:)` или свои шрифты
+      через `UIFontMetrics.scaledFont(for:)` (34.4).
+- [ ] `adjustsFontForContentSizeCategory = true` у лейблов, полей и
+      кнопок — тогда шрифт меняется без перезапуска.
+- [ ] Ячейки таблиц с автоматической высотой и `numberOfLines = 0` (34.12).
+- [ ] На самых крупных размерах текст не обрезается, горизонтальные
+      стопки перестраиваются в вертикальные.
 
-### Motion
-- [ ] Sophisticated animations проверены при
-      `UIAccessibility.isReduceMotionEnabled`.
-- [ ] Spring-анимации упрощены до fade при Reduce Motion.
-- [ ] Parallax эффекты отключаются при Reduce Motion.
+### Контраст
 
-### Captions / subtitles
-- [ ] Все важные UI-elements не зависят **только** от цвета (например,
-      красная подсветка для error дополняется иконкой).
-- [ ] Auto-play видео имеют captions если есть speech.
+- [ ] Текст до 17 pt — контраст не ниже **4.5:1**; текст от 18 pt и
+      жирный текст любого размера — не ниже **3:1**. Так в разделе
+      [HIG — Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)
+      (с опорой на WCAG уровня AA). Сам WCAG к жирному строже: крупным
+      он считает жирный текст от 14 pt (34.7).
+- [ ] Для неосновного текста — значков, границ полей, состояния чекбокса —
+      рекомендуемый минимум **3:1** (критерии Sufficient Contrast).
+- [ ] Проверено в светлой **и** тёмной теме.
+- [ ] Если в какой-то теме контраста не хватает — при включённом
+      «Увеличение контраста» (`UIAccessibility.isDarkerSystemColorsEnabled`)
+      он становится достаточным (34.7).
 
-### Keyboard / Switch Control
-- [ ] Все элементы доступны через keyboard (для iPad с external
-      keyboard).
-- [ ] Tab order логичный.
-- [ ] Focused elements visible (есть focus indicator).
+### Зоны нажатия
 
-## 43.2 Accessibility Inspector
+- [ ] Всё, что нажимается, не меньше **44 × 44 точек** — рекомендуемый
+      размер из HIG. Абсолютный минимум по HIG для iOS — 28 × 28, но это
+      для редких исключений.
+- [ ] Маленькая иконка 20 × 20 получает увеличенную зону нажатия
+      (34.6), а не увеличенную картинку.
+
+### Движение
+
+- [ ] При `UIAccessibility.isReduceMotionEnabled` пружинные и
+      масштабирующие анимации заменены на плавное появление или
+      мгновенный переход (34.5).
+- [ ] Параллакс (глава 21) отключается.
+- [ ] Автовоспроизведение видео не стартует само.
+
+### Не только цветом
+
+- [ ] Ошибка в форме — красная рамка **и** иконка или текст «Неверный
+      email».
+- [ ] Статусы (онлайн/офлайн, выполнено/нет) различаются формой или
+      подписью, а не только цветом.
+- [ ] У видео с речью есть субтитры.
+
+### Клавиатура и Switch Control
+
+**Switch Control** — управление одной-двумя кнопками-переключателями
+для людей, которые не могут пользоваться сенсорным экраном: система по
+очереди подсвечивает элементы, человек нажимает «выбрать».
+
+- [ ] На iPad с внешней клавиатурой до всех элементов можно добраться
+      клавишей Tab.
+- [ ] Порядок перехода логичный.
+- [ ] Выделенный элемент видно (есть рамка фокуса).
+
+## 43.3 Accessibility Inspector
 
 `Xcode → Open Developer Tool → Accessibility Inspector`.
 
-Подключается к симулятору. Показывает:
+Сверху слева выбираешь цель — запущенный симулятор. Три режима:
 
-- **Hierarchy** — все accessible elements.
-- **Inspection** — выбрав элемент, видишь его label, traits, hint.
-- **Audit** — автоматический поиск проблем:
-  - Низкий contrast.
-  - Слишком маленькие hit targets.
-  - Отсутствие accessibilityLabel.
-  - Дубликаты label.
+- **Inspection** — наведи курсор на элемент и увидишь его label, value,
+  traits (роль: кнопка, заголовок, выбрано), hint.
+- **Audit** — автоматическая проверка текущего экрана: низкий контраст,
+  маленькие зоны нажатия, элементы без описания, текст, который не
+  масштабируется с Dynamic Type, обрезанный текст. Каждую находку можно
+  подсветить на экране.
+- **Settings** — переключатели прямо для симулятора: размер шрифта,
+  увеличение контраста, уменьшение движения, инверсия цветов. Удобно
+  проверять Dynamic Type без похода в Настройки.
 
-Пройдись по всем главным экранам с включённым audit.
+Важно: **в симуляторе нет VoiceOver.** Сочетание `Cmd+F5` включает
+VoiceOver самого **Mac**, а не симулятора. Проверка «на слух» — только
+на реальном устройстве; в симуляторе вместо неё — Inspector.
 
-## 43.3 VoiceOver test scenarios
+Ещё быстрее — **Environment Overrides** в Xcode: во время отладки на
+панели отладки есть кнопка с переключателями, там меняется Dynamic
+Type, тёмная тема и часть настроек доступности прямо на запущенном
+приложении.
 
-Минимум:
+## 43.4 Автоматический аудит в UI-тестах (iOS 17+)
 
-1. **Запуск приложения** — VoiceOver читает все элементы splash, главного
-   экрана.
-2. **Главное действие** — например, создание задачи. VoiceOver
-   проводит через шаги.
-3. **Список + детальный** — листание, открытие элемента.
-4. **Modal / sheet** — могут ли закрыть.
-5. **Form** — заполнение полей с keyboard hints.
+С Xcode 15 и iOS 17 тот же аудит, что в Inspector, можно запускать из
+UI-теста — и тогда он проверяет экраны на каждой сборке:
 
-Если что-то «не сказано» или «непонятно сказано» — нужен явный
-`accessibilityLabel` / `accessibilityHint`.
+```swift
+import XCTest
 
-## 43.4 Dynamic Type test scenarios
+final class AccessibilityAuditTests: XCTestCase {
 
-В Settings → Display & Brightness → Text Size → крайние позиции:
+    @MainActor
+    func testTodoListPassesAccessibilityAudit() throws {
+        guard #available(iOS 17.0, *) else {
+            throw XCTSkip("Аудит доступности в UI-тестах есть с iOS 17")
+        }
+        let app = XCUIApplication()
+        app.launch()
+        app.cells.firstMatch.tap()        // открыть экран, который проверяем
+        app.navigationBars.buttons.firstMatch.tap()
 
-- **Минимум** (1-я позиция) — текст не должен быть нечитаемым (хотя
-  ничто не сломается).
-- **Default** — стандарт.
-- **Большие шрифты** (max position): **проверь обязательно**:
-  - Текст не обрезается.
-  - Кнопки растягиваются вместе с текстом.
-  - Multi-line корректно отображается.
+        try app.performAccessibilityAudit(for: [.contrast, .dynamicType, .hitRegion, .sufficientElementDescription]) { issue in
+            // Вернуть true — «эту находку игнорируем»
+            issue.auditType == .contrast && issue.element?.label == "Логотип"
+        }
+    }
+}
+```
 
-В Accessibility → Display & Text Size → **Large Text → Larger
-Accessibility Sizes** → ещё больше, в 4-5 раз. Здесь часто всё ломается.
+Разбор:
 
-## 43.5 Reduce Motion test
+- UI-тест (`XCUITest`) — тест, который запускает приложение и нажимает
+  на элементы как пользователь. Таргет UI-тестов создаётся через
+  File → New → Target → UI Testing Bundle.
+- `guard #available(iOS 17.0, *)` — у нас минимальная версия iOS 15, а
+  аудит появился в iOS 17. На старом симуляторе тест будет пропущен
+  (`XCTSkip`), а не упадёт.
+- `@MainActor` у метода — действия с `XCUIApplication` выполняются на
+  главном потоке. Таргет UI-тестов в Xcode 26 создаётся без «MainActor
+  по умолчанию», поэтому пометку ставим сами.
+- `performAccessibilityAudit(for:)` — запустить проверки. Мы берём
+  контраст, Dynamic Type, зоны нажатия и наличие описаний; без параметра
+  проверяется всё.
+- Замыкание получает каждую находку и возвращает `true`, если её надо
+  **пропустить**. Здесь игнорируем контраст у логотипа — это картинка
+  бренда, а не текст. Всё, что не пропущено, валит тест.
 
-Settings → Accessibility → Motion → **Reduce Motion** → On.
+Мы проверили этот код компилятором; запускать его нужно в таргете
+UI-тестов на симуляторе iOS 17+.
+
+## 43.5 Сценарии для VoiceOver на устройстве
+
+Включить: Настройки → Универсальный доступ → VoiceOver. Удобнее
+назначить быстрое включение: Настройки → Универсальный доступ → Быстрая
+команда → VoiceOver, дальше тройное нажатие боковой кнопки.
+
+Минимальный прогон:
+
+1. **Запуск** — VoiceOver называет экран и первый элемент.
+2. **Главное действие** — например, создать задачу. Получается ли пройти
+   весь путь, не глядя на экран?
+3. **Список и детальный экран** — листание тремя пальцами, открытие
+   элемента двойным тапом.
+4. **Модальный экран** — закрывается ли жестом «Z» или кнопкой
+   «Закрыть».
+5. **Форма** — поля названы, ошибки зачитываются.
+
+Где VoiceOver сказал что-то непонятное («кнопка», «image 3») — нужен
+`accessibilityLabel` или `accessibilityHint`.
+
+## 43.6 Dynamic Type: крайние размеры
+
+Путь в iOS 26: Настройки → Универсальный доступ → Дисплей и размер
+текста → **Увеличенный текст**. Там ползунок из 7 обычных размеров;
+включив «Увеличенные размеры», получаешь ещё 5.
+
+Размеры в числах — в таблице раздела 34.4: `.body` растёт от 14 pt на
+самом мелком размере до 53 pt на самом крупном, то есть 53 / 17 ≈ 3,12
+— в три с лишним раза крупнее стандартных 17 pt. Строка, в которую при
+17 pt помещалось 30 символов, при 53 pt вместит около десяти. Вот
+почему на крупных размерах ломаются горизонтальные стопки «иконка +
+текст + кнопка» — их нужно перестраивать в вертикальные.
+
+Критерий Larger Text для этикетки из 43.1 — текст увеличивается **до
+200% и больше**. Для `.body` это 34 pt и выше — то есть без
+«Увеличенных размеров» критерий не выполнить.
+
+Что проверить:
+
+- **Минимум** — текст всё ещё читается.
+- **Стандарт** — дизайн как задуман.
+- **Максимум обычных** и **максимум увеличенных** — текст не
+  обрезается, кнопки растут вместе с текстом, ячейки становятся выше,
+  экран прокручивается.
+
+**Упражнение.** Открой Todo (глава 12) в симуляторе, в Accessibility
+Inspector → Settings выставь самый крупный размер. Запиши, что
+сломалось. Типичные находки и исправления — в конце главы.
+
+## 43.7 Reduce Motion
+
+Настройки → Универсальный доступ → Движение → **Уменьшение движения**.
 
 Проверь:
 
-- Spring-анимации стали fade'ами или мгновенными.
-- Parallax эффекты отключены.
-- Auto-play hero видео не играет.
-- Modal transitions упрощены.
+- пружинные и масштабирующие переходы заменились на плавное появление
+  или мгновенную смену;
+- параллакс не работает;
+- видео не запускается само;
+- модальные экраны появляются без «вылета» снизу, если твой переход
+  собственный.
 
-## 43.6 Color filter testing
+Код переключения — глава 34.5: ветка по
+`UIAccessibility.isReduceMotionEnabled` и подписка на
+`UIAccessibility.reduceMotionStatusDidChangeNotification`.
 
-Settings → Accessibility → Display & Text Size → Color Filters.
+## 43.8 Цветовые фильтры
 
-Симулирует разные типы дальтонизма:
-- **Greyscale** — полная монохромная.
-- **Red/Green Filter** — protanopia, deuteranopia.
-- **Blue/Yellow Filter** — tritanopia.
+Настройки → Универсальный доступ → Дисплей и размер текста →
+**Светофильтры**. Режимы:
 
-Проверь:
-- UI остаётся understandable.
-- Кнопки различимы (не только по цвету).
-- Error-states имеют иконку, не только цвет.
+- **Оттенки серого** — полностью монохромная картинка;
+- **Фильтр красного/зелёного** (протанопия);
+- **Фильтр зелёного/красного** (дейтеранопия);
+- **Фильтр синего/жёлтого** (тританопия);
+- **Оттенок** — окраска всего экрана.
 
-## 43.7 Test on actual device
+Самый строгий тест — оттенки серого: если в сером приложение понятно,
+цвет нигде не единственный носитель смысла. Проверь:
 
-Симулятор — приближение. На реальном устройстве:
+- кнопки отличаются от текста;
+- ошибки видны без красного;
+- графики и статусы различимы.
 
-- **VoiceOver** ощущается иначе (физические swipe'ы).
-- **Touch targets** — пальцы больше чем mouse pointer.
-- **Battery / performance** — анимации тормозят?
-- **Slower devices** — на iPhone X / 8 анимации могут лагать.
+## 43.9 На реальном устройстве
 
-Минимум — проверь на устройстве 2-3 года назад (не latest).
+Симулятор — приближение. На телефоне:
 
-## 43.8 Localization
+- **VoiceOver** — только здесь (43.3).
+- **Зоны нажатия** — палец намного толще курсора мыши; то, что легко
+  нажать мышкой в симуляторе, может быть мучением пальцем.
+- **Скорость** — анимации на Mac с мощным процессором плавнее, чем на
+  телефоне трёхлетней давности.
 
-Если приложение многоязычное:
+Минимум — прогони основной сценарий на самом старом iPhone, который
+поддерживает твоя минимальная версия iOS.
 
-- [ ] Длинные слова в немецком / русском не обрезаются.
-- [ ] RTL (Arabic, Hebrew) — `NSDirectionalEdgeInsets`, не
-      `UIEdgeInsets`.
-- [ ] Multi-line label growth tested.
-- [ ] Numbers / dates / currency используют `NumberFormatter` /
-      `DateFormatter` с локалью.
+## 43.10 Локализация
 
-## 43.9 Performance regression
+Если приложение на нескольких языках:
 
-- [ ] App launch < 2 секунды на cold start.
-- [ ] Main thread не блокирован дольше 16ms (60fps).
-- [ ] Memory < 100MB при обычном использовании.
-- [ ] Battery usage в Xcode Energy Inspector — нормальный.
+- [ ] Длинные слова (немецкий, казахский, русский) не обрезаются: там,
+      где «Save» — 4 буквы, «Сохранить» — 9.
+- [ ] Языки справа налево (арабский, иврит): отступы через
+      `NSDirectionalEdgeInsets` (leading/trailing — «в начале/в конце
+      строки»), а не `UIEdgeInsets` (left/right). Тогда при
+      арабском интерфейсе отступы зеркалятся сами.
+- [ ] Числа, даты и деньги — через форматтеры с локалью (глава 31):
+      «1 234,50 ₸» в Казахстане и «₸1,234.50» в США — это одно число.
+- [ ] Проверено в Xcode: схема → Run → Options → App Language, в том
+      числе псевдоязыки «Double-Length Pseudolanguage» (удвоенные строки)
+      и «Right-to-Left Pseudolanguage».
 
-`Instruments → Time Profiler` для нагрузки. `Allocations` для
-памяти.
+## 43.11 Производительность
 
-## 43.10 Final checklist перед submission
+Не про доступность напрямую, но из того же списка «проверить перед
+релизом»:
 
-### Build
-- [ ] Release configuration используется.
-- [ ] Debug код (print, NSLog) удалён или гарантированно отключён.
-- [ ] Version + build numbers обновлены.
+- [ ] **Зависания.** Инструменты Apple начинают сообщать о проблеме,
+      когда главный поток не отвечает дольше **250 мс** (документация
+      Understanding hangs in your app). При этом задержку больше
+      **100 мс** в ответ на нажатие человек уже замечает.
+- [ ] **Плавность прокрутки.** При 60 кадрах в секунду на один кадр
+      остаётся 1000 / 60 ≈ **16,7 мс**; на экранах 120 Гц — около 8,3 мс.
+      Всё, что дольше, — пропущенный кадр, «дёрганье».
+- [ ] **Запуск.** Чем меньше работы в `didFinishLaunching`, тем лучше:
+      UIKit вызывает его на главном потоке, и всё, что там выполняется,
+      прибавляется ко времени запуска. Слишком долгий запуск система
+      прерывает (watchdog).
+- [ ] **Память и энергия** — датчики CPU, Memory и Energy Impact на
+      вкладке Debug navigator в Xcode во время работы приложения.
 
-### Permissions
-- [ ] Все `NSXxxUsageDescription` в Info.plist человеческими словами.
-- [ ] Permission primers перед системными диалогами.
-- [ ] App работает корректно при denied permissions (graceful
-      degradation).
+Инструменты: Instruments → **Time Profiler** (на что уходит время),
+**Allocations** и **Leaks** (память и утечки), **Hangs** (зависания).
+После релиза те же метрики с реальных устройств — в Xcode Organizer.
 
-### App Store metadata
-- [ ] Screenshots (Глава 38).
-- [ ] App Privacy questionnaire (Глава 39).
-- [ ] Privacy Manifest `.xcprivacy` (Глава 39).
-- [ ] Описание приложения, keywords, support URL.
+## 43.12 Финальный чек-лист перед отправкой
 
-### Account / data
-- [ ] Account deletion flow (Глава 40).
-- [ ] Logout работает корректно.
-- [ ] Data export если требуется (GDPR).
+### Сборка
+- [ ] Архив в конфигурации Release.
+- [ ] Отладочные `print` и тестовые меню убраны или закрыты флагом
+      `#if DEBUG`.
+- [ ] Номер версии (Version) и номер сборки (Build) увеличены.
 
-### Network
-- [ ] HTTPS везде, не HTTP.
-- [ ] Error handling для timeouts, 4xx, 5xx.
-- [ ] Offline mode (или хотя бы informative banner — Глава 24).
+### Разрешения
+- [ ] Все `NS…UsageDescription` в `Info.plist` объясняют конкретную
+      функцию (глава 39.6, Guidelines 5.1.1(ii)).
+- [ ] Перед системными диалогами — экраны-объяснения (глава 7).
+- [ ] Отказ в разрешении не ломает приложение: есть запасной путь
+      (5.1.1(iv)).
 
-### Submission
-- [ ] Test flight перед submission.
-- [ ] App Store review notes с тестовым аккаунтом.
-- [ ] Demo video / instruction (если требуется).
+### Страница в App Store
+- [ ] Скриншоты (глава 38).
+- [ ] Анкета App Privacy (глава 39).
+- [ ] `PrivacyInfo.xcprivacy` у приложения и расширений (глава 39).
+- [ ] Ссылка на политику конфиденциальности — в App Store Connect и в
+      приложении (5.1.1(i)).
+- [ ] Описание, ключевые слова, Support URL.
+- [ ] Accessibility Nutrition Labels — пока добровольно (43.1).
 
-## 43.11 После релиза
+### Аккаунт и данные
+- [ ] Удаление аккаунта в приложении (глава 40, 5.1.1(v)).
+- [ ] Выход из аккаунта работает.
 
-- **Crash reporting** — Firebase Crashlytics или Apple's Xcode
-  Organizer.
-- **Analytics** — Firebase, Mixpanel, или собственный.
-- **A/B testing** — Firebase Remote Config + App Store screenshots
-  (Глава 38).
-- **App Store Connect Reviews** — следи и отвечай.
-- **Apple Search Ads** для discovery.
+### Сеть
+- [ ] Только HTTPS (глава 39.11).
+- [ ] Обработаны таймауты, ошибки 4xx и 5xx.
+- [ ] Без сети — понятный экран или баннер (глава 24.4).
 
-## 43.12 Что мы выучили (вся книга)
+### Проверка
+- [ ] Сборка прошла через TestFlight — бета-тестирование Apple на
+      реальных устройствах.
+- [ ] В App Review Notes — **тестовый аккаунт** и пароль, если без входа
+      приложение не открыть. Guidelines 2.1 требует дать проверяющему
+      рабочий демо-аккаунт или полноценный демо-режим.
+- [ ] Если какие-то функции работают только с особым оборудованием или
+      в определённой стране — объяснение в Review Notes.
 
-Прошли путь от «пустого Xcode-проекта» до:
+## 43.13 После релиза
 
-- **Foundation** (Часть I) — playground-инфраструктура: AppManifest,
-  BootCoordinator, PlaygroundWindow, AnimatedSplash.
-- **Launch gates** (Часть II) — onboarding, permission primer, auth
-  (Login/Register/Forgot + Keychain), force-update / maintenance,
-  region + age, privacy blur + biometric.
-- **Mini-apps** (Часть III) — Todo, Notes, Calculator, Weather,
+- **Крэши** — Xcode Organizer (раздел Crashes) собирает отчёты с
+  устройств, где пользователи разрешили отправку аналитики; или
+  сторонний сервис (Firebase Crashlytics) — не забудь указать его в
+  анкете App Privacy.
+- **Метрики** — Organizer: время запуска, зависания, расход энергии.
+- **A/B-тесты страницы** — Product Page Optimization (глава 38.10).
+- **Отзывы** — отвечай на них в App Store Connect: ответ разработчика
+  виден всем.
+
+## 43.14 Ответы к упражнениям
+
+**43.6 (Todo на максимальном размере).** Типичные находки и что делать:
+
+- Заголовок задачи обрезан многоточием — у лейбла ячейки
+  `numberOfLines = 1`. Ставим `0`, высота ячейки автоматическая.
+- Галочка и текст налезают друг на друга — горизонтальная стопка.
+  Для категорий `accessibility…` меняем ось стопки на вертикальную:
+  проверяем `traitCollection.preferredContentSizeCategory.isAccessibilityCategory`
+  и выставляем `stackView.axis = .vertical`.
+- Текст не меняется, пока не перезапустишь экран — не хватает
+  `adjustsFontForContentSizeCategory = true`.
+- Шрифт не растёт вовсе — где-то `UIFont.systemFont(ofSize: 17)` вместо
+  `preferredFont(forTextStyle: .body)`.
+
+Проверка: после исправлений Audit в Accessibility Inspector не находит
+на экране обрезанного текста и текста без поддержки Dynamic Type.
+
+## 43.15 Что мы прошли за книгу
+
+От пустого Xcode-проекта до приложения, которое не стыдно отправить в
+App Store:
+
+- **Фундамент** (часть I) — AppManifest, BootCoordinator,
+  PlaygroundWindow, анимированный splash, жизненный цикл.
+- **Launch-гейты** (часть II) — онбординг, экран-объяснение перед
+  разрешениями, вход и регистрация с Keychain, принудительное обновление
+  и техработы, регион и возраст, размытие и биометрия.
+- **Мини-приложения** (часть III) — Todo, Notes, Calculator, Weather,
   Gallery, Music, Chat, Profile, Custom Tab Bar, Complex Layouts,
   Anatomy.
-- **UI Cookbook** (Часть IV) — 60+ паттернов: loading, empty states,
-  search, navigation, cells, modals, gestures, forms, date/money,
-  animations, haptics, accessibility, theming, status indicators,
-  photo viewer.
-- **Production** (Часть V) — screenshots, Privacy Manifest, account
-  deletion, push + deep links, widgets + App Intents, accessibility
-  audit.
+- **UI Cookbook** (часть IV) — загрузка, пустые и ошибочные состояния,
+  поиск, навигация, ячейки, модальные экраны, жесты, формы, даты и
+  деньги, анимации, haptics, доступность, темы, индикаторы, просмотр
+  фото.
+- **Production** (часть V) — скриншоты, приватность и манифест, удаление
+  аккаунта, пуши и ссылки, виджеты и App Intents, аудит доступности.
 
-Каждый паттерн — **проверен на работающем коде** в companion-проекте
-`beginner-testing-app`. Можешь клонировать репозиторий, запустить
-любой mini-app, потрогать пальцами, забрать кусок в свой проект.
+## Что мы выучили в этой главе
 
-## 📋 Что мы выучили в этой главе
-
-- **Полный чек-лист** перед релизом: VoiceOver, Dynamic Type, color
-  contrast, hit targets, motion, captions, keyboard.
-- **Accessibility Inspector** в Xcode — automated audit.
-- **VoiceOver scenarios** — пройти main flow, найти «не сказанное».
-- **Dynamic Type extremes** — тестировать на min и max размере.
-- **Reduce Motion** — упрощать анимации.
-- **Color filters** для colorblind testing.
-- **Performance regression** — Time Profiler, Allocations.
-- **Final submission checklist** — build, permissions, metadata,
-  account, network, submission.
+- **Accessibility Nutrition Labels** — девять функций; пока добровольно,
+  в будущем обязательно. Отмечать только то, что работает во всех
+  основных сценариях.
+- **Чек-лист**: VoiceOver, Dynamic Type, контраст (4.5:1 до 17 pt,
+  3:1 от 18 pt и для жирного), зоны 44 × 44, Reduce Motion, не только
+  цветом, клавиатура.
+- **Accessibility Inspector**: Inspection, Audit, Settings. В симуляторе
+  нет VoiceOver — только на устройстве.
+- **`performAccessibilityAudit`** в UI-тестах (iOS 17+) — аудит на
+  каждой сборке.
+- **Dynamic Type**: `.body` от 14 до 53 pt; критерий Larger Text — 200%
+  и больше.
+- **Светофильтры**, особенно оттенки серого.
+- **Производительность**: зависание — от 250 мс, кадр при 60 Гц —
+  16,7 мс; Time Profiler, Allocations, Hangs.
+- **Финальный чек-лист**: сборка, разрешения, страница, аккаунт, сеть,
+  TestFlight и демо-аккаунт для проверяющего (2.1).
 
 ## Apple Developer Documentation
 
-- [`UIAccessibility`](https://developer.apple.com/documentation/uikit/uiaccessibility) — корневой namespace с константами, notification'ами и helper-функциями для accessibility.
-- [`UIAccessibilityIdentification`](https://developer.apple.com/documentation/uikit/uiaccessibilityidentification) — протокол `accessibilityIdentifier`, опора UI-тестов и audit-инструментов.
-- [`UIAccessibilityElement`](https://developer.apple.com/documentation/uikit/uiaccessibilityelement) — программный элемент для случаев, когда `isAccessibilityElement` недостаточно (custom drawing, canvas).
-- [`UIAccessibility.isVoiceOverRunning`](https://developer.apple.com/documentation/uikit/uiaccessibility/1615187-isvoiceoverrunning) — проверка, что VoiceOver включён; основа для условного рендеринга вспомогательных подсказок.
-- [`UIAccessibility.isReduceMotionEnabled`](https://developer.apple.com/documentation/uikit/uiaccessibility/1615133-isreducemotionenabled) — флаг «уменьшить движение»; на нём вешаем упрощённые анимации.
-- [`accessibilityElements`](https://developer.apple.com/documentation/objectivec/nsobject/1615147-accessibilityelements) — управляемый порядок чтения VoiceOver для контейнеров.
-- [`UIFontMetrics`](https://developer.apple.com/documentation/uikit/uifontmetrics) — масштабирование кастомных шрифтов под Dynamic Type.
-- [Accessibility Inspector](https://developer.apple.com/documentation/accessibility/accessibility-inspector) — встроенный инструмент Xcode для аудита иерархии и contrast'а.
-- [HIG — Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) — общая методичка по доступному дизайну (VoiceOver, Dynamic Type, контраст, motion).
-- [HIG — Inclusion](https://developer.apple.com/design/human-interface-guidelines/inclusion) — про colorblind-дружественные палитры, локализацию и культурную чувствительность.
+- [Overview of Accessibility Nutrition Labels](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels) — девять функций доступности на странице App Store.
+- [HIG — Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) — контраст, размеры элементов, движение, VoiceOver.
+- [Accessibility Inspector](https://developer.apple.com/documentation/accessibility/accessibility-inspector) — инспектор и аудит в Xcode.
+- [`performAccessibilityAudit(for:_:)`](https://developer.apple.com/documentation/xcuiautomation/xcuiapplication/performaccessibilityaudit(for:_:)) — аудит доступности в UI-тестах.
+- [`UIFontMetrics`](https://developer.apple.com/documentation/uikit/uifontmetrics) — масштабирование своих шрифтов под Dynamic Type.
+- [`UIAccessibility`](https://developer.apple.com/documentation/uikit/uiaccessibility) — флаги и уведомления настроек доступности.
+- [`accessibilityElements`](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/accessibilityelements) — порядок чтения элементов для VoiceOver.
+- [Understanding hangs in your app](https://developer.apple.com/documentation/xcode/understanding-hangs-in-your-app) — что считается зависанием и как его найти.
+- [Reducing your app's launch time](https://developer.apple.com/documentation/xcode/reducing-your-app-s-launch-time) — что влияет на время запуска.
+- [App Review Guidelines — 2.1 App Completeness](https://developer.apple.com/app-store/review/guidelines/#app-completeness) — демо-аккаунт и Review Notes.
 
 ---
 
-🎉 **Это конец книги.**
-
-Спасибо, что прошёл этот путь. iOS разработка — большой мир, эта
-книга — карта основных регионов. Дальше — практика на собственном
-проекте.
-
-→ Хочешь скачать companion-app или посмотреть исходники глав?
-[Repository](https://github.com/sirserik/uikit-playground-book)
-(когда опубликуем).
+**Это конец основного текста.** Спасибо, что прошёл этот путь. iOS-разработка —
+большой мир, эта книга — карта основных районов. Дальше — практика на
+своём проекте. Нашёл ошибку или неясное место — открой issue в
+репозитории книги
+[sirserik/uikit-playground-book](https://github.com/sirserik/uikit-playground-book).
 
 Удачи в App Store!
+
+→ [Приложение. Словарь терминов](./90-glossary.md)

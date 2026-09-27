@@ -24,6 +24,6 @@ toccolor: black
 colorlinks: true
 toc: true
 toc-depth: 2
-numbersections: true
-secnumdepth: 3
+numbersections: false
+secnumdepth: 0
 ---

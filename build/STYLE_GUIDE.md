@@ -16,9 +16,12 @@ permission primer, auth gate, pull-to-refresh, skeleton, photo viewer и т.д.
 
 ## Целевая платформа
 
-- **iOS 15.0+** (deployment target учебного проекта `beginner-testing-app`).
+- **iOS 15.0+** deployment target; листинги проверяются `swiftc -typecheck` с
+  `-target x86_64-apple-ios15.0-simulator`, чтобы ловить API новее iOS 15.
 - **Xcode 26+** (актуальная 26.4.1).
-- Swift с `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (Xcode 26 default).
+- **Swift 6** (в новом проекте Xcode 26 язык стоит Swift 5 — переключаем) +
+  `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` + Approachable Concurrency
+  (обе — значения шаблона Xcode 26).
 - **UIKit + Storyboard для LaunchScreen, остальное — кодом**. SwiftUI **не используется**.
 - Современные API (`@Observable`, `UISheetPresentationController` с custom-detents,
   `actor`-based кэш, async/await) — с явным `@available` или комментарием.
@@ -39,10 +42,27 @@ permission primer, auth gate, pull-to-refresh, skeleton, photo viewer и т.д.
    «вот 3, добавили 2, объясняем 6-ю». Эталон — `ShopApp-Book-Beginner`
    глава 1.
 5. **Бытовая аналогия** для каждой новой концепции (где уместно).
-6. **Упражнение (🛠)** каждые 2–3 раздела, не в конце главы.
+6. **Упражнение** каждые 2–3 раздела, не в конце главы; у каждого — проверка
+   в разделе «Ответы к упражнениям» перед «Что мы выучили».
 7. **«Что мы выучили»** в конце главы — bullet-points.
-8. **Ссылка на коммит** в [`uikit-playground-app`](https://github.com/sirserik/uikit-playground-app)
-   где этот шаг реализован.
+8. Раздел `## Apple Developer Documentation` и навигация `→ [Глава …]` в конце.
+
+## Термины и математика
+
+Базовый Swift не объясняем, но каждый термин iOS/UIKit/Apple и жаргон
+(splash, gate, debounce, payload…) — простыми словами при первом
+появлении; в поздних главах — напоминание и «см. главу N». Все термины
+собраны в `docs/tutorial/90-glossary.md` — новый термин добавлять и туда.
+
+Математика — простыми человеческими словами с подставленными числами:
+«масштаб 1.2 — на 20% больше», «π радиан — пол-оборота», «damping 0.7 —
+чуть перелетит и вернётся», контраст 4.5:1 словами, деньги — Decimal.
+
+## Факты об Apple
+
+API и доступность — по SDK и developer.apple.com, правила App Store — по
+App Review Guidelines с номером пункта. Ссылки на developer.apple.com
+проверять curl'ом. Названия пунктов Xcode — по Xcode 26.5, не по памяти.
 
 ## Особенности этой книги (vs beginner)
 
@@ -71,9 +91,16 @@ permission primer, auth gate, pull-to-refresh, skeleton, photo viewer и т.д.
 
 ## Чек-лист перед коммитом главы
 
-- [ ] Все упомянутые API проверены, скомпилированы в `beginner-testing-app`.
+- [ ] Все листинги прошли typecheck (iOS 15 target, Swift 6, MainActor), полные экраны — xcodebuild.
 - [ ] Скриншоты обновлены, лежат в `docs/images/<chapter-slug>/`.
-- [ ] Есть как минимум 1 упражнение (🛠).
+- [ ] Есть как минимум 1 упражнение и ответ к нему.
 - [ ] Есть «Что мы выучили» в конце.
-- [ ] Есть ссылка на коммит в companion-app (или пометка «WIP — без кода»).
 - [ ] `bash build/build-pdf.sh` собирает книгу без ошибок.
+
+## PDF
+
+`bash build/build-pdf.sh`. Эмодзи не использовать нигде (xelatex их не
+рисует). Символы (→, ≈, ≤, ⋯) пишутся Unicode'ом — `preamble.tex`
+подставляет недостающие глифы из STIX Two / Menlo. Длинные строки кода
+переносятся (fvextra), но лучше держать их до ~90 символов. После сборки
+смотреть вывод на `Missing character` и `ОШИБКИ LaTeX`.

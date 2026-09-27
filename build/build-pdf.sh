@@ -68,6 +68,9 @@ else
     "$ROOT/docs/tutorial/63-production-push-deeplinks.md"
     "$ROOT/docs/tutorial/64-production-widgets-intents.md"
     "$ROOT/docs/tutorial/65-production-accessibility-audit.md"
+
+    # Приложение
+    "$ROOT/docs/tutorial/90-glossary.md"
   )
 fi
 
@@ -128,6 +131,7 @@ trap 'rm -rf "$TMP"' EXIT
 # Картинки в .md идут как ../images/... (относительно docs/tutorial/X.md).
 # xelatex запускается из $TMP, поэтому добавляем \graphicspath.
 cat > "$TMP/graphicspath.tex" <<EOF
+\usepackage{graphicx}
 \graphicspath{{$ROOT/docs/tutorial/}{$ROOT/docs/images/}}
 EOF
 
@@ -160,6 +164,14 @@ else
     }
   done
 fi
+
+MISSING=$(grep -c "Missing character" "$TMP/book.log" 2>/dev/null || true)
+if [ "${MISSING:-0}" -gt 0 ]; then
+  echo "ВНИМАНИЕ: $MISSING пропущенных глифов:" >&2
+  grep "Missing character" "$TMP/book.log" | sort | uniq -c | head -20 >&2
+fi
+
+if grep -q "^!" "$TMP/book.log"; then echo "ОШИБКИ LaTeX:" >&2; grep -A2 "^!" "$TMP/book.log" | head -20 >&2; fi
 
 mv "$TMP/book.pdf" "$OUT"
 cd "$ROOT"

@@ -2,12 +2,10 @@
 
 Книга-практикум по UIKit: 10+ полноценных мини-приложений, разобранных
 от LaunchScreen до App Store, плюс каталог UI-паттернов на 60+ позиций.
-Параллельно с книгой развивается учебный проект
-[`uikit-playground-app`](https://github.com/sirserik/uikit-playground-app)
-(пока локально — `~/Desktop/beginner-testing-app/`), где каждый шаг
-урока — отдельный коммит.
+Весь код приведён в главах целиком: проект собирается из листингов книги.
 
-> ⚠ **Стек.** Swift с `MainActor` по умолчанию (Xcode 26+),
+> **Стек.** Swift 6 + Default Actor Isolation = MainActor + Approachable
+> Concurrency (Xcode 26+; язык в новом проекте переключаем с Swift 5 на 6),
 > **UIKit + Storyboard для LaunchScreen, остальное — кодом**, iOS 15+.
 > Никакого SwiftUI: эта книга про UIKit. Современные API (`@Observable`,
 > `Sheet detents .custom`, `UISheetPresentationController`) — с явными
@@ -15,7 +13,7 @@
 
 ## Чем эта книга отличается
 
-Есть [старшая книга «ShopApp Beginner»](https://github.com/sirserik/alma-shop-ios-book-prod/tree/shopapp-beginner)
+Есть старшая книга «ShopApp Beginner»
 — линейная история «строим один e-commerce от Hello World до App Store».
 Эта — **каталог-практикум**: каждое мини-приложение самодостаточно,
 читай в любом порядке, бери куски в свои проекты.
@@ -92,12 +90,14 @@ bash build/build-pdf.sh
 Pandoc → xelatex × 3. Результат — `UIKit-Playground-Book.pdf` в корне.
 Стиль/pipeline согласованы с `ShopApp-Book-Beginner`.
 
-## Учебный iOS-проект
+## Проверка кода
 
-[`uikit-playground-app`](https://github.com/sirserik/uikit-playground-app)
-(пока `~/Desktop/beginner-testing-app/`) — рабочий Xcode-проект, где
-каждый mini-app живёт в `Apps/<Name>/`, общий boot-слой — в `App/`,
-дизайн-токены — в `Common/`.
+Каждый листинг проверен `swiftc -typecheck` под iOS Simulator SDK с
+target iOS 15.0 (так ловятся API новее iOS 15 без `@available`) в Swift 6
+и Swift 5 с MainActor по умолчанию. Фундамент и мини-приложения собраны
+`xcodebuild` в настоящие проекты, фундамент запущен на симуляторе.
+Требования App Store сверены с App Review Guidelines (редакция июня 2026).
+В конце книги — словарь терминов.
 
 ## Как пользоваться книгой
 
@@ -109,12 +109,13 @@ Pandoc → xelatex × 3. Результат — `UIKit-Playground-Book.pdf` в �
 
 ## Условные обозначения
 
-> 💡 **Идея.** Самое важное из раздела — в цитатах с лампочкой.
+> **Подсказка.** Самое важное из раздела — в цитатах.
 
 ```swift
 let example = "это код, который можно (и нужно) набрать"
 ```
 
-🛠 **Упражнение.** Маленькое задание после раздела. Делай до того, как читать дальше.
+**Упражнение.** Маленькое задание после раздела. Делай до того, как читать дальше.
+Ответы — в конце главы, в разделе «Ответы к упражнениям».
 
-📋 **Что мы выучили.** Краткий список фактов в конце главы.
+**Что мы выучили.** Краткий список фактов в конце главы.

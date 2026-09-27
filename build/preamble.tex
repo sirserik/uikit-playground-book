@@ -1,4 +1,4 @@
-% Preamble для ShopApp-Book — подключается через --include-in-header в build-pdf.sh
+% Preamble для «UIKit Playground» — подключается через --include-in-header в build-pdf.sh
 % Этот файл — чистый LaTeX. pandoc передаёт его в xelatex без изменений.
 % YAML-блок header-includes: | в metadata.yaml ломал комментарии (% → \%)
 % и склеивал строки, поэтому критичные декларации перенесены сюда.
@@ -57,16 +57,84 @@
 
 % Математические стрелки и операторы — \ensuremath работает в любом контексте
 % (внутри \textbf, \texttt, \href и т.д.).
-\newunicodechar{→}{\ensuremath{\rightarrow}}
-\newunicodechar{←}{\ensuremath{\leftarrow}}
-\newunicodechar{↑}{\ensuremath{\uparrow}}
-\newunicodechar{↓}{\ensuremath{\downarrow}}
+% Символы, которых нет в PT Serif (и частично в Menlo): берём глиф из текущего
+% шрифта, если он там есть, иначе из STIX Two Text. Так в коде ширина
+% моноширинных схем не плывёт, а в тексте ничего не выпадает молча.
+\newfontfamily\stixfallback{STIX Two Text}
+\newfontfamily\stixmath{STIX Two Math}
+\newcommand{\fbchar}[1]{\iffontchar\font#1\symbol{#1}\else{\stixfallback\iffontchar\font#1\symbol{#1}\else\stixmath\symbol{#1}\fi}\fi}
+% Стрелки и сравнения: в коде — родной глиф Menlo, в тексте — математический.
+\newcommand{\fbmath}[2]{\iffontchar\font#1\symbol{#1}\else\ensuremath{#2}\fi}
+\newunicodechar{→}{\fbmath{"2192}{\rightarrow}}
+\newunicodechar{←}{\fbmath{"2190}{\leftarrow}}
+\newunicodechar{↑}{\fbmath{"2191}{\uparrow}}
+\newunicodechar{↓}{\fbmath{"2193}{\downarrow}}
+\newunicodechar{↔}{\fbmath{"2194}{\leftrightarrow}}
+\newunicodechar{≪}{\fbmath{"226A}{\ll}}
+\newunicodechar{≈}{\fbmath{"2248}{\approx}}
+\newunicodechar{≠}{\fbmath{"2260}{\neq}}
+\newunicodechar{≤}{\fbmath{"2264}{\leq}}
+\newunicodechar{≥}{\fbmath{"2265}{\geq}}
+\newunicodechar{⁰}{\fbchar{"2070}}
+\newunicodechar{¹}{\fbchar{"00B9}}
+\newunicodechar{²}{\fbchar{"00B2}}
+\newunicodechar{³}{\fbchar{"00B3}}
+\newunicodechar{⁴}{\fbchar{"2074}}
+\newunicodechar{⁵}{\fbchar{"2075}}
+\newunicodechar{⁶}{\fbchar{"2076}}
+\newunicodechar{⁷}{\fbchar{"2077}}
+\newunicodechar{⁸}{\fbchar{"2078}}
+\newunicodechar{⁹}{\fbchar{"2079}}
+\newunicodechar{ⁿ}{\fbchar{"207F}}
+\newunicodechar{⁺}{\fbchar{"207A}}
+\newunicodechar{⁻}{\fbchar{"207B}}
+\newunicodechar{₀}{\fbchar{"2080}}
+\newunicodechar{₁}{\fbchar{"2081}}
+\newunicodechar{₂}{\fbchar{"2082}}
+\newunicodechar{₃}{\fbchar{"2083}}
+\newunicodechar{₄}{\fbchar{"2084}}
+\newunicodechar{₅}{\fbchar{"2085}}
+\newunicodechar{₆}{\fbchar{"2086}}
+\newunicodechar{₇}{\fbchar{"2087}}
+\newunicodechar{₈}{\fbchar{"2088}}
+\newunicodechar{₉}{\fbchar{"2089}}
+\newunicodechar{Θ}{\fbchar{"0398}}
+\newunicodechar{Ω}{\fbchar{"03A9}}
+\newunicodechar{λ}{\fbchar{"03BB}}
+\newunicodechar{μ}{\fbchar{"03BC}}
+\newunicodechar{ρ}{\fbchar{"03C1}}
+\newunicodechar{σ}{\fbchar{"03C3}}
+\newunicodechar{α}{\fbchar{"03B1}}
+\newunicodechar{β}{\fbchar{"03B2}}
+\newunicodechar{Σ}{\fbchar{"03A3}}
+\newunicodechar{√}{\fbchar{"221A}}
+\newunicodechar{×}{\fbchar{"00D7}}
+\newunicodechar{∞}{\fbchar{"221E}}
+\newunicodechar{∑}{\fbchar{"2211}}
+\newunicodechar{∩}{\fbchar{"2229}}
+\newunicodechar{∪}{\fbchar{"222A}}
+\newunicodechar{∈}{\fbchar{"2208}}
+\newunicodechar{∉}{\fbchar{"2209}}
+\newunicodechar{⊆}{\fbchar{"2286}}
+\newunicodechar{≡}{\fbchar{"2261}}
+\newunicodechar{⌊}{\fbchar{"230A}}
+\newunicodechar{⌋}{\fbchar{"230B}}
+\newunicodechar{⌈}{\fbchar{"2308}}
+\newunicodechar{⌉}{\fbchar{"2309}}
+\newunicodechar{±}{\fbchar{"00B1}}
+\newunicodechar{∅}{\fbchar{"2205}}
+\newunicodechar{∀}{\fbchar{"2200}}
+\newunicodechar{∃}{\fbchar{"2203}}
+\newunicodechar{⋯}{\fbchar{"22EF}}
+\newunicodechar{⌄}{\fbchar{"2304}}
+\newunicodechar{⌕}{\fbchar{"2315}}
+\newunicodechar{▣}{\fbchar{"25A3}}
+\newunicodechar{◆}{\fbchar{"25C6}}
+\newunicodechar{▤}{\fbchar{"25A4}}
+\newunicodechar{✕}{{\menlosym ✕}}
+
 \newunicodechar{⇒}{\ensuremath{\Rightarrow}}
 \newunicodechar{⇐}{\ensuremath{\Leftarrow}}
-\newunicodechar{≈}{\ensuremath{\approx}}
-\newunicodechar{≠}{\ensuremath{\neq}}
-\newunicodechar{≤}{\ensuremath{\leq}}
-\newunicodechar{≥}{\ensuremath{\geq}}
 \newunicodechar{·}{\ensuremath{\cdot}}
 \newunicodechar{…}{\ldots}
 
@@ -102,7 +170,19 @@
 \newunicodechar{⏳}{[..]\,}
 \newunicodechar{✅}{\ensuremath{\checkmark}\,}
 % Валютные символы — нет в Menlo Italic.
-\newunicodechar{₸}{T}
+\newfontfamily\helvsym{Helvetica Neue}
+\newunicodechar{₸}{{\helvsym ₸}}
 \newunicodechar{₽}{R}
 \newunicodechar{₾}{L}
 \newunicodechar{֏}{D}
+
+% Длинные строки кода и вывода (тексты ошибок компилятора, JSON) переносятся,
+% а не уходят за край страницы. Перенесённая строка помечается стрелкой.
+\usepackage{fvextra}
+\fvset{breaklines=true,breakanywhere=true}
+\makeatletter
+\AtBeginDocument{%
+  \let\verbatim\relax\let\endverbatim\relax
+  \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true}%
+  \@ifundefined{Highlighting}{}{\RecustomVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},breaklines=true,breakanywhere=true}}}
+\makeatother
