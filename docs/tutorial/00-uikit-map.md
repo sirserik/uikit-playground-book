@@ -25,7 +25,8 @@ NSObject                  ← любой объект: его можно сра�
 сделать самому, показано в конце главы.
 
 > **Как читать главу.** Не заучивай. Прочитай один раз, запомни четыре
-> ступени и таблицу «кто контрол, а кто нет» из раздела 0.4. Остальное
+> ступени, таблицу «кто контрол, а кто нет» из раздела 0.4 и
+> `SceneDelegate` из раздела 0.7. Остальное
 > — справка: главы книги будут ссылаться сюда словами «глава 0,
 > раздел 0.N», и тогда вернёшься.
 
@@ -448,30 +449,363 @@ UIKit вызывает `loadView()` (создаёт пустой `UIView` раз
 `UIActivityViewController` («Поделиться»), `UIImagePickerController`.
 Их показывают через `present`, а не `addSubview`.
 
-## 0.7 Окно, сцена, приложение
+## 0.7 Сцена, окно и первый экран кодом
+
+Этот раздел подробнее остальных, потому что именно здесь начинается
+любое приложение на UIKit без storyboard: пока не понятно, кто создаёт
+окно и откуда берётся первый экран, всё остальное висит в воздухе.
+Разберём цепочку от тапа по иконке до лейбла на экране и соберём
+крошечное приложение из трёх файлов. Оно собрано и запущено в
+симуляторе iPhone 16 с iOS 26.5 — скриншоты ниже оттуда.
+
+### Три объекта над экраном
 
 ```
-UIApplication      → UIResponder     один на процесс
-UIWindowScene      → UIScene → UIResponder   один экземпляр интерфейса
-UIWindow           → UIView          окно — это view
-   └── rootViewController.view
+UIApplication        → UIResponder → NSObject    приложение: один на процесс
+UIWindowScene        → UIScene → UIResponder     сцена: один экземпляр интерфейса
+UIWindow             → UIView → UIResponder      окно: корневой view
+   └── rootViewController.view                   дерево view первого экрана
 ```
 
-**`UIWindow` — это view.** Самый верхний, без superview. Поэтому окну
-можно сделать `addSubview` — так в главах 11 и 23 размытие и оверлей
-кладутся поверх **всего**, включая модальные экраны. У окна есть
-`bounds` и `safeAreaInsets`. `makeKeyAndVisible()` показывает окно и
-делает его **ключевым** — тем, что получает клавиатуру. Ссылку на окно
-нужно хранить (`self.window = window` в `SceneDelegate`), иначе оно
-освободится и экран останется чёрным (глава 5).
+**`UIApplication`** — сам процесс приложения. Он один, доступен как
+`UIApplication.shared`, и у него есть делегат — твой `AppDelegate`.
+Приложение знает свои сцены (`connectedScenes`), умеет открыть URL и
+запросить пуши. Экранов и окон оно само не создаёт.
 
-**Сцена** (`UIWindowScene`) — ответчик, но не view: её нельзя нарисовать,
-она владеет окнами и знает ориентацию и экран устройства. Окно
-создаётся с привязкой к ней: `UIWindow(windowScene:)`.
+**`UIScene`** — документация Apple называет её «один экземпляр
+интерфейса приложения». Представь iPad, на котором «Заметки» открыты в
+двух окнах рядом: это одно приложение (`UIApplication`), но **две
+сцены**, у каждой свои окна и свой первый экран. На iPhone сцена одна,
+но устройство то же: с iOS 13 UIKit всегда создаёт сцену, даже если она
+единственная. `UIScene` — базовый класс; на деле UIKit всегда создаёт
+её наследника **`UIWindowScene`** — сцену, которая умеет держать окна.
+Документация так и пишет: «обычно UIKit создаёт `UIWindowScene`, а не
+`UIScene`». Разница для тебя одна: у `UIWindowScene` есть `windows`,
+`screen`, `interfaceOrientation` и инициализатор окна
+`UIWindow(windowScene:)`; у голого `UIScene` их нет. Поэтому в делегате
+сцена приходит как `UIScene`, и первым делом её приводят к
+`UIWindowScene`.
 
-**`UIApplication.shared`** — одно на процесс: открыть URL, запросить
-пуши, узнать состояние. `UIScreen.main` Apple не рекомендует с iOS 16 —
-экран берут через сцену: `view.window?.windowScene?.screen`.
+Сцена — наследник `UIResponder`, но **не view**: нарисовать её нельзя,
+`frame` у неё нет. Это контейнер для окон и источник событий «стала
+активной», «ушла в фон» (глава 5). Сцены не создают руками — их создаёт
+система по описанию из `Info.plist`.
+
+**`UIWindow`** — окно, и по карте это **view**, самый верхний в дереве.
+Окно держит один корневой экран — `rootViewController` — и само
+добавляет его `view` в своё дерево. Всё, что видно на экране, лежит
+внутри окна. Окно привязано к сцене: `UIWindow(windowScene:)`
+(документация: «создаёт окно и автоматически связывает его с указанной
+сценой; окно потом доступно через `windows` сцены»).
+
+Ещё два объекта рядом, оба `NSObject`: **`UISceneSession`** — «карточка»
+сцены, которую система хранит, пока сцена существует (идентификатор,
+роль, конфигурация), и **`UISceneConfiguration`** — описание, как сцену
+создать: класс сцены, класс делегата и, если есть, storyboard.
+
+### Кто кого создаёт при запуске
+
+```
+[тап по иконке]
+ → iOS запускает процесс и создаёт UIApplication
+ → UIApplication создаёт AppDelegate (класс помечен @main)
+ → AppDelegate.application(_:didFinishLaunchingWithOptions:)
+ → UIKit читает Info.plist → Application Scene Manifest
+ → AppDelegate.application(_:configurationForConnecting:options:)
+      ← отдаём UISceneConfiguration с именем из Info.plist
+ → UIKit создаёт UIWindowScene и UISceneSession
+ → UIKit создаёт SceneDelegate (класс из конфигурации)
+ → SceneDelegate.scene(_:willConnectTo:options:)
+      ← здесь МЫ создаём UIWindow и первый экран
+ → сцена активна, окно на экране
+```
+
+Два места в этой цепочке — твои: `AppDelegate` отвечает, какую
+конфигурацию использовать, `SceneDelegate` строит окно. Всё остальное
+делает UIKit. Со storyboard последний шаг тоже делал бы UIKit: ключ
+`UISceneStoryboardFile` в конфигурации велит ему загрузить первый экран
+из `Main.storyboard`, создать окно и поставить `rootViewController`
+самому. Без storyboard этот ключ убирают, и строить окно приходится
+руками — ровно четыре строки, их разберём ниже.
+
+### `Info.plist`: Application Scene Manifest
+
+UIKit узнаёт про сцены из словаря `UIApplicationSceneManifest`
+(в редакторе Xcode — Application Scene Manifest). В проекте без
+storyboard он выглядит так:
+
+```
+Application Scene Manifest
+├── Enable Multiple Windows: NO           (UIApplicationSupportsMultipleScenes)
+└── Scene Configuration                   (UISceneConfigurations)
+    └── Application Session Role          (UIWindowSceneSessionRoleApplication)
+        └── Item 0
+            ├── Configuration Name: Default Configuration
+            └── Delegate Class Name: $(PRODUCT_MODULE_NAME).SceneDelegate
+```
+
+- **Enable Multiple Windows** — можно ли открыть приложение в нескольких
+  окнах на iPad. Шаблон ставит `NO`: одна сцена.
+- **Application Session Role** — роль «обычное окно приложения». Есть
+  ещё роль внешнего экрана; нам она не нужна.
+- **Configuration Name** — имя конфигурации. Его же вернёт `AppDelegate`.
+- **Delegate Class Name** — какой класс создать делегатом сцены.
+  `$(PRODUCT_MODULE_NAME)` Xcode заменит на имя модуля: Swift-классы
+  живут внутри модуля, и полное имя — `МойМодуль.SceneDelegate`.
+- Строки **Storyboard Name** (`UISceneStoryboardFile`) здесь **нет** — её
+  удаляют (введение, раздел 0.1). Если оставить и удалить сам
+  `Main.storyboard`, приложение упадёт при запуске: «Could not find a
+  storyboard named 'Main'».
+
+### `AppDelegate` — отвечает на один вопрос
+
+```swift
+import UIKit
+
+@main
+final class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions:
+                         [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        true
+    }
+
+    func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        UISceneConfiguration(name: "Default Configuration",
+                             sessionRole: connectingSceneSession.role)
+    }
+}
+```
+
+`@main` — точка входа: компилятор сам напишет функцию `main`, которая
+запустит `UIApplication` и назначит этот класс делегатом. Класс
+наследует `UIResponder` (последнее звено цепочки ответчиков, раздел 0.2)
+и реализует протокол `UIApplicationDelegate`.
+
+`didFinishLaunchingWithOptions` — «процесс запущен». Возвращаем `true`.
+Окно здесь **не создают** — это работа сцены.
+
+`configurationForConnecting` — UIKit собирается создать сцену и
+спрашивает: «с какой конфигурацией?». Отвечаем именем из `Info.plist` и
+той же ролью, что у сессии. UIKit найдёт в манифесте запись с этим
+именем и возьмёт из неё класс делегата.
+
+### `SceneDelegate` — четыре строки, которые создают интерфейс
+
+```swift
+import UIKit
+
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene,
+               willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = UINavigationController(
+            rootViewController: HelloViewController())
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+}
+```
+
+Разберём каждую строку — каждая отвечает за свою типичную ошибку.
+
+`UIWindowSceneDelegate` — протокол делегата **оконной** сцены. Он
+наследует `UISceneDelegate` (общие методы любой сцены: подключилась,
+активна, в фоне) и добавляет оконные. Документация: «не создавайте
+объекты `UIWindowSceneDelegate` сами — укажите имя класса в
+конфигурации сцены».
+
+`var window: UIWindow?` — **сильная ссылка на окно**. Это не формальность:
+сцена окно не удерживает. Убери эту строку (или присваивание ниже) — и
+окно освободится сразу после выхода из метода, а экран останется
+чёрным. Мы проверили это в главе 3: без ссылки `windowScene.windows`
+пустеет.
+
+`scene(_:willConnectTo:options:)` — UIKit зовёт его, когда сцена
+подключается к приложению: при холодном запуске или когда пользователь
+открывает новое окно на iPad. Документация: «используйте этот метод,
+чтобы отреагировать на добавление сцены и начать загрузку данных,
+которые ей нужны». Третий параметр `connectionOptions` хранит, **из-за
+чего** сцена открылась: по тапу на уведомление, по ссылке, по Handoff
+(глава 41).
+
+`guard let windowScene = scene as? UIWindowScene` — сцена приходит как
+базовый `UIScene`; окна умеет только `UIWindowScene`, приводим тип.
+
+`UIWindow(windowScene: windowScene)` — создаём окно **с привязкой к
+сцене**. Старый инициализатор `UIWindow(frame:)` для приложения со
+сценами не подходит: документация просит создавать окно именно через
+`init(windowScene:)`, иначе у него `windowScene == nil` и связь со
+сценой придётся налаживать вручную.
+
+`window.rootViewController = …` — первый экран. Здесь он обёрнут в
+`UINavigationController`, чтобы была панель навигации и можно было
+делать `push`. Окно само добавит `view` этого контроллера в своё дерево
+и растянет на весь размер — вручную `addSubview` не нужен.
+
+`window.makeKeyAndVisible()` — показать окно и сделать его **ключевым**
+(получающим клавиатуру). Документация: это удобная замена двум
+действиям, `isHidden = false` и `makeKey()`.
+
+`self.window = window` — та самая сильная ссылка.
+
+Других методов делегату сцены пока не нужно. Когда понадобятся —
+`sceneDidBecomeActive`, `sceneWillResignActive`, `sceneDidEnterBackground`
+— порядок их вызовов и что в них делать разобраны в главе 5.
+
+### Первый экран целиком кодом
+
+![Первый экран](../images/uikit-map/hello-screen.png){width=30%}
+![Второй экран после push](../images/uikit-map/detail-screen.png){width=30%}
+
+```swift
+import UIKit
+
+final class HelloViewController: UIViewController {
+
+    private let titleLabel = UILabel()
+    private let nextButton = UIButton(configuration: .filled())
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Первый экран"
+        view.backgroundColor = .systemBackground
+
+        titleLabel.text = "Привет, UIKit!"
+        titleLabel.font = .preferredFont(forTextStyle: .title1)
+        titleLabel.textAlignment = .center
+
+        nextButton.configuration?.title = "Дальше"
+        nextButton.addAction(UIAction { [weak self] _ in
+            self?.navigationController?.pushViewController(
+                DetailViewController(), animated: true)
+        }, for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, nextButton])
+        stack.axis = .vertical
+        stack.spacing = 24
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            stack.leadingAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+        ])
+    }
+}
+
+final class DetailViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Второй экран"
+        view.backgroundColor = .systemGroupedBackground
+        let label = UILabel()
+        label.text = "Сюда пришли через push"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        ])
+    }
+}
+```
+
+Это шаблон каждого экрана книги; в нём собраны все ступени карты.
+
+**Экран — наследник `UIViewController`** (раздел 0.6). Своих
+инициализаторов нет, поэтому `HelloViewController()` создаётся без
+аргументов, и `init?(coder:)` писать не нужно. Всё строится в
+`viewDidLoad`: к этому моменту `view` уже создан UIKit'ом (пустой
+`UIView` размером с экран), а раньше трогать его нельзя.
+
+**`title`** — свойство экрана; панель навигации возьмёт его в
+`navigationItem` и покажет (раздел 0.6).
+
+**`view.backgroundColor = .systemBackground`** — без этой строки корневой
+view прозрачный, и под ним будет чёрное окно. `.systemBackground` —
+динамический цвет: белый в светлой теме, чёрный в тёмной.
+
+**Лейбл и кнопка** — ступени `UIView` и `UIControl` (разделы 0.3, 0.4):
+у лейбла только содержимое (`text`, `font`), у кнопки — ещё и
+`addAction`. `UIButton(configuration: .filled())` — кнопка нового
+образца (iOS 15) с синей заливкой; заголовок задаётся через
+`configuration?.title`. В замыкании `[weak self]`, потому что кнопка
+хранит замыкание, а экран хранит кнопку — без `weak` получился бы цикл.
+
+**`navigationController?.pushViewController`** — экран находит свой
+`UINavigationController`, поднимаясь по родителям (раздел 0.6). Он есть,
+потому что в `SceneDelegate` мы обернули первый экран в навигационный
+контроллер. Без обёртки свойство вернуло бы `nil`, и тап ничего бы не
+сделал. Второй экран получает кнопку «назад» сам — её рисует панель.
+
+**`UIStackView`** — складывает лейбл и кнопку в столбик с промежутком 24
+точки и сам создаёт правила раскладки для своих элементов. Ему, как
+любому subview с правилами, нужна строка
+`translatesAutoresizingMaskIntoConstraints = false` (раздел 0.3).
+
+**Три правила Auto Layout**: стек по центру экрана, а его левый край —
+не ближе 16 точек к безопасной зоне. Ширину и высоту не задаём — их
+дадут `intrinsicContentSize` лейбла и кнопки. Правило с
+`greaterThanOrEqualTo` сработает только на узком экране или с крупным
+шрифтом: тогда стек не вылезет за край, а лейбл перенесёт текст.
+
+Второй экран — тот же шаблон в минимальной форме: заголовок, фон, один
+лейбл по центру.
+
+### Как из любого view добраться до окна, сцены и экрана устройства
+
+В `viewDidAppear` второго экрана мы напечатали, что видно «снизу
+вверх»:
+
+```swift
+print(view.window.map { NSStringFromClass(type(of: $0)) } ?? "nil",
+      view.window?.windowScene.map { NSStringFromClass(type(of: $0)) } ?? "nil",
+      view.window?.windowScene?.screen.bounds ?? .zero,
+      view.window?.windowScene?.session.configuration.name ?? "nil")
+```
+
+Вывод в симуляторе iPhone 16:
+
+```
+UIWindow UIWindowScene (0.0, 0.0, 393.0, 852.0) Default Configuration
+```
+
+То есть путь такой: `view.window` → `windowScene` → `screen`
+или `session`. Это и есть замена устаревшему `UIScreen.main`: размер
+экрана берут у сцены, в которой живёт view. Два предупреждения:
+`view.window` равен `nil`, пока view не в окне — в `viewDidLoad` мы
+получили `nil` (тот же вывод до перестановки печати в `viewDidAppear`);
+и у окна, созданного без сцены, `windowScene` тоже `nil`.
+
+### Если вместо экрана — чёрный
+
+Четыре причины, по порядку проверки:
+
+1. В `Info.plist` остался **Storyboard Name** или в Build Settings —
+   `UIMainStoryboardFile`, а самого storyboard нет: приложение падает при
+   запуске с «Could not find a storyboard named 'Main'».
+2. Нет `self.window = window` — окно освободилось.
+3. Нет `window.makeKeyAndVisible()` — окно создано, но скрыто.
+4. В **Delegate Class Name** опечатка или нет `$(PRODUCT_MODULE_NAME).` —
+   UIKit не найдёт класс делегата, `willConnectTo` не вызовется. Когда
+   конфигурация одна, имя в `configurationForConnecting` может даже не
+   совпадать с манифестом — UIKit возьмёт единственную (проверено в
+   главе 5), а вот класс делегата должен быть найден.
+
+И одна причина не чёрного, а **прозрачного** экрана: забытый
+`view.backgroundColor` у корневого view.
 
 ## 0.8 Что не view
 
@@ -642,8 +976,12 @@ UIAlertAction → NSObject
   создаётся лениво, `viewDidLoad` один раз, `viewWillAppear` — каждый
   показ; `navigationItem` принадлежит экрану; `.automatic` — это
   `.formSheet` с iOS 18.
+- Запуск без storyboard: `Info.plist` → `AppDelegate` отдаёт конфигурацию →
+  UIKit создаёт `UIWindowScene` и `SceneDelegate` → в `willConnectTo` мы
+  создаём `UIWindow(windowScene:)`, ставим `rootViewController`, зовём
+  `makeKeyAndVisible()` и храним окно в `self.window`.
 - `UIWindow` — view (можно `addSubview`), сцена и приложение — ответчики,
-  но не view.
+  но не view; до них из любого view: `view.window?.windowScene`.
 - Слои, жесты, `UIBarButtonItem`, `UINavigationItem`, `UIAction`, цвета,
   constraints — без `frame`: их нельзя `addSubview`, нужно найти view,
   которая их покажет.
@@ -665,7 +1003,10 @@ UIAlertAction → NSObject
 - [UIViewController](https://developer.apple.com/documentation/uikit/uiviewcontroller), [view](https://developer.apple.com/documentation/uikit/uiviewcontroller/view), [loadView()](https://developer.apple.com/documentation/uikit/uiviewcontroller/loadview()) — экран и его view.
 - [addChild(_:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/addchild(_:)) и [navigationItem](https://developer.apple.com/documentation/uikit/uiviewcontroller/navigationitem) — контейнеры и элемент навигации.
 - [UIModalPresentationStyle.automatic](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle/automatic) и [dismiss(animated:completion:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/dismiss(animated:completion:)) — модальный показ.
-- [UIWindow](https://developer.apple.com/documentation/uikit/uiwindow), [UIWindowScene](https://developer.apple.com/documentation/uikit/uiwindowscene), [UIApplication](https://developer.apple.com/documentation/uikit/uiapplication) — верх дерева.
+- [UIWindow](https://developer.apple.com/documentation/uikit/uiwindow), [init(windowScene:)](https://developer.apple.com/documentation/uikit/uiwindow/init(windowscene:)), [makeKeyAndVisible()](https://developer.apple.com/documentation/uikit/uiwindow/makekeyandvisible()) — окно и его привязка к сцене.
+- [UIScene](https://developer.apple.com/documentation/uikit/uiscene), [UIWindowScene](https://developer.apple.com/documentation/uikit/uiwindowscene), [UIWindowSceneDelegate](https://developer.apple.com/documentation/uikit/uiwindowscenedelegate), [scene(_:willConnectTo:options:)](https://developer.apple.com/documentation/uikit/uiscenedelegate/scene(_:willconnectto:options:)) — сцена и её делегат.
+- [UISceneConfiguration](https://developer.apple.com/documentation/uikit/uisceneconfiguration), [UIApplicationSceneManifest](https://developer.apple.com/documentation/bundleresources/information-property-list/uiapplicationscenemanifest) — конфигурация сцены и ключ `Info.plist`.
+- [UIApplication](https://developer.apple.com/documentation/uikit/uiapplication) и [UIApplicationDelegate](https://developer.apple.com/documentation/uikit/uiapplicationdelegate) — приложение и его делегат.
 - [UIBarItem](https://developer.apple.com/documentation/uikit/uibaritem), [UIGestureRecognizer](https://developer.apple.com/documentation/uikit/uigesturerecognizer) — объекты нижней половины карты.
 - [UITableViewDelegate](https://developer.apple.com/documentation/uikit/uitableviewdelegate) и [UITableViewDataSource](https://developer.apple.com/documentation/uikit/uitableviewdatasource) — делегат и источник данных.
 - [class_getSuperclass(_:)](https://developer.apple.com/documentation/objectivec/class_getsuperclass(_:)) — функция рантайма из раздела 0.10.
