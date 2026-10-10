@@ -147,13 +147,22 @@ private static func presentFullScreen(_ vc: UIViewController, from anchor: UIVie
 **Модальный показ** (`present`) — экран появляется поверх текущего и
 закрывается `dismiss`. Стиль `.fullScreen` — на весь экран, без карточки
 сверху, как если бы гейт был корневым экраном окна. Так видно, как он
-выглядит в настоящем запуске.
+выглядит в настоящем запуске. У `.fullScreen` есть и побочный эффект, про
+который документация `UIModalPresentationStyle.fullScreen` пишет прямо: после
+показа UIKit **убирает view показывающего экрана из иерархии**, и тот
+получает `viewWillDisappear`/`viewDidDisappear`; при закрытии — снова
+`viewWillAppear`. У листа нижний экран остаётся на месте и этих вызовов не
+получает (глава 0, раздел 0.7).
 
-По умолчанию с iOS 13 модальные экраны показываются **листом**
-(`.pageSheet` / `.automatic`): карточка, из-под которой виден предыдущий
-экран, и её можно смахнуть вниз. Для Anatomy это неправдоподобно:
-force-update и maintenance (глава 9) по смыслу **блокируют** приложение и
-смахиваться не должны.
+По умолчанию с iOS 13 модальные экраны показываются **листом**: карточка,
+из-под которой виден предыдущий экран, и её можно смахнуть вниз. Значение
+`modalPresentationStyle` по умолчанию — `.automatic`, и система сама
+подбирает стиль: до iOS 18 это `.pageSheet`, с iOS 18 — `.formSheet`
+(документация `UIModalPresentationStyle.automatic`; в рантайме iOS 26.5
+свойство свежего контроллера читается как `.formSheet`). На iPhone разницы
+не видно — в компактной ширине form sheet выглядит как page sheet. Для
+Anatomy лист неправдоподобен: force-update и maintenance (глава 9) по смыслу
+**блокируют** приложение и смахиваться не должны.
 
 `static` — функция не нужна экземпляру: всё, что ей требуется, приходит
 параметрами. Поэтому замыкания в 22.2 вызывают её через `Self.` без захвата
@@ -315,9 +324,16 @@ App Store: «1.4.2».
 Release, которая уходит в App Store, кнопки не будет **вообще** — её код даже
 не компилируется.
 
-`UIBarButtonItem(image:primaryAction:)` (iOS 14+) — кнопка панели с
-действием-замыканием. Записи вида `UIBarButtonItem(image: ..., ...) { ... }`
-(с замыканием в конце) не бывает — такого инициализатора нет.
+`UIBarButtonItem(image:primaryAction:)` — кнопка панели с
+действием-замыканием. В Swift это один инициализатор с параметрами по
+умолчанию, `init(title:image:primaryAction:menu:)` (iOS 14+, из Swift-обёртки
+UIKit): мы передаём только `image` и `primaryAction`. Записи вида
+`UIBarButtonItem(image: ..., ...) { ... }` (с замыканием в конце) не бывает —
+последний параметр здесь `UIAction?`, а не замыкание. Сам `UIBarButtonItem` —
+не view и не кнопка: `UIBarButtonItem → UIBarItem → NSObject`. Это описание
+кнопки, которое лежит в `navigationItem` экрана, а навигационная панель уже
+сама рисует по нему настоящий view (глава 0, раздел 0.9). Поэтому у него нет
+`addSubview`, `frame` или `isHidden`.
 
 **Упражнение 22.1.** Добавь в `AboutViewController` сброс счётчика тапов, если
 между тапами прошло больше 2 секунд: семь тапов должны быть **подряд**.
@@ -327,9 +343,11 @@ Release, которая уходит в App Store, кнопки не будет 
 
 Anatomy показывает гейты, а под ними — одни и те же «кирпичи» UIKit. Полезно
 один раз увидеть их родословную: многое в поведении объясняется тем, **кто
-родитель**.
+родитель**. Полная карта классов — в главе 0; здесь — практическая проверка
+её утверждений на рантайме, тем же приёмом, что описан в разделе 0.11.
 
-Цепочку предков можно не вспоминать, а спросить у рантайма Objective-C:
+Цепочку предков можно не вспоминать, а спросить у рантайма Objective-C
+(глава 0, раздел 0.2):
 
 ```swift
 /// «Родословная» класса: сам класс → родитель → … → корень.
@@ -374,8 +392,10 @@ CAGradientLayer      → CALayer → NSObject
 касания, нажатия клавиш, жесты «встряхнуть», команды меню. Они выстраиваются
 в **responder chain** — цепочку, по которой событие идёт снизу вверх, пока
 кто-то его не обработает: view → его superview → … → view экрана → экран →
-окно → сцена → приложение. Так работал shake-жест в `PlaygroundWindow`
-(глава 3): окно — responder, и событие «встряхнули» доходит до него.
+окно → сцена → приложение. Каждое звено — это свойство `next` (замер:
+`vc.view.next === vc`, `window.next` — window scene). Так работал shake-жест
+в `PlaygroundWindow` (глава 3): окно — responder, и событие «встряхнули»
+доходит до него. Подробно — глава 0, раздел 0.3.
 
 **First responder** («первый отвечающий») — тот, кто сейчас получает ввод
 с клавиатуры: например, текстовое поле, в котором мигает курсор.
@@ -473,8 +493,11 @@ UITextField       → UIControl → UIView → UIResponder → NSObject
 `UIAlertController` — полноценный экран: его показывают через `present`,
 а не `addSubview`. `UISearchBar` — просто view, не контрол: у него нет
 `addAction(_:for:)`, события приходят через делегат `UISearchBarDelegate`.
-`UITextField` — контрол, поэтому на него можно повесить
-`addAction(_, for: .editingChanged)` и узнавать о каждом изменении текста.
+Зато внутри него живёт `searchTextField` (iOS 13+) — это `UITextField`, то
+есть уже контрол, и к нему `addAction` применим. `UITextField` — контрол,
+поэтому на него можно повесить `addAction(_, for: .editingChanged)` и
+узнавать о каждом изменении текста. Таблица «кто контрол, а кто нет» —
+глава 0, раздел 0.5.
 
 ## Что мы выучили
 
@@ -484,8 +507,10 @@ UITextField       → UIControl → UIView → UIResponder → NSObject
   `dequeueReusableCell(withIdentifier:for:)` требует `register`.
 - `presenter: (UIViewController) -> Void` получает якорь параметром — тогда
   хранимым замыканиям не нужен `self`, и retain cycle невозможен.
-- Гейт показывается `.fullScreen` — как в настоящем запуске; лист
-  `.pageSheet` можно смахнуть, блокирующим гейтам это не подходит.
+- Гейт показывается `.fullScreen` — как в настоящем запуске, нижний экран при
+  этом уходит из иерархии и получает `viewWillDisappear`; лист по умолчанию
+  (`.automatic` → `.pageSheet` до iOS 18, `.formSheet` с iOS 18) можно
+  смахнуть, блокирующим гейтам это не подходит.
 - Гейты переиспользуются благодаря callback-API: один
   `AnimatedSplashViewController` работает и в координаторе, и в Anatomy.
 - Гейтам, которые запоминают выбор в `UserDefaults`, в Anatomy делаем сброс.
@@ -503,6 +528,8 @@ UITextField       → UIControl → UIView → UIResponder → NSObject
 - [HIG: Modality](https://developer.apple.com/design/human-interface-guidelines/modality) — когда полный экран, когда лист.
 - [present(_:animated:completion:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/present(_:animated:completion:)) и [dismiss(animated:completion:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/dismiss(animated:completion:)) — модальный показ и закрытие.
 - [UIModalPresentationStyle](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle) — `.fullScreen`, `.pageSheet`, `.automatic`.
+- [UIModalPresentationStyle.automatic](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle/automatic) — во что система превращает стиль по умолчанию: `.formSheet` с iOS 18, `.pageSheet` раньше.
+- [UIBarItem](https://developer.apple.com/documentation/uikit/uibaritem) — общий предок `UIBarButtonItem` и `UITabBarItem`; не view.
 - [UIResponder](https://developer.apple.com/documentation/uikit/uiresponder) — общий предок; responder chain и first responder.
 - [Using responders and the responder chain to handle events](https://developer.apple.com/documentation/uikit/using-responders-and-the-responder-chain-to-handle-events) — как событие идёт по цепочке.
 - [class_getSuperclass(_:)](https://developer.apple.com/documentation/objectivec/class_getsuperclass(_:)) — функция рантайма из раздела 22.8.

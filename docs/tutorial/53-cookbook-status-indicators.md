@@ -178,12 +178,20 @@ final class TypingIndicatorView: UIView {
 На вкладке таб-бара бейдж встроенный:
 
 ```swift
-tabBarController?.tabBar.items?[0].badgeValue = "3"
-tabBarController?.tabBar.items?[0].badgeColor = .systemRed
+// внутри экрана, который сидит на вкладке
+tabBarItem.badgeValue = "3"
+tabBarItem.badgeColor = .systemRed
 ```
 
-`badgeValue = nil` — убрать бейдж. Строка может быть любой, но
-длинные тексты система обрежет — для счётчика ограничь сам: «99+».
+`tabBarItem` — свойство **view controller'а**, а не панели: класс
+`UITabBarItem` наследует `UIBarItem → NSObject`, это не view, а описание
+вкладки (глава 0, разделы 0.7 и 0.9). Панель `UITabBar` лишь показывает эти
+объекты: `tabBarController?.tabBar.items?[0]` — тот же самый экземпляр, что
+`viewControllers[0].tabBarItem` (проверено на симуляторе: `===` даёт `true`),
+поэтому через него тоже работает, но менять массив `items` у панели,
+которой управляет `UITabBarController`, нельзя — Apple пишет, что это
+вызовет исключение. `badgeValue = nil` — убрать бейдж. Строка может быть
+любой, но длинные тексты система обрежет — для счётчика ограничь сам: «99+».
 
 Свой бейдж на любом view:
 
@@ -235,14 +243,25 @@ badge.setCount(128)   // покажет "99+"
 - Высота 18, `cornerRadius = 9` — половина высоты: у однозначного
   числа получается круг, у многозначного — «таблетка» со скруглёнными
   торцами.
-- `intrinsicContentSize` — «естественный» размер view, из которого
-  Auto Layout берёт ширину и высоту, если констрейнтов на размер нет.
-  Для `UILabel` это размер текста. Мы добавляем 10 точек (по 5 с
-  каждой стороны) и не даём стать уже 18 — иначе у «7» бейдж был бы
-  не кругом, а тонким овалом. Без полей «99+» упирается в края.
-- `masksToBounds = true` — без него `cornerRadius` скругляет только
-  фон слоя, а у `UILabel` фон рисуется иначе, и углы остаются
-  квадратными.
+- `intrinsicContentSize` — «естественный» размер view, который оно само
+  сообщает Auto Layout. Для `UILabel` это размер текста: на симуляторе
+  «99+» жирным 11 pt занимает 22,7 × 13,3 точки, а «7» — 7 × 13,3. Auto
+  Layout превращает этот размер в необязательные констрейнты (hugging с
+  приоритетом 250 и compression resistance с 750), поэтому явный констрейнт
+  на ширину или высоту его перекроет (подробно — глава 0, раздел 0.4). Мы
+  добавляем 10 точек (по 5 с каждой стороны) и не даём стать уже 18 —
+  иначе у «7» бейдж был бы не кругом, а тонким овалом. Без полей «99+»
+  упирается в края.
+- `masksToBounds = true` — обязателен именно для `UILabel`. `cornerRadius`
+  скругляет только то, что рисует сам слой: его `backgroundColor` и
+  `border`. У обычного `UIView` `backgroundColor` и есть
+  `layer.backgroundColor`, поэтому там хватает одного `cornerRadius`. А
+  `UILabel` рисует фон вместе с текстом в содержимое своего слоя
+  (`_UILabelLayer`): после `label.backgroundColor = .systemRed` свойство
+  `label.layer.backgroundColor` остаётся `nil` (проверено на симуляторе).
+  Содержимое слоя `cornerRadius` не трогает, его обрезает только маска —
+  `masksToBounds`, то же самое, что `clipsToBounds` у view (глава 0,
+  раздел 0.4).
 - Центр бейджа ставим **на угол** иконки, со сдвигом 2 точки внутрь:
   половина бейджа выходит за границы иконки. Поэтому у `iconView` не
   должно быть `clipsToBounds = true`, иначе вылезающая половина
@@ -267,8 +286,16 @@ progress.progressTintColor = .systemBlue
 тебя «скачано 3 МБ из 12», это 3 / 12 = 0,25. `trackTintColor` —
 цвет пустой части, `progressTintColor` — заполненной.
 
-Стили: `.default` — обычная полоса, `.bar` — вариант для размещения в
-навигационной панели или тулбаре (без фона дорожки).
+`UIProgressView` — наследник `UIView`, а не `UIControl`: он только
+показывает значение, пользователь на него не нажимает, и `addAction`
+у него нет (кто контрол, а кто нет — глава 0, раздел 0.5). Свой размер он
+сообщает через `intrinsicContentSize`: высота 4 точки, ширина —
+`UIView.noIntrinsicMetric` (на iOS 26.5), так что ширину задай
+констрейнтом, а высоту можно не трогать.
+
+Стили: `.default` — обычная полоса, `.bar` — в заголовке SDK помечен «for
+use in a toolbar»: вариант для тулбара и панели навигации, отличается
+только оформлением дорожки.
 
 Плавное изменение:
 
@@ -276,8 +303,9 @@ progress.progressTintColor = .systemBlue
 progress.setProgress(0.75, animated: true)
 ```
 
-`animated: true` — полоса доедет от 0,42 до 0,75 плавно. Для
-VoiceOver `UIProgressView` сам сообщает процент.
+`animated: true` — полоса доедет от 0,42 до 0,75 плавно. VoiceOver
+читает стандартный `UIProgressView` как индикатор прогресса; для своего
+рисования (36.5) `accessibilityValue` придётся задавать самому.
 
 ## 36.5 Круговой прогресс
 
@@ -348,6 +376,16 @@ final class CircularProgressView: UIView {
 Нижний (дорожка) — полная серая окружность, верхний (прогресс) — та
 же окружность синим, но нарисованная не целиком. Сколько нарисовать,
 решает `strokeEnd`: 0 — ничего, 0,5 — половина, 1 — вся линия.
+Значения по умолчанию из `CAShapeLayer.h`: `fillColor` — **непрозрачный
+чёрный**, `strokeColor` — `nil`, `lineWidth` — 1, `strokeEnd` — 1.
+Поэтому `fillColor = UIColor.clear.cgColor` в цикле обязателен — иначе
+вместо кольца получится чёрный диск.
+
+`CAShapeLayer → CALayer → NSObject` — это не view: слой не участвует в
+Auto Layout, не получает касаний и не знает про `traitCollection`
+(глава 0, раздел 0.9). Отсюда две особенности класса выше: геометрию слоёв
+мы считаем сами в `layoutSubviews()`, а цвета обновляем по трейтам view,
+которое ими владеет.
 
 Геометрия словами:
 
@@ -361,18 +399,34 @@ final class CircularProgressView: UIView {
   полного оборота. Прогресс 0,25 заполнит дугу от 12 до 3 часов.
 - `lineCap = .round` — скруглённые концы дуги.
 
-Путь пересчитывается в `layoutSubviews()` — туда UIKit заходит при
-каждом изменении размера view, в том числе при повороте экрана. А
-цвета, наоборот, **не** в `layoutSubviews`: он не обязан вызываться
-при смене темы, поэтому для них отдельный `updateColors()` с подпиской
-на изменение темы.
+Путь пересчитывается в `layoutSubviews()` — UIKit вызывает его при
+каждом изменении `bounds` view (в том числе при повороте экрана), при
+добавлении subview и после `setNeedsLayout()` — в следующем проходе
+раскладки, а не сразу (глава 0, раздел 0.4). А смена `backgroundColor`,
+например, раскладку не трогает: на симуляторе `layoutSubviews` после неё
+не вызвался. Цвета поэтому **не** в `layoutSubviews`: это метод про
+геометрию, и UIKit не обещает вызывать его при смене темы. Для них
+отдельный `updateColors()` с подпиской на изменение трейтов.
 
 Бесплатный бонус: `progressLayer` — самостоятельный слой, не слой
 какого-то view. У таких слоёв смена свойства анимируется
-автоматически (так называемая **неявная анимация**, около 0,25 с).
-Поэтому `progress = 0.7` плавно «докрутит» кольцо без единой строки
-анимационного кода. Если нужно мгновенно — оберни присваивание в
-`CATransaction.setDisableActions(true)`.
+автоматически (так называемая **неявная анимация**; длительность берётся
+из `CATransaction.animationDuration()`, по умолчанию 0,25 с). У
+`view.layer` этого нет: UIKit отключает неявные анимации собственного
+слоя view, их включает только `UIView.animate`. Поэтому `progress = 0.7`
+плавно «докрутит» кольцо без единой строки анимационного кода. Если
+нужно мгновенно — отключи действия внутри своей транзакции:
+
+```swift
+CATransaction.begin()
+CATransaction.setDisableActions(true)
+progressLayer.strokeEnd = 0.7
+CATransaction.commit()
+```
+
+Без `begin`/`commit` вызов `setDisableActions(true)` действует на
+неявную транзакцию до конца текущего прохода run loop — и отключит
+анимацию у всех слоёв, которые ты в этот момент меняешь.
 
 ## 36.6 Состояния экрана — один enum
 
@@ -390,7 +444,6 @@ final class ContentStateView: UIView {
     }
 
     private func update() {
-        spinner.isHidden = state != .loading
         if state == .loading { spinner.startAnimating() } else { spinner.stopAnimating() }
         emptyView.isHidden = state != .empty
         errorView.isHidden = state != .error
@@ -398,6 +451,13 @@ final class ContentStateView: UIView {
     }
 }
 ```
+
+Спиннеру отдельная строка с `isHidden` не нужна: у
+`UIActivityIndicatorView` свойство `hidesWhenStopped` по умолчанию `true`
+(заголовок SDK), поэтому `stopAnimating()` сам ставит `isHidden = true`, а
+`startAnimating()` — снимает. На симуляторе свежий спиннер до
+`startAnimating()` уже скрыт. Как и `UIProgressView`, это `UIView`, а не
+`UIControl` — он ничего не «нажимает», только крутится.
 
 **State machine** (конечный автомат) — объект, который в каждый момент
 находится ровно в одном из заранее перечисленных состояний. Здесь их
@@ -501,8 +561,14 @@ private func updateBadge(_ count: Int) {
 За 0,15 с бейдж вырастает на 30% (`1.3` — 130% размера: бейдж 18
 точек становится 23,4), ещё за 0,15 с возвращается. Итого 0,3 с —
 достаточно, чтобы глаз заметил «число изменилось», и не мешает.
-`transform` не трогает Auto Layout: констрейнты не пересчитываются,
-бейдж увеличивается вокруг своего центра.
+`transform` не трогает Auto Layout: Apple пишет, что с iOS 8 раскладка
+считает alignment rect по нетрансформированному view, констрейнты не
+пересчитываются. Масштаб применяется относительно `center` (точнее,
+`layer.anchorPoint`, по умолчанию это центр), поэтому бейдж растёт вокруг
+своей середины. На симуляторе у бейджа 18 × 18 в точке (100, 100) после
+масштаба 1,3 `bounds` и `center` не изменились, а `frame` стал
+(97,3; 97,3; 23,4 × 23,4) — и при `transform` ≠ identity на `frame`
+полагаться нельзя, Apple называет его «undefined» (глава 0, раздел 0.4).
 
 ## 36.10 Индикатор страниц
 
@@ -512,13 +578,22 @@ pageControl.numberOfPages = 4
 pageControl.currentPage = 0
 pageControl.currentPageIndicatorTintColor = .systemBlue
 pageControl.pageIndicatorTintColor = .quaternaryLabel
-pageControl.allowsContinuousInteraction = true  // iOS 14+
+pageControl.addAction(UIAction { [weak pageControl] _ in
+    guard let page = pageControl?.currentPage else { return }
+    print("Пользователь выбрал страницу \(page)")
+}, for: .valueChanged)
 ```
 
 `UIPageControl` — ряд точек «страница N из M» под листаемым
-контентом. `allowsContinuousInteraction = true` — если зажать палец на
-точках и вести в сторону, страницы перелистываются одна за другой, как
-ползунком.
+контентом. В отличие от `UIProgressView` и спиннера это **контрол**
+(`UIPageControl → UIControl → UIView`, глава 0, раздел 0.5): тап по точкам
+меняет `currentPage` и посылает событие `.valueChanged`, которое ловят
+через target-action или `addAction(_:for:)` (iOS 14+). Протягивание по
+точкам — **continuous interaction** (iOS 14+): если зажать палец и вести в
+сторону, страницы перелистываются одна за другой, как ползунком. Это
+поведение включено по умолчанию (`allowsContinuousInteraction` в
+заголовке SDK — «Default is YES», на симуляторе читается `true`);
+выключить его можно, поставив `false`.
 
 Как связать точки с `UIPageViewController` — в главе 6.5.
 
@@ -662,20 +737,32 @@ VoiceOver мы говорим настоящее число, даже если �
 - **Точка «в сети»** — круг с рамкой цвета фона, в общем контейнере,
   а не внутри круглой аватарки.
 - **«Печатает»** — три точки с `beginTime` со сдвигом 0,15 с.
-- **Бейдж** — `UILabel` с полями через `intrinsicContentSize`, «99+»,
-  скрыт при 0; у родителя не должно быть `clipsToBounds`.
-- **`UIProgressView`** — доля от 0 до 1, `setProgress(_:animated:)`.
-- **Круговой прогресс** — два `CAShapeLayer`, `strokeEnd`, старт в
-  `-π/2`, радиус минус половина толщины линии, неявная анимация.
+- **Бейдж вкладки** — `tabBarItem` view controller'а (`UITabBarItem` — не
+  view); **свой бейдж** — `UILabel` с полями через `intrinsicContentSize`,
+  «99+», скрыт при 0, `masksToBounds` обязателен (фон лейбла — в
+  содержимом слоя); у родителя не должно быть `clipsToBounds`.
+- **`UIProgressView`** и **`UIActivityIndicatorView`** — view, не
+  контролы; доля от 0 до 1, `setProgress(_:animated:)`;
+  `hidesWhenStopped` по умолчанию `true`.
+- **Круговой прогресс** — два `CAShapeLayer`, `strokeEnd`, `fillColor`
+  обнулить (по умолчанию чёрный), старт в `-π/2`, радиус минус половина
+  толщины линии, неявная анимация; выключать её —
+  `CATransaction.begin()` / `setDisableActions(true)` / `commit()`.
 - **Состояния экрана** — один `enum` и один `update()`.
 - **Бегущее число** — быстрый вариант здесь, правильный — в 31.7.
 - **Статусы, галочки, качество связи** — `enum` с цветом, иконкой и
   словом для VoiceOver.
-- **`allowsContinuousInteraction`** у `UIPageControl` (iOS 14+).
+- **`UIPageControl`** — контрол: `.valueChanged` и `addAction`;
+  continuous interaction (iOS 14+) включён по умолчанию.
+- **`transform`** не трогает Auto Layout и `center`/`bounds`, но делает
+  `frame` неопределённым.
 
 ## Apple Developer Documentation
 
 - [UIProgressView](https://developer.apple.com/documentation/uikit/uiprogressview) — линейный прогресс с `progress` / `setProgress(_:animated:)`.
+- [UIViewController.tabBarItem](https://developer.apple.com/documentation/uikit/uiviewcontroller/tabbaritem) — вкладка принадлежит view controller'у, панель её только показывает.
+- [UIView.intrinsicContentSize](https://developer.apple.com/documentation/uikit/uiview/intrinsiccontentsize) — «естественный» размер view для Auto Layout.
+- [UIView.transform](https://developer.apple.com/documentation/uikit/uiview/transform) — масштаб вокруг центра; не влияет на Auto Layout с iOS 8.
 - [UIProgressView.Style](https://developer.apple.com/documentation/uikit/uiprogressview/style) — `.default` и `.bar`.
 - [UIPageControl](https://developer.apple.com/documentation/uikit/uipagecontrol) — индикатор страниц и `allowsContinuousInteraction` (iOS 14+).
 - [UIActivityIndicatorView](https://developer.apple.com/documentation/uikit/uiactivityindicatorview) — стандартный спиннер `.medium` / `.large`.

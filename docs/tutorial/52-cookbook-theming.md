@@ -13,6 +13,19 @@
 пользователь переключает тему, по всему этому дереву проходит
 изменение, и адаптивные цвета перерисовываются.
 
+`UITraitCollection` — обычный объект (`→ NSObject`), неизменяемый
+снимок характеристик. Свойство `traitCollection` есть у всех, кто
+реализует протокол `UITraitEnvironment`: `UIScreen`, `UIWindow`,
+`UIViewController`, `UIView`, `UIPresentationController` (проверено
+`conforms(to:)` на симуляторе; глава 0, разделы 0.9 и 0.10). Читать
+его имеет смысл, когда объект уже в иерархии: у свободного `UIView`
+или только что созданного контроллера size class ещё `unspecified`
+(замер). Поэтому цвета и раскладку, зависящие от трейтов, обновляют не
+в `init`/`viewDidLoad`, а там, где UIKit сам сообщает об изменениях:
+`registerForTraitChanges` (iOS 17) или `traitCollectionDidChange` (до
+iOS 17), `layoutSubviews`, в контроллере — `viewIsAppearing`
+(раздел 35.6).
+
 Аналогия: trait collection — это «погода» в комнате, где висит view.
 Цвет, подобранный под погоду, как хамелеон: сам меняется, когда
 «погода» сменилась.
@@ -76,9 +89,54 @@ button.tintColor = .systemRed  // переопределить для одной
 ```
 
 **`tintColor`** — цвет «интерактивности»: системные кнопки, иконки в
-навбаре, переключатели, выделение в пикере. Он **наследуется** вниз по
-иерархии view: задал окну — подхватит всё приложение. Хочешь другой
-цвет у одной кнопки — задай его ей.
+навбаре, переключатели, выделение в пикере. Правило наследования — из
+документации `UIView.tintColor`: свойство возвращает первое
+**не-default** значение в цепочке superview, начиная с самого view;
+если никто выше не задал — системный цвет (`systemBlue`). Задал окну —
+подхватит всё приложение; задал одной кнопке — только она. Замер на
+симуляторе: `parent.tintColor = .systemRed` — у вложенного view и
+кнопки внутри `tintColor` стал красным; `child.tintColor =
+.systemGreen` — кнопка внутри `child` взяла зелёный, ближайший.
+Свой view, который рисует что-то цветом `tintColor`, переопределяет
+`tintColorDidChange()` — UIKit зовёт его у subview, когда цвет
+сменился у предка (проверено: сработал у дочернего view после смены
+цвета родителя):
+
+```swift
+final class TintedRing: UIView {
+    override func tintColorDidChange() {
+        super.tintColorDidChange()
+        layer.borderColor = tintColor.cgColor
+    }
+}
+```
+
+Есть и `tintAdjustmentMode`: переведи его в `.dimmed` у корневого
+view — и `tintColor` всего поддерева будет возвращаться приглушённым
+(так гасят интерфейс под модальным окном); при смене режима
+`tintColorDidChange()` у subview тоже вызывается — оба правила из
+заголовка `UIView.h`.
+
+Когда один и тот же вид нужен **всем** экземплярам класса, есть
+appearance proxy. `UIAppearance` — протокол (глава 0, раздел 0.10),
+который реализует `UIView` и, например, `UIBarButtonItem` (проверено
+`conforms(to:)`); `appearance()` возвращает прокси-объект класса, и
+всё, что ты ему присвоишь, UIKit применит к экземплярам:
+
+```swift
+UISwitch.appearance().onTintColor = .systemIndigo
+UILabel.appearance(whenContainedInInstancesOf: [UITableViewHeaderFooterView.self])
+    .textColor = .secondaryLabel
+```
+
+Вторая форма — «только внутри таких контейнеров». Две особенности, обе
+из документации и подтверждены на симуляторе: прокси срабатывает,
+когда view **входит в окно** (у свежего `UISwitch` до `addSubview` в
+окно `onTintColor` ещё старый, после — новый), и уже показанные view
+не перекрашивает — их надо убрать из иерархии и вернуть. А `tintColor`
+через прокси задавать нельзя: заголовок `UIAppearance.h` прямо
+говорит, что он несовместим с наследованием по дереву, — для него есть
+окно.
 
 `.systemBlue`, `.systemRed`, `.systemGreen` и остальные тоже
 адаптивные: в тёмной теме и при повышенном контрасте у каждого свой
@@ -164,10 +222,14 @@ window?.overrideUserInterfaceStyle = .dark
 Семантические и `dynamicProvider`-цвета, присвоенные свойствам
 `UIView` (`backgroundColor`, `textColor`, `tintColor`), меняются
 сами. Не меняются цвета, которые ушли в **`CALayer`**: у слоя цвет —
-`CGColor`, обычное число без привязки к теме. Когда ты пишешь
-`UIColor.systemBackground.cgColor`, UIKit один раз выбирает значение
-для текущей темы и отдаёт его слою. Сменилась тема — слой остался со
-старым цветом.
+`CGColor`, объект Core Graphics с уже вычисленными компонентами, без
+привязки к теме. Когда ты пишешь `UIColor.systemBackground.cgColor`,
+UIKit один раз разрешает адаптивный цвет по `UITraitCollection.current`
+— trait collection «текущего контекста», которую UIKit выставляет на
+время `layoutSubviews`, `draw(_:)`, `traitCollectionDidChange` и
+обработчиков трейтов (документация `UITraitCollection.current`), — и
+отдаёт слою готовое значение. Сменилась тема — слой остался со старым
+цветом.
 
 Типичные жертвы: `layer.borderColor`, `layer.shadowColor`, цвета
 `CAGradientLayer` и `CAShapeLayer`. Их обновляют вручную при смене
@@ -221,18 +283,26 @@ final class GradientView: UIView {
 Разбор:
 
 - `registerForTraitChanges([UITraitUserInterfaceStyle.self])` — «сообщи,
-  когда поменяется тема». Замыкание получает сам view как параметр
-  (`self: Self`), поэтому `[weak self]` не нужен: UIKit не создаёт
-  цикла.
+  когда поменяется тема»; метод протокола `UITraitChangeObservable`,
+  iOS 17. Замыкание получает сам view как параметр (`self: Self`),
+  поэтому `[weak self]` не нужен: UIKit не создаёт цикла. Снимать
+  регистрацию не нужно — UIKit сам чистит её в конце жизни объекта
+  (документация). В `init` view ещё не в окне, и его trait collection
+  предварительная; когда view попадёт в окно с другой темой, трейт
+  сменится и обработчик вызовется — поэтому стартовый `updateColors()`
+  плюс подписка дают верный цвет в любом случае.
 - `traitCollectionDidChange` — способ для iOS 15–16. В iOS 17 он
-  помечен устаревшим, поэтому внутри мы выходим сразу, если работает
-  новая регистрация, — иначе на iOS 17+ цвета обновлялись бы дважды.
+  помечен устаревшим (заголовок: `API_DEPRECATED(... ios(8.0, 17.0))`,
+  с отсылкой к `UITraitChangeObservable`), но вызываться не перестал,
+  поэтому внутри мы выходим сразу, если работает новая регистрация, —
+  иначе на iOS 17+ цвета обновлялись бы дважды.
 - `hasDifferentColorAppearance(comparedTo:)` — изменилось ли то, что
   влияет на цвета (тема, контраст, уровень интерфейса). Смена размера
-  шрифта сюда не попадёт — лишней перерисовки не будет.
+  шрифта сюда не попадёт — лишней перерисовки не будет (проверено:
+  тёмная против светлой — `true`, размер шрифта L против XL — `false`).
 - `resolvedColor(with: tc)` — «какой конкретный цвет у адаптивного
   цвета для этой trait collection». Надёжнее, чем голый `.cgColor`,
-  который смотрит на «текущую» trait collection потока.
+  который смотрит на `UITraitCollection.current`.
 
 Без этого кода градиент «застрянет» в теме, в которой экран
 открылся: пользователь переключил тему в Пункте управления — а у
@@ -379,10 +449,11 @@ label.textColor = secondaryText
 ```
 
 Цвет — адаптивный, поэтому сам перерисуется, когда пользователь
-включит «Увеличение контраста». Проверка
-`UIAccessibility.isDarkerSystemColorsEnabled` внутри
-`traitCollectionDidChange` работала бы хуже: без подписки на
-уведомление смена настройки может пройти мимо.
+включит «Увеличение контраста»: `accessibilityContrast` — трейт, и
+UIKit перерешит цвет при его смене. Можно и руками — глобальный флаг
+`UIAccessibility.isDarkerSystemColorsEnabled` плюс подписка на
+`darkerSystemColorsStatusDidChangeNotification`, — но это два
+механизма вместо одного.
 
 ## 35.10 Цвета в Storyboard
 
@@ -423,14 +494,21 @@ view.window?.setTheme(.dark)
 `overrideUserInterfaceStyle` у контроллера, по документации Apple,
 действует на сам контроллер, всю его иерархию view и **встроенные**
 дочерние контроллеры (children — те, что добавлены через
-`addChild`, например экраны внутри `UINavigationController`).
+`addChild`, например экраны внутри `UINavigationController`); на
+родителей и приложение — нет (заголовок `UIViewController.h`: «this
+view controller and its children… does not affect the application or
+any parent view controllers»). Замер на симуляторе: после
+`vc.overrideUserInterfaceStyle = .dark` `traitCollection` у `vc`, его
+`view` и добавленного через `addChild` контроллера стал `.dark`.
 
 Модальный экран (`present`) дочерним не является — он показывается
 поверх в своём контейнере и берёт тему **окна**. Если ты сделал тёмным
 один контроллер через override, а из него показываешь лист, лист будет
 в теме системы. Хочешь, чтобы он тоже был тёмным, — задай override и
 ему перед `present`. А тема, заданная окну (35.5), действует на все
-экраны сразу, включая модальные.
+экраны сразу, включая модальные: заголовок `UIView.h` говорит об этом
+прямо — у окна свойство действует на `rootViewController` со всей
+иерархией «и на presentations внутри окна».
 
 ## Упражнения
 
@@ -511,12 +589,18 @@ let priceTagBackground = UIColor { traits in
 ## Что мы выучили
 
 - **Trait collection** — характеристики окружения (тема, контраст,
-  размер шрифта, size class), передаются от окна вниз по иерархии.
+  размер шрифта, size class), передаются от окна вниз по иерархии;
+  `UITraitCollection → NSObject`, есть у всех `UITraitEnvironment`.
+  Читать после входа в иерархию: `registerForTraitChanges`,
+  `layoutSubviews`, `viewIsAppearing`.
 - **Семантические цвета** (`.label`, `.systemBackground`) — для фонов
   и текста; `.white`/`.black` — только где цвет не должен меняться.
   В тёмной теме модальные листы «приподняты» и светлее.
-- **`tintColor`** наследуется по иерархии; системные цвета меняются от
-  версии iOS.
+- **`tintColor`** — первое не-default значение по цепочке superview,
+  иначе `systemBlue`; свои view реагируют в `tintColorDidChange()`;
+  системные цвета меняются от версии iOS.
+- **`UIAppearance`** — протокол; `appearance()` даёт прокси класса,
+  применяется при входе view в окно; `tintColor` через прокси нельзя.
 - **`UIColor(dynamicProvider:)`** — свой адаптивный цвет, быстрое
   замыкание.
 - **Asset Catalog** — Any / Dark / High Contrast; `UIColor(named:)`
@@ -540,6 +624,11 @@ let priceTagBackground = UIColor { traits in
 - [UITraitChangeObservable.registerForTraitChanges](https://developer.apple.com/documentation/uikit/uitraitchangeobservable-67e94) — подписка на изменение характеристик, iOS 17+.
 - [UITraitEnvironment.traitCollectionDidChange(_:)](https://developer.apple.com/documentation/uikit/uitraitenvironment/traitcollectiondidchange(_:)) — старый способ, устарел в iOS 17.
 - [UITraitCollection.hasDifferentColorAppearance(comparedTo:)](https://developer.apple.com/documentation/uikit/uitraitcollection/hasdifferentcolorappearance(comparedto:)) — изменилось ли то, что влияет на цвета.
+- [UITraitCollection.current](https://developer.apple.com/documentation/uikit/uitraitcollection/current) — trait collection текущего контекста; по ней `.cgColor` разрешает адаптивный цвет.
+- [UIViewController.viewIsAppearing(_:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/viewisappearing(_:)) — трейты и геометрия уже актуальны.
+- [UIView.tintColor](https://developer.apple.com/documentation/uikit/uiview/tintcolor) — правило «первое не-default значение по цепочке superview».
+- [UIView.tintColorDidChange()](https://developer.apple.com/documentation/uikit/uiview/tintcolordidchange()) — реакция своего view на смену tint color.
+- [UIAppearance](https://developer.apple.com/documentation/uikit/uiappearance) — протокол appearance proxy; применяется при входе view в окно.
 - [UI element colors](https://developer.apple.com/documentation/uikit/ui-element-colors) — семантические цвета (`.label`, `.systemBackground`, заливки, разделители).
 - [HIG — Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode) — гайдлайн Apple по тёмной теме.
 - [HIG — Color](https://developer.apple.com/design/human-interface-guidelines/color) — системные и семантические цвета.

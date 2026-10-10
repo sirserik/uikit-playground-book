@@ -266,9 +266,10 @@ private extension UIImage {
 картинки до конца жизни приложения: пролистал 500 фото — все 500 в
 памяти, и система в какой-то момент просто завершит приложение.
 
-Ключ — `NSURL`, а не `URL`: `NSCache` пришёл из Objective-C и
-принимает в качестве ключей только объекты-наследники `NSObject`.
-`URL` — структура Swift, поэтому пишем `url as NSURL`: это бесплатное
+Ключ — `NSURL`, а не `URL`: `NSCache` пришёл из Objective-C, и оба
+его типа-параметра должны быть классами (`NSCache<KeyType: AnyObject,
+ObjectType: AnyObject>`) — структуры туда не подставить. `URL` —
+структура Swift, поэтому пишем `url as NSURL`: это бесплатное
 преобразование в «объектный» двойник.
 
 **`totalCostLimit` и `cost`.** Лимит можно задать двумя способами:
@@ -323,9 +324,14 @@ main actor, но явная пометка документирует намер
 
 ## 16.4 Compositional Layout — адаптивная сетка
 
-`UICollectionView` — вид для коллекции элементов с любой раскладкой:
-сетка, карусель, список. Сам он не решает, где стоит каждая ячейка;
-это делает отдельный объект — layout («раскладка»).
+`UICollectionView` — вид (view) для коллекции элементов с любой
+раскладкой: сетка, карусель, список. Сам он не решает, где стоит
+каждая ячейка; это делает отдельный объект — layout («раскладка»).
+Раскладка — не view: `UICollectionViewCompositionalLayout →
+UICollectionViewLayout → NSObject`. У неё нет ни `frame`, ни subviews,
+она ничего не рисует — только отвечает коллекции на вопрос «где и
+какого размера элемент с таким индексом», а расставляет ячейки уже
+сама коллекция (подробно — глава 0, раздел 0.9).
 `UICollectionViewCompositionalLayout` (iOS 13+) описывает раскладку
 как матрёшку из трёх уровней:
 
@@ -408,6 +414,8 @@ extension GalleryViewController {
    снизу footer — дополнительный вид (supplementary view) для
    индикатора загрузки. Дополнительный вид — это элемент коллекции,
    который не является ячейкой с данными: заголовок, подвал, значок.
+   Класс у него тот же базовый, что и у ячейки, —
+   `UICollectionReusableView`, и переиспользуется он так же (16.6).
 
 > **Частая ошибка.** Дать item ширину
 > `.fractionalWidth(1.0)`, то есть 100% ширины группы. Тогда в ряд помещается
@@ -604,8 +612,19 @@ final class FooterLoaderView: UICollectionReusableView {
 ```
 
 `UICollectionReusableView` — базовый класс для всего, что коллекция
-переиспользует (ячейка `UICollectionViewCell` — его наследник). Footer
-тоже берётся из очереди переиспользования, поэтому `apply(_:)`
+переиспользует. Лестница такая: `UICollectionViewCell →
+UICollectionReusableView → UIView`. Базовый класс добавляет к обычному
+view только то, что нужно для очереди переиспользования:
+`reuseIdentifier`, `prepareForReuse()` и приём атрибутов раскладки.
+Ячейка сверху добавляет своё: `contentView`, `backgroundView`,
+`selectedBackgroundView`, состояния `isSelected` и `isHighlighted`. У
+footer'а ничего этого нет — ни `contentView`, ни выделения (проверено
+рантаймом: `UICollectionReusableView` не отвечает на `contentView`),
+поэтому стек мы добавляем прямо в сам footer (`addSubview(stack)`), а
+в ячейке в 16.7 — в `contentView`. Полная карта семейства — глава 0,
+раздел 0.6.
+
+Footer тоже берётся из очереди переиспользования, поэтому `apply(_:)`
 выставляет **все** свойства в каждом режиме: текст, спиннер и видимость
 кнопки. Если бы режим `.finished` не прятал кнопку, footer, который
 раньше показывал ошибку, остался бы с лишней кнопкой.
@@ -733,11 +752,25 @@ final class GalleryCell: UICollectionViewCell {
 квадратные, но режим спасает, если сервер вернёт картинку другой
 формы.
 
-**`prepareForReuse()`** — UIKit вызывает этот метод прямо перед тем,
-как отдать ячейку для другого фото. Здесь сбрасываем всё, что
-относится к прошлому фото: отменяем загрузку, забываем URL, убираем
-картинку. Без `imageView.image = nil` пользователь на долю секунды
-видел бы в ячейке чужое фото, пока грузится новое.
+**`contentView`.** Свои subviews ячейка коллекции держит не в себе, а
+в `contentView` — это документированное место для содержимого: ячейка
+кладёт его поверх `backgroundView` и `selectedBackgroundView`, и у
+свежей ячейки `contentView` — единственный subview (проверено
+рантаймом). Добавишь картинку прямо в ячейку (`addSubview` на `self`) —
+она окажется под фоновыми view и не будет участвовать в анимациях
+выделения.
+
+**`prepareForReuse()`** — коллекция вызывает этот метод перед тем, как
+`dequeueReusableCell` вернёт ячейку для другого фото (метод объявлен в
+`UICollectionReusableView`, поэтому есть и у footer'а). Здесь
+сбрасываем всё, что относится к прошлому фото: отменяем загрузку,
+забываем URL, убираем картинку. Без `imageView.image = nil`
+пользователь на долю секунды видел бы в ячейке чужое фото, пока
+грузится новое. Apple просит не назначать здесь новые данные — это
+работа источника данных в `cellForItemAt`; сброс в значения по
+умолчанию, как у нас, — ровно то, для чего метод предназначен. И
+обязательно вызывать `super.prepareForReuse()`: метод помечен
+`NS_REQUIRES_SUPER`.
 
 **Проверка `currentURL == url`** — защита от гонки (race condition —
 ситуация, когда результат зависит от того, какая из двух операций
@@ -946,20 +979,33 @@ extension PhotoViewerViewController: UIScrollViewDelegate {
    надо масштабировать.
 3. Этот вид лежит **внутри** scroll view.
 
-**Почему кадры, а не Auto Layout.** Во время зума scroll view меняет
-у `imageView` преобразование масштаба (`transform`) и сам пересчитывает
-`contentSize`. Если на `imageView` висят ограничения Auto Layout, они
-спорят со scroll view за размер, и зум начинает дёргаться. Поэтому
-`imageView` расставлен кадром (`frame`): в `viewDidLayoutSubviews`
-делаем его размером с экран, но только пока зума нет. Если пользователь
-приблизил фото и повернул телефон, кадр не трогаем, иначе зум
-сбросится рывком. `contentMode = .scaleAspectFit` вписывает фото в
-экран целиком, с чёрными полосами по краям.
+**Почему кадры, а не Auto Layout.** Во время зума scroll view не
+меняет `bounds` у `imageView` — он ставит ему преобразование масштаба
+(`transform`) и сам пересчитывает `contentSize`. Мы проверили на
+симуляторе: после `zoomScale = 2` у `imageView` `transform` стал
+`(a: 2, d: 2)`, `bounds` остались 393×852, а `contentSize` scroll view
+удвоился до 786×1704. А у view с `transform`, отличным от identity,
+значение `frame`, по документации Apple, **не определено** — его нельзя
+ни читать, ни присваивать. Поэтому `imageView` расставлен кадром, но
+только в одном случае: в `viewDidLayoutSubviews` мы трогаем `frame`
+лишь пока `zoomScale == minimumZoomScale`, то есть пока `transform`
+единичный и `frame` имеет смысл. Если пользователь приблизил фото и
+повернул телефон, кадр не трогаем — и потому что он не определён, и
+потому что иначе зум сбросится рывком. Ограничениями Auto Layout
+такой экран собрать тоже можно (через `contentLayoutGuide` scroll
+view), но для одной картинки на весь экран кадр короче.
+`contentMode = .scaleAspectFit` вписывает фото в экран целиком, с
+чёрными полосами по краям.
 
 `scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]` — scroll
 view растягивается вместе с `view` при повороте. Это старый механизм
-«пружинок», который работает без ограничений и отлично подходит, когда
-вид просто должен занимать всё окно.
+«пружинок» (autoresizing): маска говорит, какие стороны и размеры
+меняются вслед за superview. Он важен ещё по одной причине: в
+`viewDidLoad` размеры `view` ещё не окончательные, и `scrollView.frame
+= view.bounds` там — только стартовое значение; окончательный размер
+scroll view получит от маски, когда `view` примет свой настоящий
+размер. Как маска устроена и почему её нельзя смешивать с
+ограничениями на одном view — в главе 19, раздел 19.12.
 
 `contentInsetAdjustmentBehavior = .never` — не сдвигать содержимое
 под безопасную зону (safe area — часть экрана, не закрытая чёлкой,
@@ -1047,7 +1093,7 @@ self]` в нём — чтобы меню не удерживало контро�
 
 ## 16.10 «Сохранить в Фото» — какое разрешение нужно в действительности
 
-Работа с медиатекой — место, где новички часто просят лишнее. Apple
+Работа с медиатекой — место, где легко запросить лишнее. Apple
 даёт разные уровни доступа, и за каждым стоит свой системный диалог.
 
 | Что нужно приложению | Инструмент | Разрешение |
@@ -1240,7 +1286,15 @@ extension GalleryViewController: UICollectionViewDataSource {
   Принудительное приведение уронит приложение, если однажды
   перепутаешь идентификатор. Мягкое приведение в худшем случае покажет
   пустую ячейку — ошибку видно, но приложение живо.
-- **Коллекция до верхнего края `view`.** Коллекция — это scroll view,
+- **`dataSource` и `delegate` — слабые ссылки.** Оба свойства
+  объявлены `weak` (так в заголовке `UICollectionView.h`): коллекция
+  не держит контроллер, а контроллер держит коллекцию — кольца нет.
+  Обратная сторона: если источником данных сделать отдельный объект и
+  никуда его не сохранить, он освободится сразу, и `dataSource`
+  станет `nil` (почему делегаты в UIKit всегда weak — глава 0,
+  раздел 0.10).
+- **Коллекция до верхнего края `view`.** Коллекция — это scroll view
+  (`UICollectionView → UIScrollView → UIView`, глава 0, раздел 0.6),
   а у scroll view по умолчанию `contentInsetAdjustmentBehavior =
   .automatic`: система сама отступит сверху под навигационную панель и
   снизу под полоску «домой». Прокрученные фото красиво уезжают под
@@ -1358,6 +1412,14 @@ self`. Задача прогрева ничего не делает с резу�
 - Compositional layout: item → group → section. Для сетки у item
   ширина `1/колонки`, высота группы через `fractionalWidth` даёт
   квадраты; правило колонок пересчитывается при повороте само.
+  Раскладка — объект `NSObject`, не view: она только считает, где
+  что стоит.
+- `UICollectionViewCell → UICollectionReusableView → UIView`: footer
+  и ячейка переиспользуются одинаково, но `contentView` и выделение
+  есть только у ячейки; свои subviews — в `contentView`.
+- При зуме scroll view ставит картинке `transform`, и её `frame`
+  становится не определён — трогаем кадр только при единичном
+  масштабе.
 - Пагинация: `willDisplay` + запас в 6 ячеек + флаги `hasMore`,
   `isLoadingPage`, `nextPage`, `lastLoadFailed`. Новые элементы —
   `insertItems` в `performBatchUpdates`, не `reloadData()`.
@@ -1379,10 +1441,14 @@ self`. Задача прогрева ничего не делает с резу�
 - [UICollectionView](https://developer.apple.com/documentation/uikit/uicollectionview) — коллекция с произвольной раскладкой; в Gallery — основной экран.
 - [UICollectionViewCompositionalLayout](https://developer.apple.com/documentation/uikit/uicollectionviewcompositionallayout) — раскладка из секций, групп и элементов (iOS 13+), пересчитывается от размера контейнера.
 - [NSCollectionLayoutSection](https://developer.apple.com/documentation/uikit/nscollectionlayoutsection) — секция compositional layout; в неё кладём группу и `boundarySupplementaryItems`.
+- [UICollectionViewLayout](https://developer.apple.com/documentation/uikit/uicollectionviewlayout) — базовый класс раскладок: объект, который считает положение элементов, а не view.
+- [UICollectionReusableView](https://developer.apple.com/documentation/uikit/uicollectionreusableview) — общий предок ячеек и дополнительных видов; здесь живёт `prepareForReuse()`.
 - [UICollectionViewCell](https://developer.apple.com/documentation/uikit/uicollectionviewcell) — переиспользуемая ячейка; в `GalleryCell` сверяем `currentURL`.
+- [UICollectionViewCell.contentView](https://developer.apple.com/documentation/uikit/uicollectionviewcell/contentview) — куда класть своё содержимое ячейки.
+- [UIView.frame](https://developer.apple.com/documentation/uikit/uiview/frame) — кадр в координатах superview; при `transform`, отличном от identity, значение не определено.
 - [UICollectionViewDiffableDataSource](https://developer.apple.com/documentation/uikit/uicollectionviewdiffabledatasource) — источник данных на снимках, ступень после ручных `insertItems`.
 - [NSCache](https://developer.apple.com/documentation/foundation/nscache) — кеш, который сам освобождает память; лимиты `countLimit` и `totalCostLimit`.
-- [prepareForDisplay()](https://developer.apple.com/documentation/uikit/uiimage/preparingfordisplay()) — семейство методов распаковки картинки заранее (iOS 15+), включая асинхронный `byPreparingForDisplay()`.
+- [preparingForDisplay()](https://developer.apple.com/documentation/uikit/uiimage/preparingfordisplay()) — семейство методов распаковки картинки заранее (iOS 15+), включая асинхронный `byPreparingForDisplay()`.
 - [zoom(to:animated:)](https://developer.apple.com/documentation/uikit/uiscrollview/zoom(to:animated:)) — приближение scroll view к заданному прямоугольнику.
 - [UIContextMenuConfiguration](https://developer.apple.com/documentation/uikit/uicontextmenuconfiguration) — меню по долгому нажатию.
 - [PHPhotoLibrary](https://developer.apple.com/documentation/photokit/phphotolibrary) — доступ к медиатеке: запрос разрешения и `performChanges`.

@@ -17,8 +17,11 @@
 **View controller** (VC) — объект, который управляет одним экраном:
 создаёт его содержимое, реагирует на появление и исчезновение экрана,
 на нажатия. Все экраны в UIKit — наследники `UIViewController`.
-Аналогия: экран — комната, view controller — её хозяин, который
-расставляет мебель и открывает дверь гостям.
+Сам view controller — не view: его родословная `UIViewController →
+UIResponder → NSObject`, а прямоугольник на экране — это его свойство
+`view` (подробно — глава 0, раздел 0.7). Аналогия: экран — комната,
+view controller — её хозяин, который расставляет мебель и открывает
+дверь гостям.
 
 **Storyboard** — файл Xcode, в котором экраны не пишут кодом, а рисуют
 мышкой в редакторе Interface Builder. В этой книге storyboard нужен
@@ -194,10 +197,12 @@ Splash получает `manifest` — описание mini-app: имя, ико
 controller без storyboard и без xib-файла: «интерфейс я соберу кодом
 сам».
 
-`required init?(coder:)` UIKit требует у каждого наследника
-`UIViewController`: этим инициализатором экран создаётся из
-storyboard. Мы экран из storyboard не создаём, поэтому тело — просто
-`fatalError` с объяснением. Если когда-нибудь кто-то попробует — сразу
+`required init?(coder:)` требует не UIKit в рантайме, а компилятор
+Swift: в `UIViewController` этот инициализатор объявлен как `required`
+(он нужен протоколу `NSCoding`, по которому экран создаётся из
+storyboard или xib), а раз мы добавили свой инициализатор, обязаны
+повторить и его. Мы экран из storyboard не создаём, поэтому тело —
+просто `fatalError` с объяснением. Если когда-нибудь кто-то попробует — сразу
 увидит понятное сообщение, а не загадочный сбой.
 
 ### viewDidLoad — один раз, когда view создан
@@ -212,6 +217,24 @@ storyboard. Мы экран из storyboard не создаём, поэтому 
 
 `viewDidLoad` UIKit вызывает один раз — когда корневой view экрана
 создан, но ещё **не показан**. Здесь собирают интерфейс.
+
+Два слова о том, откуда берётся `view`. Он создаётся **лениво**: пока к
+свойству `view` никто не обратился, его нет (`isViewLoaded == false`).
+При первом обращении UIKit зовёт `loadView()` — тот без storyboard
+создаёт пустой `UIView`, — и сразу после него `viewDidLoad`. Мы
+проверили это на симуляторе: у свежего view controller'а
+`isViewLoaded` равен `false` даже после того, как его поставили в
+`window.rootViewController`, и становится `true` при первом чтении
+`view`.
+
+Что в `viewDidLoad` **ещё неизвестно**: экран пока не в окне
+(`view.window == nil`), `safeAreaInsets` и `layoutMargins` у корневого
+view равны нулю, а `view.bounds` — лишь предварительный размер (на
+симуляторе мы увидели размер экрана, но внутри навигации или на iPad
+он изменится при раскладке). Поэтому здесь ставят constraints, а не
+читают координаты. Окончательные рамки и safe area известны начиная с
+`viewDidLayoutSubviews()` и `viewSafeAreaInsetsDidChange()` (подробно
+— глава 0, раздел 0.7).
 
 Цвет фона берём из манифеста — `brandColor`. Никакого жёстко
 прописанного `.systemBlue`, иначе все mini-app выглядели бы одинаково.
@@ -303,21 +326,31 @@ iPhone с экраном «@3x» одна точка — это 3×3 = 9 физ�
 Два понятия отсюда:
 
 - **Layout margins** (`layoutMarginsGuide`) — стандартные поля по
-  краям view. На iPhone в портретной ориентации это обычно 16 или 20
-  точек слева и справа. Текст, прижатый к полям, не липнет к краю
-  экрана.
+  краям view. У обычного `UIView` они по умолчанию 8 точек со всех
+  сторон, а у корневого view экрана их задаёт система: на iPhone 16 в
+  портретной ориентации мы получили 16 точек слева и справа (на
+  широких моделях бывает 20), сверху и снизу поля включают safe area.
+  Текст, прижатый к полям, не липнет к краю экрана.
 - **Safe area** (`safeAreaLayoutGuide`) — часть экрана, которую ничего
   не перекрывает: ни «чёлка» или Dynamic Island сверху, ни полоска
   «домой» (home indicator) снизу. Привязываем индикатор к safe area,
   иначе на iPhone без кнопки «Домой» он залез бы под полоску.
 
+Оба guide — `UILayoutGuide`, прямоугольники для constraints, а не
+view: их нет в дереве subviews, и `addSubview` им не сделать (глава 0,
+раздел 0.9).
+
 `translatesAutoresizingMaskIntoConstraints = false` — обязательная
 строка для каждого view, которое расставляешь через constraints в
-коде. По умолчанию (`true`) UIKit сам создаёт для view constraints из
-его `frame` (прямоугольника с координатами). Эти автоматические
-правила столкнутся с твоими, и в консоли появится длинное сообщение
-«Unable to simultaneously satisfy constraints» — конфликт правил.
-Забыть эту строку — самая частая ошибка при вёрстке кодом.
+коде. По умолчанию у view, созданного кодом, свойство равно `true`, и
+UIKit сам создаёт для него constraints, которые повторяют его
+autoresizing mask — закрепляют текущий `frame` (прямоугольник с
+координатами). Эти автоматические правила столкнутся с твоими, и в
+консоли появится длинное сообщение «Unable to simultaneously satisfy
+constraints» — конфликт правил. Забыть эту строку — самая частая
+ошибка при вёрстке кодом. Исключение — view, раскладкой которых
+управляет сам UIKit: например, `arrangedSubviews` стека (глава 2) —
+им это свойство трогать не нужно.
 
 `NSLayoutConstraint.activate([...])` включает все правила разом — это
 быстрее, чем включать по одному.
@@ -341,7 +374,12 @@ iPhone с экраном «@3x» одна точка — это 3×3 = 9 физ�
 y: 0.6)` — масштаб 0.6 по обеим осям, то есть иконка рисуется
 размером **60% от обычного**. Для иконки 80×80 точек это 48×48 точек.
 Constraints при этом не меняются: transform — это «как нарисовать»,
-а не «где стоять», поэтому соседей иконка не толкает.
+а не «где стоять», поэтому соседей иконка не толкает. Auto Layout
+работает с `center` и `bounds`, а они от transform не зависят — мы
+проверили: у view 80×80 после масштаба 0.6 `bounds` остаётся 80×80,
+`center` тот же, и только `frame` становится 48×48. Документация
+Apple про `frame` при transform, отличном от identity, говорит прямо:
+значение не определено, читать его не стоит (глава 0, раздел 0.4).
 
 Анимация потом вернёт `alpha` к 1, а `transform` — к `.identity`
 («без преобразования», обычный размер, 100%).
@@ -368,15 +406,25 @@ Constraints при этом не меняются: transform — это «как
 
 Флажок `didStartAnimation` нужен, потому что `viewDidAppear`, в отличие
 от `viewDidLoad`, может вызваться **несколько раз**: например, если
-поверх splash показали модальный экран и закрыли его. Без флажка
-анимация и таймер запустились бы заново, и `onFinish` вызвался бы
-дважды.
+поверх splash показали экран на весь экран (`modalPresentationStyle =
+.fullScreen`) и закрыли его, или ушли по навигации вперёд и вернулись
+назад. Без флажка анимация и таймер запустились бы заново, и
+`onFinish` вызвался бы дважды. Одна тонкость: обычный «лист» (sheet,
+стиль `.automatic`, то есть `.formSheet` в iOS 18+ и `.pageSheet`
+раньше) нижний экран из окна не убирает, поэтому `viewWillDisappear`
+и повторный `viewDidAppear` у него **не** вызываются — мы это
+проверили на iOS 26.5: после показа и закрытия листа счётчик
+`viewDidAppear` не изменился, а после `.fullScreen` вырос на единицу.
 
-Коротко о **жизненном цикле** экрана (подробно — в главе 5): это
-порядок, в котором UIKit вызывает методы view controller'а. Для одного
-показа он такой: `viewDidLoad` (один раз) → `viewWillAppear` (сейчас
-появится) → `viewDidAppear` (появился) → … → `viewWillDisappear` →
-`viewDidDisappear`.
+Коротко о **жизненном цикле** экрана (подробно — глава 0, раздел
+0.7): это порядок, в котором UIKit вызывает методы view controller'а.
+Для одного показа он такой: `viewDidLoad` (один раз за всю жизнь
+экрана) → `viewWillAppear` (сейчас появится) → `viewWillLayoutSubviews`
+/ `viewDidLayoutSubviews` (раскладка; здесь уже известны рамки и safe
+area) → `viewDidAppear` (появился) → … → `viewWillDisappear` →
+`viewDidDisappear`. Всё, кроме `viewDidLoad`, может повторяться: каждый
+раз, когда экран уходит и возвращается, а методы раскладки — ещё и при
+повороте и смене размера.
 
 ## 1.4 Анимация — по очереди и с пружиной
 
@@ -523,10 +571,12 @@ launch screen? Нельзя ли удалить storyboard и обойтись �
 
 Нельзя, по двум причинам.
 
-**Первая — техническая.** Приложение без launch screen (без
-storyboard и без ключа `UILaunchScreen`) iOS считает старым, созданным
-до появления экранов разных размеров, и запускает в **режиме
-совместимости**: интерфейс рисуется в маленьком окне размером со
+**Первая — техническая.** Документация Apple («Specifying your app's
+launch screen») начинается со слов «Every iOS app must provide a
+launch screen» — каждое приложение обязано его иметь. Исторически
+приложение без launch screen iOS считала старым, созданным до
+появления экранов разных размеров, и запускала в **режиме
+совместимости**: интерфейс рисовался в маленьком окне размером со
 старый iPhone, с чёрными полосами вокруг. Такое приложение и App Store
 не примет — с 2020 года launch screen обязателен.
 
@@ -625,10 +675,17 @@ extension UIColor {
 - `AnimatedSplashViewController` — обычный view controller. Он
   появляется после того, как `SceneDelegate` поставил первый экран, и
   может анимировать, ходить в сеть — что угодно.
+- `view` создаётся лениво (`loadView` → `viewDidLoad`, один раз). В
+  `viewDidLoad` экран ещё не в окне, safe area и поля нулевые — ставим
+  constraints, а не читаем координаты.
 - Интерфейс собираем в `viewDidLoad`, анимацию появления запускаем в
-  `viewDidAppear` и защищаем флажком от повторного запуска.
+  `viewDidAppear` и защищаем флажком от повторного запуска: он
+  повторяется после `.fullScreen`-экрана и возврата по навигации (но не
+  после обычного листа).
 - Auto Layout: правила-constraints вместо координат; у каждого view
   из кода — `translatesAutoresizingMaskIntoConstraints = false`.
+  `transform` на раскладку не влияет: `bounds` и `center` те же, а
+  `frame` после transform не определён.
 - Пружина (`usingSpringWithDamping`): чем меньше damping, тем сильнее
   перелёт; при 1.0 пружины нет. Stagger — задержки между элементами.
 - `[weak self]` в отложенном замыкании не даёт splash'у жить дольше
@@ -641,6 +698,10 @@ extension UIColor {
 - [Launching — Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/launching) — каким должен быть launch screen и чем он отличается от splash.
 - [`UILaunchStoryboardName`](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchstoryboardname) и [`UILaunchScreen`](https://developer.apple.com/documentation/bundleresources/information-property-list/uilaunchscreen) — ключи `Info.plist` для storyboard и для экрана без storyboard.
 - [`UIViewController`](https://developer.apple.com/documentation/uikit/uiviewcontroller) — базовый класс `AnimatedSplashViewController`; методы `viewDidLoad` / `viewDidAppear`.
+- [`loadView()`](https://developer.apple.com/documentation/uikit/uiviewcontroller/loadview()) и [`isViewLoaded`](https://developer.apple.com/documentation/uikit/uiviewcontroller/isviewloaded) — ленивое создание `view`.
+- [`viewDidLayoutSubviews()`](https://developer.apple.com/documentation/uikit/uiviewcontroller/viewdidlayoutsubviews()) и [`viewSafeAreaInsetsDidChange()`](https://developer.apple.com/documentation/uikit/uiviewcontroller/viewsafeareainsetsdidchange()) — где уже известны рамки и safe area.
+- [`translatesAutoresizingMaskIntoConstraints`](https://developer.apple.com/documentation/uikit/uiview/translatesautoresizingmaskintoconstraints) — почему `true` по умолчанию конфликтует с твоими constraints.
+- [`UIView.transform`](https://developer.apple.com/documentation/uikit/uiview/transform) — transform не влияет на Auto Layout, а `frame` при нём не определён.
 - [`UIView.animate(withDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:)`](https://developer.apple.com/documentation/uikit/uiview/1622594-animate) — пружинная анимация из `runAnimation()`.
 - [`NSLayoutConstraint`](https://developer.apple.com/documentation/uikit/nslayoutconstraint) — constraints Auto Layout.
 - [`UIImage.SymbolConfiguration`](https://developer.apple.com/documentation/uikit/uiimage/symbolconfiguration) — размер и толщина SF Symbol.

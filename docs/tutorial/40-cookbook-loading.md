@@ -70,10 +70,20 @@ final class FeedViewController: UITableViewController {
 `refreshControl = refresh` — у `UITableViewController` есть готовое свойство;
 у любого `UIScrollView` (а значит, и у `UITableView`, `UICollectionView`) —
 тоже, `scrollView.refreshControl` (iOS 10+). До iOS 10 контрол приходилось
-вставлять в иерархию view руками.
+вставлять в иерархию view руками. Сам scroll view и становится ему superview
+(замер: после присваивания `refreshControl.superview` — `UITableView`).
+
+`UIRefreshControl` — это `UIControl` (`UIRefreshControl → UIControl → UIView`,
+глава 0, раздел 0.5). Отсюда и `addAction(_:for:)`, и событие
+`.valueChanged` — тот же механизм target-action, что у `UIButton` или
+`UISwitch`; документация прямо советует слушать именно `.valueChanged`.
 
 `.valueChanged` — событие «пользователь дотянул, пора обновлять». Контрол к
-этому моменту уже крутится сам.
+этому моменту уже крутится сам (`isRefreshing == true`). Обратное неверно:
+`beginRefreshing()` только переводит контрол в состояние «обновляется» и
+показывает индикатор — по документации его вызывают, когда обновление
+запустило что-то внешнее (таймер, кнопка), а саму загрузку в этом случае
+стартуешь ты.
 
 `Task { ... }` — запускаем асинхронную работу из синхронного обработчика.
 Экран живёт на главном потоке (main actor), и `Task`, созданный отсюда,
@@ -311,13 +321,17 @@ final class SkeletonView: UIView {
 блика нет. Доли ширины от размера не зависят: одна и та же анимация работает
 на прямоугольнике любой ширины и даже переживает поворот экрана.
 
-`layoutSubviews` + `CATransaction.setDisableActions(true)` — `CALayer` не
-участвует в Auto Layout, поэтому размер отдельного слоя обновляем руками при
-каждой раскладке. А у отдельного (не «своего» для view) слоя любое изменение
+`layoutSubviews` + `CATransaction.setDisableActions(true)` — `CALayer` — не
+view (`CALayer → NSObject`, глава 0, раздел 0.9) и в Auto Layout не
+участвует, поэтому размер отдельного слоя обновляем руками при каждой
+раскладке. А у отдельного (не «своего» для view) слоя любое изменение
 `frame` по умолчанию **неявно анимируется** за 0,25 секунды: блик бы
-«догонял» растущий прямоугольник. Транзакция с выключенными действиями
-отключает эту анимацию. (Проверили в симуляторе: без неё у слоя после
-изменения размера появляются анимации `position` и `bounds`.)
+«догонял» растущий прямоугольник. У слоя самой view такой анимации нет:
+view — делегат своего слоя и вне `UIView.animate` отвечает на
+`action(forKey:)` «ничего не анимировать». Транзакция с выключенными
+действиями даёт тот же ответ для чужого слоя. (Проверили в симуляторе: без
+неё у слоя после изменения размера появляются анимации `position` и
+`bounds`, с ней — ни одной.)
 
 `didMoveToWindow` — когда view снят с экрана (ячейку переиспользовали, экран
 закрыли), Core Animation удаляет его анимации. Перезапуск при появлении в
@@ -632,8 +646,13 @@ safe area. `transform` — это визуальный сдвиг поверх A
 рецепта переопределяла `intrinsicContentSize` — это работает для одной
 строки, но многострочный текст считался бы по полной ширине и обрезался.
 
-`layer.masksToBounds = true` — без него `cornerRadius` скруглил бы только
-«рамку» слоя, а фон label остался бы прямоугольным.
+`layer.masksToBounds = true` — без него у `UILabel` углы не скруглятся.
+У обычного `UIView` фон хранится в `layer.backgroundColor`, и `cornerRadius`
+скругляет его сам, без обрезки. `UILabel` же рисует свой фон вместе с текстом
+в содержимое слоя (замер: после `label.backgroundColor = .red`
+`label.layer.backgroundColor` остаётся `nil`), а содержимое `cornerRadius` не
+трогает — его обрезает только `masksToBounds`. Это то же самое свойство, что
+`clipsToBounds` у view (замер: включил одно — включилось другое).
 
 `UIAccessibility.post(notification: .announcement, argument: text)` —
 VoiceOver прочитает сообщение вслух. Иначе незрячий пользователь toast не
@@ -722,10 +741,17 @@ extension UIViewController {
 .flexibleHeight]` — overlay создан рамкой, а не constraints, поэтому ему
 нужна «маска авторесайза»: растягиваться вслед за родителем. Без маски при
 повороте экрана overlay остался бы старого размера, и половина экрана
-оказалась бы не закрыта (и доступна для тапов).
+оказалась бы не закрыта (и доступна для тапов). Заметь:
+`translatesAutoresizingMaskIntoConstraints` здесь **не** выключаем — для view,
+которую раскладываем рамкой, значение по умолчанию `true` как раз и нужно
+(глава 0, раздел 0.4).
 
-`UIView` по умолчанию принимает касания — поэтому overlay их и «съедает»:
-тап по затемнению не доходит до кнопок под ним.
+`UIView` по умолчанию принимает касания (`isUserInteractionEnabled == true`,
+замер) — поэтому overlay их и «съедает»: hit-testing находит его первым,
+ведь он добавлен последним и лежит выше всех в `subviews`, а до кнопок под
+ним поиск уже не доходит. Прозрачность 50% этому не мешает — касания
+пропускает только view с `alpha` ниже 0,01, скрытый или с выключенным
+`isUserInteractionEnabled`.
 
 `accessibilityViewIsModal = true` — VoiceOver не будет читать элементы под
 затемнением.
@@ -739,7 +765,12 @@ extension UIViewController {
 Ограничение: overlay лежит внутри `view` текущего экрана. Если экран внутри
 `UINavigationController`, навигационная панель **не** закрыта — кнопка
 «Назад» останется нажимаемой. Если это недопустимо, клади overlay в
-`navigationController?.view` или в окно (`view.window`).
+`navigationController?.view` или в окно (`view.window`). Окно — это тоже view
+(`UIWindow → UIView → UIResponder`, глава 0, раздел 0.8), просто корень
+дерева: `addSubview` у него работает как у любой другой view, и z-порядок
+тот же — кто добавлен позже, тот выше. Overlay, положенный в окно поверх
+`rootViewController.view`, накрывает весь экран приложения вместе с
+навигационной панелью. Выше окна только другие окна (`UIWindow.Level`).
 
 **Частые ошибки.**
 
@@ -797,7 +828,8 @@ func showWindowOverlay(text: String) -> UIView? {
 
 ## Что мы выучили
 
-- **Pull-to-refresh** — `UIRefreshControl` в `refreshControl`, `endRefreshing()`
+- **Pull-to-refresh** — `UIRefreshControl` (это `UIControl`: `addAction`,
+  `.valueChanged`) в `refreshControl` любого scroll view, `endRefreshing()`
   при любом исходе, старые данные при ошибке не трогаем.
 - **Пагинация** — триггер в `willDisplay` за N строк до конца, флаг
   «уже грузим», конец ленты по неполной странице, `insertRows` вместо
@@ -810,14 +842,19 @@ func showWindowOverlay(text: String) -> UIView? {
 - **Картинки в ячейках** — отмена `Task` в `prepareForReuse`, проверка
   `Task.isCancelled` после `await`, fade-in за 0,25 с.
 - **Toast** — плашка за нижним краем + `transform` вверх; VoiceOver-объявление;
-  `UILabel` пропускает касания сквозь себя.
-- **Overlay** — `autoresizingMask`, блокировка касаний, модальность для
-  VoiceOver; навигационную панель закрывает только overlay на окне.
+  `UILabel` пропускает касания сквозь себя; скругление фона `UILabel` требует
+  `masksToBounds` (он же `clipsToBounds`).
+- **Overlay** — `autoresizingMask`, блокировка касаний (view добавлен
+  последним — hit-testing находит его первым), модальность для VoiceOver;
+  навигационную панель закрывает только overlay на окне, а окно — тоже
+  `UIView`.
 
 ## Apple Developer Documentation
 
 - [`UIRefreshControl`](https://developer.apple.com/documentation/uikit/uirefreshcontrol) — стандартный контрол pull-to-refresh.
 - [`UIScrollView.refreshControl`](https://developer.apple.com/documentation/uikit/uiscrollview/refreshcontrol) — слот для `UIRefreshControl` (iOS 10+) у любого scroll view.
+- [`UIControl`](https://developer.apple.com/documentation/uikit/uicontrol) — родитель `UIRefreshControl`: target-action, `addAction(_:for:)`, события.
+- [`UIWindow`](https://developer.apple.com/documentation/uikit/uiwindow) — окно как корневой `UIView` для overlay поверх всего.
 - [`tableView(_:willDisplay:forRowAt:)`](https://developer.apple.com/documentation/uikit/uitableviewdelegate/tableview(_:willdisplay:forrowat:)) — точка триггера пагинации.
 - [`performBatchUpdates(_:completion:)`](https://developer.apple.com/documentation/uikit/uitableview/performbatchupdates(_:completion:)) — вставка новых строк без полной перезагрузки.
 - [`UIActivityIndicatorView`](https://developer.apple.com/documentation/uikit/uiactivityindicatorview) — системный спиннер.

@@ -447,9 +447,12 @@ final class CountAnimator {
 - `displayLink?.invalidate()` в начале `animate` — повторный запуск
   отменяет предыдущий, та проблема из первого варианта ушла.
 
-**Про память.** `CADisplayLink` держит свой `target` сильной ссылкой,
-а наш аниматор держит `displayLink`. Это цикл удержания: пока ссылка
-не остановлена, аниматор не освободится. Цикл разрывает `stop()` — он
+**Про память.** `CADisplayLink` держит свой `target` сильной ссылкой
+(документация `init(target:selector:)`: «the newly constructed display
+link retains the target»; на симуляторе target жив, пока жив link, и
+освобождается после `invalidate()`), а наш аниматор держит
+`displayLink`. Это цикл удержания: пока ссылка не остановлена,
+аниматор не освободится. Цикл разрывает `stop()` — он
 вызывается сам в конце анимации. Если экран закрывают раньше, вызови
 `stop()` вручную:
 
@@ -503,13 +506,22 @@ picker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
 Разбор:
 
 - `datePickerMode` — что выбираем: только дату, только время, оба
-  сразу или длительность таймера.
+  сразу или длительность таймера. По умолчанию — `.dateAndTime`.
 - `minimumDate` / `maximumDate` — границы. Для даты рождения: не
-  раньше, чем 100 лет назад, и не позже сегодняшнего дня. Всё, что за
-  границами, в пикере серое.
-- `addTarget(_:action:for: .valueChanged)` — пикер сам сообщит, когда
-  значение поменялось. `picker.date` — это `Date`, то есть момент
-  времени; показывать его пользователю снова надо через форматтер.
+  раньше, чем 100 лет назад, и не позже сегодняшнего дня. Даты за
+  границами выбрать нельзя (в календаре они серые), а если присвоить
+  `date` за пределами диапазона из кода, пикер подтянет её к ближайшей
+  границе — проверено на симуляторе. В режиме `.countDownTimer`
+  границы игнорируются.
+- `addTarget(_:action:for: .valueChanged)` — target-action. Он есть у
+  пикера потому, что `UIDatePicker` — контрол: `UIDatePicker →
+  UIControl → UIView` (глава 0, раздел 0.5); с iOS 14 подойдёт и
+  `addAction(UIAction { … }, for: .valueChanged)`. `picker.date` — это
+  `Date`, то есть момент времени; показывать его пользователю снова
+  надо через форматтер. Исключение — режим `.countDownTimer`: там
+  `date` не используется, а выбранная длительность лежит в
+  `countDownDuration` (секунды, хотя барабаны показывают часы и
+  минуты).
 - `#available(iOS 14, *)` здесь формальность: стиль `.compact`
   появился в iOS 14, а у нас минимум iOS 15. Проверку оставили, чтобы
   код можно было перенести в проект с более старым минимумом.
@@ -521,7 +533,10 @@ picker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
 - `.inline` — календарь открыт прямо на экране всё время. Для экранов,
   где выбор даты — главное действие (бронирование).
 - `.wheels` — классические «барабаны», как в iOS 13 и раньше.
-- `.automatic` — выбор за системой (зависит от режима и места).
+- `.automatic` — выбор за системой, зависит от режима и платформы. На
+  iPhone с iOS 26.5 для `.date` это `.compact`, для `.countDownTimer`
+  — `.wheels` (замер свойства `datePickerStyle`, которое, в отличие от
+  `preferredDatePickerStyle`, всегда возвращает конкретный стиль).
 
 ## 31.9 Часовые пояса
 
@@ -923,6 +938,7 @@ if let date = iso.date(from: "2026-05-12T10:30:00.500Z") {
 ## Apple Developer Documentation
 
 - [UIDatePicker](https://developer.apple.com/documentation/uikit/uidatepicker) — UIKit-контрол выбора даты/времени.
+- [UIDatePicker.countDownDuration](https://developer.apple.com/documentation/uikit/uidatepicker/countdownduration) — значение в режиме `.countDownTimer` (секунды).
 - [UIDatePickerStyle](https://developer.apple.com/documentation/uikit/uidatepickerstyle) — `.compact` / `.inline` / `.wheels` / `.automatic`.
 - [DateFormatter](https://developer.apple.com/documentation/foundation/dateformatter) — форматирование `Date` ↔ `String` с учётом локали.
 - [RelativeDateTimeFormatter](https://developer.apple.com/documentation/foundation/relativedatetimeformatter) — «5 минут назад» / «через 2 дня», iOS 13+.

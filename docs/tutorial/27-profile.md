@@ -208,8 +208,25 @@ extension ProfileViewController {
 `UIListContentConfiguration` (iOS 14+) — современный способ заполнить
 стандартную ячейку. Берёшь заготовку `cell.defaultContentConfiguration()`,
 заполняешь поля и присваиваешь `cell.contentConfiguration`. Раньше
-писали `cell.textLabel?.text` и `cell.detailTextLabel?.text`; эти
-свойства объявлены устаревшими.
+писали `cell.textLabel?.text` и `cell.detailTextLabel?.text`; в
+документации эти свойства помечены устаревшими начиная с iOS 27, а в
+SDK iOS 26.5 стоят с пометкой «будут устаревшими» — компилятор пока
+не предупреждает, но Apple прямо отправляет к content configuration.
+Смешивать нельзя: как только у ячейки есть `contentConfiguration`,
+`textLabel` и `detailTextLabel` возвращают `nil`.
+
+Что это за объект. Конфигурация — не view, а описание содержимого:
+в Swift `UIListContentConfiguration` — структура (значение), которая
+реализует протокол `UIContentConfiguration` (глава 0, раздел 0.10).
+Присваивание `cell.contentConfiguration = content` заставляет ячейку
+попросить у конфигурации view через `makeContentView()` и поставить
+его на место своего `contentView`: мы проверили на симуляторе — после
+присваивания `cell.contentView` становится объектом класса
+`UIListContentView` с нашей подписью внутри. Повторное присваивание
+конфигурации того же типа не пересоздаёт этот view, а обновляет его;
+присваивание `nil` снова подменяет `contentView` на пустой. Поэтому
+конфигурацию можно присваивать при каждом `cellForRowAt`, не боясь
+накопить лишние view.
 
 - `text` и `secondaryText` — основной текст и подпись под ним, мельче и
   серее.
@@ -251,6 +268,14 @@ extension ProfileViewController {
 
 `accessoryView` — место справа в ячейке, куда можно положить любой
 вид. Переключатель — самый частый гость.
+
+`UISwitch → UIControl → UIView`: это контрол, поэтому у него есть
+`addAction(_:for:)` и событие `.valueChanged`, которое приходит при
+каждом переключении пальцем. Программная установка `isOn` или
+`setOn(_:animated:)` action не рассылает (так в документации
+`setOn(_:animated:)`) — удобно, когда значение выставляешь из
+`UserDefaults`, как здесь: обработчик не сработает лишний раз
+(кто контрол, а кто нет — глава 0, раздел 0.5).
 
 `addAction(UIAction { ... }, for: .valueChanged)` (iOS 14+) —
 обработчик замыканием, без `@objc`-метода. Значение берём из
@@ -339,9 +364,14 @@ extension ProfileViewController {
 приходит в голову: в `cellForRowAt` удалять из `contentView` все виды и
 добавлять новые стек, метку и ползунок. У этого подхода три беды:
 
-- ячейка общая для всех видов строк, и если её переиспользовать под
-  переключатель, поверх `contentConfiguration` оставались бы остатки
-  ползунка — а `contentConfiguration = nil` их не убирает;
+- ячейка общая для всех видов строк, а `contentView` у неё живёт по
+  своим правилам: пока конфигурация того же типа присваивается снова,
+  view остаётся тем же, и добавленный руками ползунок остаётся на нём
+  (проверено на симуляторе — ползунок пережил повторное присваивание
+  конфигурации); присвоишь `nil` или конфигурацию другого типа — ячейка
+  подменит `contentView` целиком, и ползунок пропадёт вместе с ним.
+  Угадывать, что из этого случится при очередном переиспользовании,
+  — плохая идея;
 - замыкание ползунка захватывало сам ползунок — кольцо, как в 19.3;
 - каждая перерисовка создавала стек и ограничения заново.
 
@@ -405,10 +435,13 @@ final class SliderCell: UITableViewCell {
 }
 ```
 
-- **`layoutMarginsGuide`** — стандартные внутренние поля ячейки
-  (layout margins). В таблице `insetGrouped` на iPhone это около 16
-  точек по бокам и 11 сверху и снизу — система подбирает их сама, и
-  ползунок стоит ровно по линии текста соседних строк.
+- **`layoutMarginsGuide`** — направляющая по внутренним полям
+  `contentView` (layout margins). У обычного `UIView` они 8 точек со
+  всех сторон, но ячейке таблица выставляет свои: в `insetGrouped` на
+  iPhone с iOS 26.5 мы сняли 16 точек по бокам и 15 сверху и снизу.
+  Это системные значения, они могут меняться от версии к версии —
+  потому и привязываемся к направляющей, а не к числам: ползунок
+  встаёт ровно по линии текста соседних строк, какими бы поля ни были.
 - **Стек** — метка сверху, ползунок снизу, 8 точек между ними. Высота
   ячейки складывается из ограничений сама.
 - **`[weak self]`** в обработчике — ползунок принадлежит ячейке, и
@@ -488,9 +521,12 @@ extension ProfileViewController {
   «выпадающего списка».
 - **`sizeToFit()`** — важная строка, которую легко забыть.
   `accessoryView` ставится с тем размером, который у вида уже есть. У
-  `UISwitch` и `UIStepper` размер задан с рождения, а `UIButton()` —
+  `UISwitch` и `UIStepper` размер задан с рождения (на симуляторе
+  iOS 26.5 — 63×28 и 94×32 точки), а `UIButton(type: .system)` —
   прямоугольник 0×0: кнопка была бы невидимой и ненажимаемой.
-  `sizeToFit()` подгоняет кнопку под картинку.
+  `sizeToFit()` зовёт `sizeThatFits(_:)` и меняет `bounds` под
+  картинку — для accessory view, которые таблица раскладывает по
+  `frame`, а не по Auto Layout, это единственный способ.
 - **`reloadRows` здесь уместен** — к моменту выбора меню уже закрыто,
   и заменить кнопку «под пальцем» нельзя, в отличие от степпера (19.4).
 - **`indexPath` в замыкании.** Строки нашего экрана не двигаются, так
@@ -501,9 +537,12 @@ extension ProfileViewController {
   устраивает. `[safe:]` защищает от номера, которого нет в списке.
 
 **Тема.** Выбор в строке «Тема» сразу меняет оформление:
-`overrideUserInterfaceStyle` у окна (window — корневой вид, в котором
-живут все экраны приложения) заставляет всё в нём рисоваться в светлой
-или тёмной теме. `.unspecified` — «как в системе». В playground окно
+`overrideUserInterfaceStyle` у окна заставляет всё в нём рисоваться в
+светлой или тёмной теме. Окно — тоже view: `UIWindow → UIView`, корень
+дерева, в котором живут view всех экранов приложения; у него нет
+собственного изображения, оно только держит `rootViewController` и
+раздаёт события (глава 0, раздел 0.8). Поэтому свойство, которое есть
+у любого view, у окна действует на всё дерево разом. `.unspecified` — «как в системе». В playground окно
 общее для всех мини-приложений, так что тема сменится и у лаунчера.
 Выбранная тема применяется ещё и при появлении экрана (19.12) —
 иначе после перезапуска она бы не восстановилась.
@@ -664,10 +703,22 @@ extension ProfileViewController {
 
 **iPad.** На iPad action sheet показывается всплывающим окном
 (popover) со стрелкой, и системе нужно знать, **на что** указывать
-стрелкой; без точки привязки показ на iPad падает. `popoverPresentationController` существует
-только на iPad (на iPhone он `nil`), поэтому код внутри `if let`
-на телефоне не выполняется. Привязываем окно к выбранной строке, а
-если строки нет — к центру экрана.
+стрелкой; без точки привязки показ на iPad падает. Откуда берётся
+`popoverPresentationController`: у `UIAlertController` со стилем
+`.actionSheet` свойство `modalPresentationStyle` равно `.popover`, а
+по документации обращение к `popoverPresentationController` при таком
+стиле создаёт объект `UIPopoverPresentationController` — на любом
+устройстве. Мы проверили на симуляторе iPhone: он **не** `nil`. На
+телефоне, в компактной ширине, popover сам адаптируется в лист снизу,
+и `sourceView` там просто не используется, так что `if let` — это не
+«только на iPad», а «если presentation controller есть», и
+выполняется он везде. Задать привязку на iPhone безвредно, а не задать
+на iPad — падение. `UIPopoverPresentationController →
+UIPresentationController → NSObject` — объект, управляющий показом, не
+view и не view controller; сам `UIAlertController` — обычный
+`UIViewController`, а `UIAlertAction` — `NSObject`, описание кнопки,
+не кнопка (глава 0, разделы 0.7 и 0.9). Привязываем окно к выбранной
+строке, а если строки нет — к центру экрана.
 
 **Стили кнопок.** `style: .destructive` — красный текст, сигнал
 «осторожно». `style: .cancel` — отмена; система сама ставит её на
@@ -932,13 +983,48 @@ extension ProfileViewController {
 файлах, а `private` в Swift виден только внутри одного файла. Поэтому
 `tableView` и `sections` открыты на уровне модуля.
 
-**Тема в `viewDidAppear`.** Окно (`view.window`) у экрана появляется
-только когда экран на экране: в `viewDidLoad` оно ещё `nil`. Поэтому
-сохранённую тему применяем в `viewDidAppear`.
+**Тема в `viewDidAppear`.** `view.window` появляется, когда `view`
+вставлена в дерево окна. Мы проверили порядок на симуляторе: в
+`viewDidLoad` и в `viewWillAppear` окно ещё `nil`, в
+`viewDidLayoutSubviews` и `viewDidAppear` — уже есть. Поэтому
+сохранённую тему применяем в `viewDidAppear`. Этот метод, в отличие от
+`viewDidLoad`, вызывается при каждом появлении экрана — для нас это
+безвредно: применить тему дважды не страшно.
 
 **Кадр и autoresizing.** Таблица занимает весь `view`: задаём кадр
-`view.bounds` и `autoresizingMask` — таблица тянется вместе с `view`
-при повороте. Для «одного вида на весь экран» это короче, чем четыре
+`view.bounds` и `autoresizingMask`. Разберём, что здесь происходит,
+потому что это вторая система раскладки UIKit, старше Auto Layout.
+
+`autoresizingMask` — набор флагов `UIView.AutoresizingMask`, который
+говорит, что делать с view, когда меняются `bounds` его superview.
+`.flexibleWidth` (битовое значение 2) — «растягивай ширину»,
+`.flexibleHeight` (16) — «растягивай высоту»; есть ещё четыре флага
+для гибких полей (`flexibleLeftMargin` = 1, `flexibleRightMargin` = 4,
+`flexibleTopMargin` = 8, `flexibleBottomMargin` = 32). Сумма наших двух
+— 18, и ровно такое значение стоит у `view` самого контроллера: UIKit
+растягивает корневой view вслед за окном тем же механизмом (проверено
+рантаймом). По умолчанию маска пустая (`[]`): view стоит на месте и не
+меняет размер.
+
+Зачем маска, если кадр уже задан? Потому что в `viewDidLoad` размеры
+`view` ещё не окончательные — окно может быть другого размера, экран
+ещё не прошёл раскладку. `tableView.frame = view.bounds` даёт только
+стартовое значение; настоящий размер таблица получит, когда `view`
+примет свой, — через маску, без нашего участия. Без неё таблица
+осталась бы того размера, какой был в `viewDidLoad`, и при повороте
+не растянулась бы.
+
+Почему это не смешивают с ограничениями на одном view. У view,
+созданного в коде, `translatesAutoresizingMaskIntoConstraints = true`:
+UIKit переводит маску и кадр в полный набор ограничений размера и
+положения. Добавь к такому view свои ограничения — получится
+конфликт, который Auto Layout разрешит, отбросив часть из них (так
+сказано в документации свойства). Правило простое: либо `frame` +
+`autoresizingMask` при `translates… = true`, либо ограничения при
+`translates… = false`. В главе 16 (16.8) scroll view для фото собран
+первым способом, поле ввода в главе 18 — вторым.
+
+Для «одного вида на весь экран» первый способ короче, чем четыре
 ограничения. Отступы под навигационную панель и полоску «домой»
 таблица сделает сама (`contentInsetAdjustmentBehavior = .automatic`).
 
@@ -1045,7 +1131,10 @@ extension ProfileViewController {
   экран описан данными, а методы таблицы только читают массив.
 - **`UIListContentConfiguration`** (iOS 14+) — заполнение стандартной
   ячейки: `text`, `secondaryText`, `image`, `imageProperties`,
-  `textProperties`.
+  `textProperties`. Это структура-описание (`UIContentConfiguration`),
+  а не view; ячейка сама делает из неё `UIListContentView` и ставит
+  его на место `contentView`. `textLabel`/`detailTextLabel` с ней не
+  совмещаются.
 - **Переключатель** — `UISwitch` в `accessoryView`, значение из
   `action.sender`, без захвата самого элемента.
 - **Степпер** — значение меняем на месте, без `reloadRows`, иначе
@@ -1057,8 +1146,15 @@ extension ProfileViewController {
   (`sizeToFit()`).
 - **Общая ячейка** сбрасывает `accessoryView`, `accessoryType`,
   `selectionStyle` и трейты перед каждой настройкой.
-- **Опасные действия** — подтверждение через `UIAlertController`; на
-  iPad у action sheet обязательна точка привязки.
+- **Опасные действия** — подтверждение через `UIAlertController`
+  (обычный `UIViewController`); у action sheet
+  `modalPresentationStyle = .popover`, `popoverPresentationController`
+  есть и на iPhone, а точка привязки обязательна на iPad.
+- **`frame` + `autoresizingMask`** (`.flexibleWidth` = 2,
+  `.flexibleHeight` = 16) — для одного view на весь экран; с
+  ограничениями на том же view не смешивать:
+  `translatesAutoresizingMaskIntoConstraints` либо `true`, либо
+  `false`.
 - **Удаление аккаунта** для App Store — настоящее, с сервера (правило
   5.1.1(v), глава 40).
 - **`PHPickerViewController`** — выбор фото без разрешения на
@@ -1073,6 +1169,11 @@ extension ProfileViewController {
 - [UITableView.Style.insetGrouped](https://developer.apple.com/documentation/uikit/uitableview/style/insetgrouped) — стиль настроек: секции-карточки с отступом.
 - [UITableViewCell.CellStyle.value1](https://developer.apple.com/documentation/uikit/uitableviewcell/cellstyle/value1) — классический «заголовок слева, значение справа»; сейчас вместо него `prefersSideBySideTextAndSecondaryText`.
 - [UIListContentConfiguration](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — конфигурация содержимого стандартной ячейки (iOS 14+).
+- [UIContentConfiguration](https://developer.apple.com/documentation/uikit/uicontentconfiguration) — протокол конфигураций: `makeContentView()` и `updated(for:)`.
+- [UITableViewCell.contentConfiguration](https://developer.apple.com/documentation/uikit/uitableviewcell/contentconfiguration-9ktox) — как конфигурация подменяет `contentView` ячейки.
+- [UIViewController.popoverPresentationController](https://developer.apple.com/documentation/uikit/uiviewcontroller/popoverpresentationcontroller) — когда свойство создаётся и когда оно `nil`.
+- [UIView.autoresizingMask](https://developer.apple.com/documentation/uikit/uiview/autoresizingmask-swift.property) — флаги растяжения вслед за superview.
+- [UIView.translatesAutoresizingMaskIntoConstraints](https://developer.apple.com/documentation/uikit/uiview/translatesautoresizingmaskintoconstraints) — почему маску и ограничения не смешивают на одном view.
 - [UISwitch](https://developer.apple.com/documentation/uikit/uiswitch) — переключатель в `accessoryView`.
 - [UIStepper](https://developer.apple.com/documentation/uikit/uistepper) — кнопки «+/−» для чисел в диапазоне.
 - [UISlider](https://developer.apple.com/documentation/uikit/uislider) — ползунок, в нашем экране — в своей ячейке.

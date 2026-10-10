@@ -15,8 +15,27 @@
 Показывает его метод `present(_:animated:)`, закрывает —
 `dismiss(animated:)`. Тот, кто показал, называется **presenting**
 (показывающий) экран, тот, кого показали, — **presented** (показанный).
+У обоих есть ссылки друг на друга: `presentedViewController` у
+показывающего и `presentingViewController` у показанного. Закрывать
+обязан показывающий; если вызвать `dismiss` у показанного экрана, UIKit
+по документации просто перешлёт вызов показывающему — поэтому
+`dismiss(animated: true)` внутри модального экрана работает.
+
 Как именно модальный экран выглядит — лист, весь экран, поповер —
-задаёт его `modalPresentationStyle`.
+задаёт его `modalPresentationStyle`. Значение по умолчанию —
+`.automatic`: с iOS 18 UIKit разворачивает его в `.formSheet`, в
+iOS 13–17 — в `.pageSheet`; на iPhone оба выглядят одинаково — листом.
+Читается свойство уже развёрнутым: у свежего `UIViewController` на
+iOS 26.5 оно отдаёт `.formSheet`, и сравнение
+`modalPresentationStyle == .automatic` даёт `false`.
+
+Показом управляет отдельный объект — **presentation controller**
+(`UIPresentationController → NSObject`). Это не view и не view
+controller: у него нет своей рамки и жизненного цикла появления, он
+решает, куда поставить показанный экран, что сделать с нижним,
+затемнять ли фон. UIKit создаёт его сам под выбранный стиль;
+`sheetPresentationController` и `popoverPresentationController` из этой
+главы — его подклассы (глава 0, разделы 0.7 и 0.9).
 
 ## 28.1 Bottom sheet с детентами
 
@@ -44,9 +63,12 @@ present(nav, animated: true)
 ```
 
 `sheetPresentationController` (iOS 15+) — объект, который управляет
-листом. Он есть у экрана со стилем показа `.pageSheet` или `.formSheet`
-— а это стиль по умолчанию на iPhone, поэтому ничего дополнительно
-выставлять не нужно.
+листом (`UISheetPresentationController → UIPresentationController`, не
+view). По документации он есть у экрана со стилем показа `.pageSheet`
+или `.formSheet`, а стиль по умолчанию `.automatic` разворачивается в
+один из них, поэтому ничего дополнительно выставлять не нужно: у
+свежего `UIViewController` на iOS 26.5 свойство уже не `nil`. У экрана
+со стилем `.fullScreen` оно `nil`.
 
 - `detents` — список допустимых высот. `[.medium(), .large()]` —
   примерно половина экрана и почти весь экран. `[.medium()]` — только
@@ -99,7 +121,8 @@ if #available(iOS 16.0, *) {
 - `maximumDetentValue * 0.7` — 70% максимальной высоты. Если
   максимум 800 точек, лист остановится на 560.
 - `identifier` — имя детента. Оно нужно, чтобы ссылаться на него из
-  других свойств. Без имени UIKit придумает случайное.
+  других свойств. Параметр необязательный: без имени UIKit назначит
+  детенту своё.
 
 `largestUndimmedDetentIdentifier = small` — «до высоты `small`
 включительно фон не затемнять». Пока лист маленький, экран под ним
@@ -150,11 +173,14 @@ final class NoteEditorViewController: UIViewController,
 }
 ```
 
-`isModalInPresentation = true` — «этот экран нельзя закрыть свайпом».
-Мы включаем его, только пока есть изменения (`didSet` у
-`hasChanges`). Лист при попытке свайпа упруго вернётся на место, а
-UIKit вызовет `presentationControllerDidAttemptToDismiss` — тут мы
-спрашиваем, что делать.
+`isModalInPresentation = true` — «этот экран нельзя закрыть свайпом»:
+по документации UIKit игнорирует события вне границ экрана и запрещает
+интерактивное закрытие. Мы включаем его, только пока есть изменения
+(`didSet` у `hasChanges`). Лист при попытке свайпа упруго вернётся на
+место, а UIKit вызовет `presentationControllerDidAttemptToDismiss` —
+тут мы спрашиваем, что делать. В параметре метода приходит тот самый
+`UIPresentationController`, который управляет показом (см. начало
+главы).
 
 Делегата назначаем у `navigationController?.presentationController`:
 показан был не сам редактор, а контроллер навигации вокруг него.
@@ -168,7 +194,10 @@ UIKit вызовет `presentationControllerDidAttemptToDismiss` — тут мы
 - **Ждут `viewWillAppear` у экрана под листом.** Когда лист
   закрывается, экран под ним **не** получает `viewWillAppear` и
   `viewDidAppear`: он всё время оставался на экране, просто частично
-  закрытый. Если после закрытия листа нужно обновить данные, сообщи
+  закрытый. Документация `.pageSheet` и `.formSheet` говорит это
+  прямо: где нижний экран остаётся видимым, его `viewWillDisappear` и
+  `viewDidDisappear` не вызываются (а значит, и парные «appear» при
+  закрытии). Если после закрытия листа нужно обновить данные, сообщи
   об этом явно — делегатом или замыканием `onSave`.
 - **Лист с несохранённым вводом закрывается свайпом** — нет
   `isModalInPresentation`.
@@ -186,27 +215,46 @@ nav.modalPresentationStyle = .fullScreen
 present(nav, animated: true)
 ```
 
-`.fullScreen` — модальный экран занимает весь экран, а экран под ним
-после окончания анимации **убирается** из иерархии view. Поэтому у
-нижнего экрана вызываются `viewWillDisappear` и `viewDidDisappear`, а
-при закрытии — `viewWillAppear` и `viewDidAppear`. Свайпом вниз такой
-экран не закрывается: нужна кнопка.
+`.fullScreen` — модальный экран занимает весь экран, а view нижнего
+экрана после окончания анимации **убираются** из иерархии (так в
+документации стиля). Поэтому у нижнего экрана вызываются
+`viewWillDisappear` и `viewDidDisappear`, а при закрытии —
+`viewWillAppear` и `viewDidAppear`. Свайпом вниз такой экран не
+закрывается: нужна кнопка.
 
-`.overFullScreen` — тоже на весь экран, но нижний экран **остаётся** в
-иерархии, под модальным. Если у модального экрана прозрачный или
-полупрозрачный фон, нижний будет виден сквозь него. Методы
-`viewWillDisappear` у нижнего экрана при этом не вызываются. Этот стиль
-нужен для затемнений и своих окон подтверждения (28.9).
+`.overFullScreen` — тоже на весь экран, но view нижнего экрана
+**остаются** в иерархии, под модальным. Если у модального экрана
+прозрачный или полупрозрачный фон, нижний будет виден сквозь него.
+Методы `viewWillDisappear` у нижнего экрана при этом не вызываются.
+Этот стиль нужен для затемнений и своих окон подтверждения (28.9).
 
-Сравнение трёх стилей:
+За «убрать или оставить» отвечает presentation controller: у него
+есть свойство `shouldRemovePresentersView`. На iOS 26.5 оно `true`
+только у контроллера стиля `.fullScreen`; у `.pageSheet`,
+`.formSheet`, `.automatic` и `.overFullScreen` — `false`, и у базового
+`UIPresentationController` по умолчанию тоже `false`.
 
-| Стиль             | Нижний экран                  | `viewWillDisappear` нижнего | Свайп вниз |
-|-------------------|-------------------------------|-----------------------------|------------|
-| `.pageSheet`      | виден краешком сверху          | нет                         | закрывает  |
-| `.fullScreen`     | убран из иерархии              | да                          | нет        |
-| `.overFullScreen` | под модальным, виден сквозь фон | нет                         | нет        |
+Сравнение стилей (по документации `UIModalPresentationStyle` и
+проверке на iOS 26.5):
 
-## 28.3 Page sheet (стиль по умолчанию)
+| Стиль             | Что под ним                                              | `viewWillDisappear` нижнего | Свайп вниз      |
+|-------------------|----------------------------------------------------------|-----------------------------|-----------------|
+| `.automatic`      | то же, что `.formSheet` (iOS 18+) или `.pageSheet` (до 18) | нет                         | закрывает       |
+| `.pageSheet`      | iPhone: нижний виден полоской сверху; iPad: карточка размером со страницу поверх затемнения | нет *                       | закрывает       |
+| `.formSheet`      | iPhone: тот же лист; iPad: окно по центру, размер — `preferredContentSize` | нет *                       | закрывает       |
+| `.fullScreen`     | убран из иерархии                                        | да                          | нет             |
+| `.overFullScreen` | остаётся, виден сквозь прозрачные места                  | нет                         | нет             |
+| `.popover`        | iPad: облачко со стрелкой; iPhone: ведёт себя как `.formSheet` | нет                         | iPhone: закрывает |
+| `.custom`         | решает твой presentation controller (`shouldRemovePresentersView`, по умолчанию `false`) | нет по умолчанию            | нет             |
+
+\* В **компактной высоте** (iPhone, повёрнутый горизонтально)
+`.pageSheet` и `.formSheet` по документации ведут себя как
+`.fullScreen`: нижний экран убирается, и `viewWillDisappear` у него
+вызывается. Если логика экрана опирается на эти вызовы, проверь её и в
+ландшафте. Свайп вниз у листов отключает `isModalInPresentation`
+(28.1).
+
+## 28.3 Page sheet и стиль по умолчанию
 
 ```swift
 vc.modalPresentationStyle = .pageSheet
@@ -215,9 +263,14 @@ vc.modalPresentationStyle = .pageSheet
 С iOS 13 модальные экраны по умолчанию показываются не на весь экран,
 а **листом**: новый экран выезжает снизу, нижний слегка уменьшается и
 виден полоской сверху, закрыть можно свайпом вниз. Стиль по умолчанию
-— `.automatic`: система сама выбирает лист. В новых версиях iOS
-свойство у такого экрана может вернуть `.formSheet`, а не
-`.pageSheet`, — на iPhone они выглядят одинаково (см. 28.4).
+— `.automatic`, и документация говорит точно, во что он
+разворачивается: в iOS 18 и новее — в `.formSheet`, в iOS 13–17 — в
+`.pageSheet`; некоторые системные контроллеры выбирают своё (у
+`UIAlertController` это `.custom` и `.popover`). На iPhone оба листа
+выглядят одинаково (см. 28.4). Разница заметна в коде: свойство
+отдаёт уже развёрнутое значение, так что на iOS 26.5 у свежего
+view controller'а `modalPresentationStyle == .formSheet`, и проверка
+«стиль ещё `.automatic`?» всегда ложна.
 
 `.pageSheet` — это тот же лист, что в 28.1. Детенты — просто его
 настройки: без них лист раскрыт на `.large`.
@@ -229,12 +282,16 @@ vc.modalPresentationStyle = .formSheet
 vc.preferredContentSize = CGSize(width: 540, height: 620)
 ```
 
-На iPad `.formSheet` — окно по центру экрана поверх затемнённого фона,
-как диалог настроек. На iPhone разницы с `.pageSheet` нет: окну некуда
-«встать по центру», и оно показывается обычным листом.
+На iPad `.formSheet` — окно по центру экрана поверх приглушённого
+фона (в iOS 26 это слой с эффектом Liquid Glass), как диалог
+настроек; по умолчанию оно меньше, чем `.pageSheet`. На iPhone разницы
+с `.pageSheet` нет: окну некуда «встать по центру», и документация
+описывает для компактной ширины тот же лист с полоской нижнего экрана
+сверху.
 
 `preferredContentSize` — желаемый размер окна, 540 × 620 точек. iPad
-учитывает его для `.formSheet`, а iPhone игнорирует.
+учитывает его для `.formSheet` (это документированный способ задать
+размер), а iPhone игнорирует.
 
 ## 28.5 Popover
 
@@ -264,8 +321,10 @@ present(picker, animated: true)
 - `preferredContentSize` — размер облачка, 280 × 320 точек.
 
 На iPhone экран узкий, и поповер по умолчанию **адаптируется**:
-показывается не облачком, а модальным листом. Это нормальное
-поведение, и часто оно лучше облачка. С iOS 15 этот лист можно
+документация говорит, что с iOS 13 в компактной ширине или высоте
+`.popover` ведёт себя как `.formSheet`, то есть показывается не
+облачком, а модальным листом. Это нормальное поведение, и часто оно
+лучше облачка. С iOS 15 этот лист можно
 настроить, например дать ему половинную высоту:
 
 ```swift
@@ -296,8 +355,10 @@ extension PaletteViewController: UIPopoverPresentationControllerDelegate {
 
 `adaptivePresentationStyle` — UIKit спрашивает: «экран стал узким, во
 что превратить поповер?». `.none` означает «ни во что, оставь как
-есть». Делегат хранится слабой ссылкой, поэтому им обычно делают сам
-показывающий экран.
+есть» — документация разрешает это значение только как ответ отсюда,
+назначать его в `modalPresentationStyle` нельзя. Делегат хранится
+слабой ссылкой (`weak` в `UIPopoverPresentationController.h`), поэтому
+им обычно делают сам показывающий экран.
 
 **Частые ошибки.**
 
@@ -328,8 +389,11 @@ present(alert, animated: true)
 
 Три стиля кнопки:
 
-- `.cancel` — отмена. Выделяется системно и одна на алерт: вторую
-  кнопку `.cancel` UIKit не примет и упадёт.
+- `.cancel` — отмена. Выделяется системно и одна на алерт: на второй
+  кнопке `.cancel` метод `addAction` бросает исключение
+  `NSInternalInconsistencyException` «UIAlertController can only have
+  one action with a style of UIAlertActionStyleCancel» (проверено на
+  iOS 26.5), и приложение падает.
 - `.destructive` — красная подпись: действие удаляет или необратимо
   меняет данные.
 - `.default` — обычная кнопка.
@@ -345,8 +409,12 @@ present(alert, animated: true)
 избавляет от раздумий «а тут можно?».
 
 Если одна из кнопок — ожидаемый ответ, выдели её:
-`alert.preferredAction = someAction`. Её подпись станет жирной, и она
-сработает по клавише Return на подключённой клавиатуре.
+`alert.preferredAction = someAction`. Её подпись станет жирной (если
+есть кнопка «Отмена», выделение переедет с неё), и она сработает по
+клавише Return на подключённой клавиатуре. Два условия из
+документации: действие должно быть уже добавлено через `addAction`
+(назначить его раньше — ошибка программиста), и работает это только
+для стиля `.alert`, action sheet свойство игнорирует.
 
 Формулировка по рекомендациям Apple (HIG): заголовок — короткий
 вопрос о действии («Удалить заметку?»), кнопка — глагол этого
@@ -376,9 +444,13 @@ present(sheet, animated: true)
 а кнопки «Отмена» там нет вовсе: чтобы отменить, тапают мимо облачка.
 
 Две строки с `popoverPresentationController` на iPad **обязательны**:
-без источника показ action sheet падает. На iPhone это свойство
-`nil`, и строки ничего не делают — так что пиши их всегда, даже если
-пока тестируешь только на iPhone.
+без источника показ action sheet падает. Почему: у `UIAlertController`
+со стилем `.actionSheet` стиль показа — `.popover` (так читается
+`modalPresentationStyle` на iOS 26.5), а поповеру нужно знать, откуда
+расти. На iPhone свойство тоже **не** `nil` — объект есть, просто в
+компактной ширине поповер адаптируется в лист снизу, и источник ему не
+нужен; строки безвредны. Так что пиши их всегда, даже если пока
+тестируешь только на iPhone.
 
 ## 28.8 Alert с UITextField
 
@@ -582,8 +654,11 @@ extension UIViewController {
 
 Баннер выезжает сверху, три секунды висит и уезжает обратно.
 
-- Баннер добавляется в **окно** (`view.window`), а не в экран: так он
-  окажется поверх навигационной панели и любых модальных экранов.
+- Баннер добавляется в **окно** (`view.window`, а окно — тоже view,
+  `UIWindow → UIView`), а не в экран: новый subview ложится поверх всего,
+  что в окне сейчас, — навигационной панели, вкладок и уже показанных
+  модальных экранов. Экран, который покажут модально **после**, лягет
+  уже над баннером.
 - Ограничения: баннер на 8 точек ниже **безопасной области** (safe
   area — часть экрана, не занятая «чёлкой», Dynamic Island и
   статус-баром), с полями по 12 точек слева и справа. Высота — по
@@ -775,21 +850,30 @@ final class GalleryViewController: UIViewController {
 ```
 
 Главная ловушка — в первой строке класса. `transitioningDelegate`
-хранится **слабой** ссылкой. Если написать
-`photo.transitioningDelegate = FadeTransitioningDelegate()`, объект
-делегата никто не удержит, он исчезнет сразу после присваивания, и
-UIKit молча покажет стандартную анимацию. Поэтому делегат лежит в
+хранится **слабой** ссылкой (`weak` в `UIViewController.h`). Если
+написать `photo.transitioningDelegate = FadeTransitioningDelegate()`,
+объект делегата никто не удержит, он исчезнет сразу после
+присваивания, и UIKit покажет стандартную анимацию. Компилятор Swift
+6.3 это замечает и выдаёт предупреждение «weak reference will always
+be nil because the referenced object is deallocated here» — но только
+предупреждение, код собирается и запускается. Поэтому делегат лежит в
 свойстве показывающего экрана.
 
 `.custom` — «стандартного оформления показа не надо, анимирую сам».
-Нижний экран при этом остаётся в иерархии, как при `.overFullScreen`.
+Документация добавляет: при этом стиле UIKit берёт у
+`transitioningDelegate` не только аниматоры, но и presentation
+controller; если делегат его не отдаёт (как наш), используется базовый
+`UIPresentationController`, у которого `shouldRemovePresentersView ==
+false`. Поэтому нижний экран остаётся в иерархии, как при
+`.overFullScreen`.
 
 Через эту схему делают hero-анимацию, выезд с любой стороны, переворот
 карточки — всё, что можно описать анимацией двух view на одной сцене.
 
 **Частые ошибки.**
 
-- **Делегат не удержан** — анимация «не работает», без ошибок.
+- **Делегат не удержан** — анимация «не работает»; единственный
+  сигнал — предупреждение компилятора, которое легко не заметить.
 - **`return` без `completeTransition`** — зависший интерфейс.
 - **Забыли `.custom`** — для стилей вроде `.pageSheet` UIKit может
   использовать своё оформление показа вместо твоего.
@@ -797,7 +881,8 @@ UIKit молча покажет стандартную анимацию. Поэ�
 **Упражнение 28.2.** В `GalleryViewController` замени свойство
 `fadeDelegate` на прямое присваивание
 `photo.transitioningDelegate = FadeTransitioningDelegate()`. Что
-увидит пользователь? Почему компилятор не предупредил?
+увидит пользователь? Что скажет компилятор и почему приложение всё
+равно запустится?
 
 ## Ответы к упражнениям
 
@@ -812,13 +897,20 @@ UIKit молча покажет стандартную анимацию. Поэ�
 никакого делегата нет (при `.custom` — просто появление без твоей
 анимации). `transitioningDelegate` — слабая ссылка, созданный объект
 тут же освобождается, и к моменту показа свойство уже `nil`.
-Компилятор не предупреждает: присвоить новый объект слабому свойству
-синтаксически законно. Иногда Xcode показывает предупреждение для
-`weak`-переменных, объявленных в твоём коде, но для свойства UIKit
-такого предупреждения нет.
+Компилятор это видит: Swift 6.3 выдаёт на такую строку предупреждение
+«weak reference will always be nil because the referenced object is
+deallocated here» (проверено сборкой с `-swift-version 6`). Но это
+предупреждение, а не ошибка — присвоить новый объект слабому свойству
+законно, поэтому проект собирается и запускается, а анимации нет.
 
 ## Что мы выучили
 
+- **Показом управляет presentation controller** (`UIPresentationController
+  → NSObject`) — не view и не view controller; `dismiss` у показанного
+  экрана UIKit пересылает показывающему.
+- **Стиль по умолчанию `.automatic`** разворачивается в `.formSheet`
+  (iOS 18+) или `.pageSheet` (iOS 13–17); свойство читается уже
+  развёрнутым, на iPhone оба — лист.
 - **Лист** (`UISheetPresentationController`, iOS 15+) — детенты
   `.medium()` / `.large()`, ручка, скругление; свои высоты `.custom` —
   только iOS 16+ и только под `#available`.
@@ -829,13 +921,16 @@ UIKit молча покажет стандартную анимацию. Поэ�
 - **`isModalInPresentation`** + `presentationControllerDidAttemptToDismiss`
   — защита несохранённого ввода от свайпа.
 - **Экран под листом не получает `viewWillAppear`** после закрытия
-  листа; у `.fullScreen` — получает.
+  листа; у `.fullScreen` — получает (`shouldRemovePresentersView` там
+  `true`); в компактной высоте листы ведут себя как `.fullScreen`.
 - **Поповер** на iPhone превращается в лист
   (`adaptiveSheetPresentationController` для настройки); `.none` в
   делегате оставляет облачко.
 - **Алерт**: одна `.cancel`, она слева при двух кнопках и внизу при
-  трёх и больше; `preferredAction`; action sheet на iPad требует
-  `sourceView`.
+  трёх и больше; `preferredAction` — только после `addAction` и только
+  для `.alert`; action sheet показывается стилем `.popover` и на iPad
+  требует `sourceView` (на iPhone `popoverPresentationController` тоже
+  не `nil`).
 - **Своё окно** — отдельный экран `.overFullScreen` + `.crossDissolve`
   с `accessibilityViewIsModal`.
 - **Баннер и HUD** — в окно или экран, прячем на реально посчитанное
@@ -850,7 +945,9 @@ UIKit молча покажет стандартную анимацию. Поэ�
 - [`largestUndimmedDetentIdentifier`](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller/largestundimmeddetentidentifier) — до какой высоты не затемнять фон.
 - [`UIViewController.isModalInPresentation`](https://developer.apple.com/documentation/uikit/uiviewcontroller/ismodalinpresentation) — запрет закрытия свайпом.
 - [`UIAdaptivePresentationControllerDelegate`](https://developer.apple.com/documentation/uikit/uiadaptivepresentationcontrollerdelegate) — `presentationControllerDidAttemptToDismiss(_:)` и адаптация стилей.
-- [`UIModalPresentationStyle`](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle) — `.automatic`, `.pageSheet`, `.formSheet`, `.fullScreen`, `.overFullScreen`, `.popover`, `.custom`.
+- [`UIModalPresentationStyle`](https://developer.apple.com/documentation/uikit/uimodalpresentationstyle) — `.automatic`, `.pageSheet`, `.formSheet`, `.fullScreen`, `.overFullScreen`, `.popover`, `.custom`; [`UIViewController.modalPresentationStyle`](https://developer.apple.com/documentation/uikit/uiviewcontroller/modalpresentationstyle) — само свойство и его значение по умолчанию.
+- [`UIPresentationController`](https://developer.apple.com/documentation/uikit/uipresentationcontroller) — объект, управляющий показом; `shouldRemovePresentersView`.
+- [`UIViewController.dismiss(animated:completion:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/dismiss(animated:completion:)) — закрывает показывающий; вызов у показанного пересылается ему.
 - [`UIPopoverPresentationController`](https://developer.apple.com/documentation/uikit/uipopoverpresentationcontroller) — `sourceView`/`sourceRect`, `adaptiveSheetPresentationController`.
 - [`UIAlertController`](https://developer.apple.com/documentation/uikit/uialertcontroller) — `.alert` и `.actionSheet`, `preferredAction`, `addTextField(configurationHandler:)`.
 - [`UIAlertAction.Style`](https://developer.apple.com/documentation/uikit/uialertaction/style-swift.enum) — `.default`, `.cancel`, `.destructive`.

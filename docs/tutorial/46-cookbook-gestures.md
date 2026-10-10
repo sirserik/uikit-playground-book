@@ -18,10 +18,25 @@
 распознаватель — подкласс `UIGestureRecognizer`: `UITapGestureRecognizer`,
 `UIPanGestureRecognizer` и так далее. Его добавляют к view методом
 `addGestureRecognizer(_:)`, а о результате он сообщает через пару
-«цель — действие» (`target` + `action`, метод с пометкой `@objc`).
+«цель — действие» (`target` + `action`, метод с пометкой `@objc`);
+`addAction(UIAction)` у него нет — это не `UIControl`.
 
-У распознавателя есть **состояние** (`state`). Жесты бывают двух
-видов:
+Кто он такой. `UIGestureRecognizer → NSObject`: не view и не
+responder. У него нет `frame`, его нельзя добавить через `addSubview`,
+и в responder chain он не участвует (так пишет документация) — он
+стоит **рядом** с цепочкой и получает касания, прошедшие hit-testing в
+его view и её subviews, раньше самой view. Привязан он ровно к
+**одной** view: она доступна как `gesture.view`, а view держит
+распознаватель сильной ссылкой. Если добавить тот же объект к другой
+view, он переедет: на iOS 26.5 после `v2.addGestureRecognizer(g)` у
+`v1.gestureRecognizers` пусто, а `g.view === v2`. Нужен один жест на
+двух view — создай два распознавателя. Значения по умолчанию:
+`cancelsTouchesInView = true`, `delaysTouchesBegan = false`,
+`delaysTouchesEnded = true`, `isEnabled = true`, `delegate = nil`
+(глава 0, разделы 0.3 и 0.9).
+
+У распознавателя есть **состояние** (`state`); пока жест не начался,
+оно `.possible`. Жесты бывают двух видов:
 
 - **Дискретные** («разовые») — тап, свайп. Случились один раз и
   всё: распознаватель сразу переходит в `.ended` (оно же
@@ -77,10 +92,12 @@ final class PhotoViewController: UIViewController, UIContextMenuInteractionDeleg
 ```
 
 `UIContextMenuInteraction` — не распознаватель, а **взаимодействие**
-(interaction): готовое поведение целиком — долгое нажатие, лёгкая
-отдача вибрацией, размытие фона, превью, меню. Подключается через
-`addInteraction`. `isUserInteractionEnabled = true` нужен, потому что
-`UIImageView` по умолчанию касания не принимает (29.5).
+(interaction): объект `NSObject`, реализующий протокол `UIInteraction`,
+то есть готовое поведение целиком — долгое нажатие, лёгкая отдача
+вибрацией, размытие фона, превью, меню. Подключается через
+`addInteraction`, и, как распознаватель, живёт при одной view
+(`interaction.view`). `isUserInteractionEnabled = true` нужен, потому
+что `UIImageView` по умолчанию касания не принимает (29.5).
 
 Делегат отвечает на один вопрос: «какое меню показать в этой точке?».
 `location` — точка нажатия, если меню должно зависеть от того, куда
@@ -234,7 +251,9 @@ final class ZoomViewController: UIViewController, UIScrollViewDelegate {
 }
 ```
 
-`gesture.scale` — во сколько раз пальцы разошлись с начала жеста:
+`gesture.view` — та единственная view, к которой жест привязан;
+благодаря этому один обработчик годится для любой view. `gesture.scale`
+— во сколько раз пальцы разошлись с начала жеста:
 1,0 — не двигались, 2,0 — расстояние между пальцами выросло вдвое,
 0,5 — сократилось вдвое. Трюк с `gesture.scale = 1` делает шаги
 **относительными**: каждый вызов умножает текущий масштаб на
@@ -374,9 +393,12 @@ final class ProfileHeaderViewController: UIViewController {
 ```
 
 `isUserInteractionEnabled = true` — **обязательно** для `UIImageView`
-и `UILabel`: у них это свойство по умолчанию `false`, и все касания
-проходят насквозь, до view под ними. Распознаватель на такой view
-просто молчит, без ошибок.
+и `UILabel`: у них это свойство по умолчанию `false` (в заголовках
+`UILabel.h` и `UIImageView.h` так и написано: «default is NO»), и
+hit-testing их пропускает — касание достаётся той view, что окажется
+под ними, обычно superview. Распознаватель получает только касания,
+прошедшие hit-testing в его view, поэтому на такой view он просто
+молчит, без ошибок.
 
 Три строки доступности превращают картинку в «кнопку» для VoiceOver:
 иначе незрячий человек не узнает, что аватар нажимается. Если элемент
@@ -556,7 +578,10 @@ final class DismissableViewController: UIViewController {
 
 `UINavigationController` уже содержит распознаватель свайпа от левого
 края — `interactivePopGestureRecognizer`. Он возвращает на предыдущий
-экран стопки.
+экран стопки. Свойство объявлено как `UIGestureRecognizer`, но на деле
+это экземпляр приватного подкласса `UIScreenEdgePanGestureRecognizer`
+(проверено на iOS 26.5), а тот — наследник `UIPanGestureRecognizer`:
+pan, который начинается только у края экрана.
 
 Самый частый вопрос — как его **сохранить** или **восстановить**, если
 ты поставил свою левую кнопку. Правильный способ с подклассом
@@ -590,9 +615,12 @@ edgePan.edges = .right
 view.addGestureRecognizer(edgePan)
 ```
 
-Это pan, который начинается только у указанного края экрана (здесь
-правого). Удобно для выдвижного бокового меню. Обработчик — такой же,
-как у pan в 29.4.
+`UIScreenEdgePanGestureRecognizer → UIPanGestureRecognizer`: это pan,
+который начинается только у указанного края экрана (здесь правого),
+учитывает только первое касание и отдаёт те же `translation(in:)` и
+`velocity(in:)`. Удобно для выдвижного бокового меню. Обработчик —
+такой же, как у pan в 29.4. `edges` нужно задать до того, как жест
+добавлен к view, — так просит документация.
 
 ## 29.10 Конфликт gesture'ов
 
@@ -601,7 +629,9 @@ view.addGestureRecognizer(edgePan)
 
 **Правило по умолчанию.** Если на одном касании могут сработать два
 распознавателя (на одной view или на view и её родителе), UIKit
-разрешает сработать **только одному**: первый распознавший жест
+разрешает сработать **только одному** — документация
+`shouldRecognizeSimultaneouslyWith` формулирует это как «no two
+gestures can be recognized simultaneously»: первый распознавший жест
 побеждает, остальные переходят в `.failed`. Отсюда инструменты:
 
 **1. Направление — `gestureRecognizerShouldBegin`.** Классика:
@@ -626,9 +656,13 @@ extension SwipeCell {
 идёт вниз, наш жест не начнётся, и касание достанется списку.
 
 Обрати внимание: метод объявлен с `override`. У `UIView` уже есть свой
-`gestureRecognizerShouldBegin(_:)`, и ячейка — это view. Для жестов,
-которые ты сам добавил к ячейке, UIKit спросит именно этот метод —
-делегата назначать не обязательно.
+`gestureRecognizerShouldBegin(_:)` (по умолчанию возвращает `true`), и
+ячейка — это view (`UITableViewCell → UIView`). Для жестов, которые
+привязаны к самой ячейке, UIKit спросит именно этот метод в момент,
+когда распознаватель ещё в `.possible` и готов перейти в `.began`;
+`false` переводит его в `.failed`. Так, по документации, `UISlider`
+отсекает свайпы вдоль себя. Делегата назначать не обязательно — но
+метод работает только для жестов на этой view, а не на её subviews.
 
 **2. Одновременность — `shouldRecognizeSimultaneouslyWith`.** Иногда
 оба жеста должны работать вместе: щипок и поворот фотографии двумя
@@ -722,9 +756,11 @@ final class CommentCell: UITableViewCell {
 `onAvatarTap` — оно и знает, чей это аватар.
 
 Тап по аватарке **не** выделит строку: у распознавателя по умолчанию
-`cancelsTouchesInView = true` — распознав тап, он отменяет касание для
-view, и таблица не видит «нажатия на строку». Если нужно и то, и
-другое, поставь `tap.cancelsTouchesInView = false`.
+`cancelsTouchesInView = true` — распознав тап, он не отдаёт view
+оставшиеся касания, а уже доставленные отзывает через
+`touchesCancelled(_:with:)`; таблица не видит «нажатия на строку».
+Если нужно и то, и другое, поставь `tap.cancelsTouchesInView = false`
+— тогда view получит всю последовательность касаний целиком.
 
 Альтернатива без жестов — положить в ячейку `UIButton` с картинкой
 аватара. Это проще и сразу доступно для VoiceOver. Для кнопки
@@ -771,9 +807,11 @@ return abs(velocity.x) > 2 * abs(velocity.y)
 
 ## Что мы выучили
 
-- **Распознаватель жестов** — подкласс `UIGestureRecognizer` на view;
-  дискретные жесты (тап, свайп) срабатывают один раз, непрерывные
-  (pan, pinch, long press) проходят `.began → .changed → .ended`.
+- **Распознаватель жестов** — `UIGestureRecognizer → NSObject`: не view
+  и не responder, привязан ровно к одной view (`gesture.view`), получает
+  её касания раньше неё; дискретные жесты (тап, свайп) срабатывают
+  один раз, непрерывные (pan, pinch, long press) проходят `.began →
+  .changed → .ended`.
 - **`UIContextMenuInteraction`** — долгое нажатие с меню и превью;
   в таблице — `contextMenuConfigurationForRowAt`, элемент берём сразу.
 - **Swipe actions** — первое действие ближе к краю и выполняется
@@ -792,14 +830,17 @@ return abs(velocity.x) > 2 * abs(velocity.y)
 - **Конфликты** — направление через `gestureRecognizerShouldBegin`,
   одновременность только для нужной пары, очерёдность через
   `require(toFail:)`; в iOS 26 — зависимость от
-  `interactiveContentPopGestureRecognizer`.
+  `interactiveContentPopGestureRecognizer`. Системный свайп назад —
+  `UIScreenEdgePanGestureRecognizer → UIPanGestureRecognizer`.
 - **Жест в ячейке** — добавляем в `init` ячейки, а не в
   `cellForRowAt`; `cancelsTouchesInView` решает, выделится ли строка.
 
 ## Apple Developer Documentation
 
 - [`UIGestureRecognizer`](https://developer.apple.com/documentation/uikit/uigesturerecognizer) — базовый класс, состояния, `require(toFail:)`, `cancelsTouchesInView`.
+- [`UIGestureRecognizer.view`](https://developer.apple.com/documentation/uikit/uigesturerecognizer/view) — единственная view, к которой привязан жест.
 - [`UIGestureRecognizerDelegate`](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate) — `gestureRecognizerShouldBegin(_:)`, `gestureRecognizer(_:shouldRecognizeSimultaneouslyWith:)`.
+- [`UIView.gestureRecognizerShouldBegin(_:)`](https://developer.apple.com/documentation/uikit/uiview/gesturerecognizershouldbegin(_:)) — тот же вопрос, но самой view, без делегата.
 - [`UIPanGestureRecognizer`](https://developer.apple.com/documentation/uikit/uipangesturerecognizer) — `translation(in:)`, `velocity(in:)`, `setTranslation(_:in:)`.
 - [`UITapGestureRecognizer`](https://developer.apple.com/documentation/uikit/uitapgesturerecognizer), [`UILongPressGestureRecognizer`](https://developer.apple.com/documentation/uikit/uilongpressgesturerecognizer), [`UIPinchGestureRecognizer`](https://developer.apple.com/documentation/uikit/uipinchgesturerecognizer), [`UIRotationGestureRecognizer`](https://developer.apple.com/documentation/uikit/uirotationgesturerecognizer), [`UISwipeGestureRecognizer`](https://developer.apple.com/documentation/uikit/uiswipegesturerecognizer), [`UIScreenEdgePanGestureRecognizer`](https://developer.apple.com/documentation/uikit/uiscreenedgepangesturerecognizer) — стандартные распознаватели.
 - [`UIContextMenuInteraction`](https://developer.apple.com/documentation/uikit/uicontextmenuinteraction) и [`UIContextMenuConfiguration`](https://developer.apple.com/documentation/uikit/uicontextmenuconfiguration) — контекстное меню с превью.

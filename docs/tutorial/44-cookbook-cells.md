@@ -12,10 +12,17 @@
 
 Два понятия, на которых держится вся глава.
 
-**Ячейка** (cell) — одна строка таблицы, объект `UITableViewCell`. Всё
-содержимое ячейки лежит в её `contentView`, а справа может стоять
+**Ячейка** (cell) — одна строка таблицы, объект `UITableViewCell`. По
+родословной это `UITableViewCell → UIView` напрямую: не `UIControl`
+(подсветку и выделение делает таблица, а не target-action) и не
+view controller. Внутри у ячейки несколько слоёв: снизу
+`backgroundView` и `selectedBackgroundView`, над ними `contentView` —
+единственное место для твоего содержимого, а справа может стоять
 **аксессуар** (accessory) — стрелка, галочка или любая твоя view
-(переключатель, кнопка).
+(переключатель, кнопка). Аксессуар лежит **вне** `contentView`: когда
+он появляется или таблица входит в режим редактирования, ячейка
+сдвигает и сжимает именно `contentView`, поэтому своё добавляют только
+туда. Лестница классов — глава 0, раздел 0.6.
 
 **Переиспользование** (reuse). Таблица не создаёт по ячейке на каждую
 строку данных. Ячеек примерно столько, сколько помещается на экране,
@@ -71,13 +78,23 @@ cell.accessoryType = .disclosureIndicator
   шрифте в строку не помещается, ячейка сама переставит подпись вниз.
 - `accessoryType = .disclosureIndicator` — серая стрелка «›» справа:
   «тап откроет новый экран». Другие стандартные варианты:
-  `.checkmark` (галочка), `.detailButton` (кнопка «i»), `.none`.
+  `.checkmark` (галочка), `.detailButton` (кнопка «i»),
+  `.detailDisclosureButton` («i» и стрелка вместе), `.none`.
+
+Что происходит при присваивании `contentConfiguration`: ячейка
+**заменяет** свой `contentView` на view конфигурации. На iOS 26.5 это
+видно напрямую — до присваивания `cell.contentView` имеет класс
+`UITableViewCellContentView`, после — `UIListContentView` с метками
+внутри. Поэтому свои subviews в `contentView` и конфигурацию в одной
+ячейке не смешивают: контейнер, в который ты их добавил, конфигурация
+подменит.
 
 Этот API заменил старые свойства `cell.textLabel`,
-`cell.detailTextLabel` и `cell.imageView`. В документации они помечены
-«будут объявлены устаревшими». Смешивать старое и новое нельзя:
-конфигурация перерисует ячейку и затрёт то, что ты написал в
-`textLabel`.
+`cell.detailTextLabel` и `cell.imageView`. В заголовке
+`UITableViewCell.h` они помечены «this property will be deprecated in a
+future release». Смешивать старое и новое нельзя по той же причине:
+конфигурация подменяет содержимое ячейки и затрёт то, что ты написал
+в `textLabel`.
 
 Есть и готовые варианты конфигурации для типовых ячеек:
 `UIListContentConfiguration.valueCell()` — текст слева, значение
@@ -113,12 +130,15 @@ cell.accessoryView = toggle
 cell.selectionStyle = .none
 ```
 
-`accessoryView` — своя view на месте аксессуара. `UISwitch` при
-создании сразу получает свой стандартный размер, поэтому его можно
-класть в аксессуар без настройки рамки.
+`accessoryView` — своя view на месте аксессуара; когда она задана,
+ячейка игнорирует `accessoryType`. `UISwitch` при создании сразу
+получает свой стандартный размер (на iOS 26.5 — 63 × 28 точек), поэтому
+его можно класть в аксессуар без настройки рамки.
 
 `UIAction` — действие-замыкание, которое контрол вызовет при событии
-`.valueChanged` (переключатель сменил положение).
+`.valueChanged` (переключатель сменил положение). `addAction(_:for:)`
+есть у `UISwitch` потому, что он `UIControl`; у `UILabel` или
+`UIImageView` такого метода нет (глава 0, раздел 0.5).
 
 Самая важная строка — `action.sender as? UISwitch`. Кажется, проще
 написать `self?.setNotificationsEnabled(toggle.isOn)`, обратившись к
@@ -269,9 +289,13 @@ final class SliderCell: UITableViewCell {
   экране мелькало бы «17.462963».
 - `onChange` — замыкание, через которое ячейка сообщает экрану новое
   значение. Экран задаёт его в `cellForRowAt`.
-- `prepareForReuse()` — UIKit вызывает этот метод, когда ячейку
-  забирают под новую строку. Мы обнуляем `onChange`, чтобы старое
-  замыкание (от прошлой строки) не сработало на новой.
+- `prepareForReuse()` — таблица вызывает этот метод перед тем, как
+  вернуть ячейку из `dequeueReusableCell`. Мы обнуляем `onChange`,
+  чтобы старое замыкание (от прошлой строки) не сработало на новой.
+  Документация просит сбрасывать здесь только то, что не относится к
+  содержимому (alpha, выделение, вот такие колбэки), а само содержимое
+  всегда выставлять заново в `cellForRowAt` — что мы и делаем в
+  `configure`.
 - В замыкании слайдера `[weak self]`: ячейка держит слайдер, слайдер —
   замыкание, и сильный `self` замкнул бы круг.
 
@@ -294,10 +318,11 @@ return cell
 `tableView.register(SliderCell.self, forCellReuseIdentifier: SliderCell.reuseID)`.
 
 Встречается и более короткий способ: в `cellForRowAt` обнулить
-`contentConfiguration`, удалить из `contentView` все старые subviews и
-добавить новые. Он работает, но на каждую прокрутку создаёт и удаляет
-view, и легко забыть удаление — тогда при переиспользовании в ячейке
-окажется два слайдера друг на друге. Свой класс надёжнее.
+`contentConfiguration` (чтобы ячейка вернула обычный `contentView`,
+см. 27.1), удалить из `contentView` все старые subviews и добавить
+новые. Он работает, но на каждую прокрутку создаёт и удаляет view, и
+легко забыть удаление — тогда при переиспользовании в ячейке окажется
+два слайдера друг на друге. Свой класс надёжнее.
 
 **Частые ошибки.**
 
@@ -517,10 +542,11 @@ cell.selectionStyle = .none
 - `.automatic` — стиль выбирает система.
 
 `sizeToFit()` — подгоняем рамку под содержимое. Пикер, в отличие от
-кнопки из 27.5, получает размер уже при создании (на iOS 26 компактный
-пикер с датой и временем — около 196 × 36 точек), но после смены
-режима и стиля рамку надёжнее пересчитать: аксессуар берёт тот размер,
-который у view есть в момент присваивания.
+кнопки из 27.5, получает размер уже при создании (на iOS 26.5
+компактный пикер с датой и временем — около 200 × 36 точек; ширина
+зависит от локали и самой даты), но после смены режима и стиля рамку
+надёжнее пересчитать: аксессуар берёт тот размер, который у view есть
+в момент присваивания.
 
 ## 27.10 Inline editing cell
 
@@ -687,9 +713,12 @@ background.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
 cell.selectedBackgroundView = background
 ```
 
-`selectedBackgroundView` — view, которая подкладывается под
-содержимое, пока ячейка выделена. `withAlphaComponent(0.1)` — синий на
-10% непрозрачности: лёгкий голубой оттенок, через который виден текст.
+`selectedBackgroundView` — view, которую ячейка добавляет subview'ом
+только пока выделена: сразу над `backgroundView`, если он есть, иначе
+под всем остальным. `withAlphaComponent(0.1)` — синий на 10%
+непрозрачности: лёгкий голубой оттенок, через который виден текст.
+Эти две view и `backgroundConfiguration` взаимоисключающи: задал
+`selectedBackgroundView` — конфигурация фона сбросится в `nil`.
 
 ## 27.13 Avatar в ячейке
 
@@ -736,9 +765,11 @@ func loadAvatarIfNeeded(for user: User) {
 ```
 
 `reconfigureRows(at:)` (iOS 15+) заново вызывает `cellForRowAt` для
-видимой строки, не пересоздавая ячейку. `cellForRowAt` возьмёт фото из
-`avatarCache`. Если строка уже не видна, ничего не произойдёт — фото
-подхватится из кэша, когда строка снова появится.
+строки, у которой сейчас есть ячейка (видимой или предзагруженной), и
+`dequeueReusableCell` возвращает **ту же** ячейку — без
+`prepareForReuse` и без новой view. `cellForRowAt` возьмёт фото из
+`avatarCache`. Если у строки ячейки сейчас нет, вызов ничего не
+сделает — фото подхватится из кэша, когда строка снова появится.
 
 Искать строку по `user.id` в момент прихода фото, а не запоминать
 `indexPath` заранее, нужно потому, что за время загрузки список мог
@@ -824,6 +855,9 @@ cell.accessoryView = slider
 
 ## Что мы выучили
 
+- **Ячейка** — `UITableViewCell → UIView` (не `UIControl`); своё — только
+  в `contentView`, аксессуар лежит вне его; `contentConfiguration`
+  подменяет `contentView` на view конфигурации.
 - **Переиспользование**: в `cellForRowAt` выставляй каждое зависящее
   от данных свойство заново; в своих классах ячеек отвязывай колбэки в
   `prepareForReuse`.
@@ -848,7 +882,7 @@ cell.accessoryView = slider
 
 ## Apple Developer Documentation
 
-- [`UITableViewCell`](https://developer.apple.com/documentation/uikit/uitableviewcell) — базовая ячейка таблицы, `accessoryView`, `selectionStyle`, `prepareForReuse()`.
+- [`UITableViewCell`](https://developer.apple.com/documentation/uikit/uitableviewcell) — базовая ячейка таблицы, `accessoryView`, `selectionStyle`, `prepareForReuse()`; [`contentView`](https://developer.apple.com/documentation/uikit/uitableviewcell/contentview) — куда класть своё содержимое.
 - [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration-swift.struct) — `defaultContentConfiguration()`, `valueCell()`, `subtitleCell()` (iOS 14+).
 - [`UIListContentConfiguration.ImageProperties`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration-swift.struct/imageproperties-swift.struct) — `cornerRadius`, `maximumSize`, `reservedLayoutSize`, `tintColor`.
 - [`UICollectionViewListCell`](https://developer.apple.com/documentation/uikit/uicollectionviewlistcell) — ячейка-строка для списков на основе collection view (iOS 14+).

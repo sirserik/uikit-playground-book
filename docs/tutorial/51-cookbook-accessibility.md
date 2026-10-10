@@ -45,6 +45,15 @@ button.accessibilityHint = "Удаляет заметку без возможн�
 удалить, кнопка»). У кнопки с текстом label берётся из заголовка
 автоматически.
 
+Откуда эти свойства у кнопки. `accessibilityLabel`, `accessibilityHint`,
+`accessibilityValue`, `accessibilityTraits` и `isAccessibilityElement`
+объявлены не в `UIView`, а в категории `NSObject (UIAccessibility)`
+(заголовок `UIAccessibility.h`) — то есть они есть у любого объекта
+UIKit, в том числе у `UIBarButtonItem` и `UITabBarItem`, которые не
+view (глава 0, разделы 0.2 и 0.9). `isAccessibilityElement` по
+умолчанию `false`, а у стандартных контролов UIKit — `true`
+(комментарий в заголовке и документация).
+
 `accessibilityHint` — **что произойдёт**, если нажать. Необязательна,
 VoiceOver читает её после паузы, и многие пользователи подсказки
 отключают. Apple в документации к `accessibilityHint` советует
@@ -61,10 +70,10 @@ deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
 deleteButton.accessibilityLabel = "Удалить"
 ```
 
-Без явного label VoiceOver в лучшем случае назовёт кнопку по имени
-картинки — это английское «техническое» название вроде «trash» или
-имя файла из твоих ресурсов, в худшем — скажет просто «кнопка».
-Задавай label явно на языке интерфейса.
+Без явного label VoiceOver попытается назвать кнопку по картинке: у
+SF Symbols есть системное описание, у твоих ресурсов — имя файла, а
+если и этого нет, прозвучит просто «кнопка». Ни один из вариантов не
+гарантирует понятное слово на языке интерфейса — задавай label явно.
 
 ## 34.2 Скрыть от VoiceOver
 
@@ -77,12 +86,17 @@ decorativeView.accessibilityElementsHidden = true
 
 - `isAccessibilityElement = false` — **сам** view не элемент, но его
   дочерние view VoiceOver по-прежнему найдёт. У простого `UIView` и
-  `UIImageView` это и так значение по умолчанию.
-- `accessibilityElementsHidden = true` — спрятать view **вместе со
-  всем содержимым**. Нужно, когда декоративный блок состоит из
-  подписей и картинок, и ни одна из них не должна звучать (например,
-  фоновая иллюстрация с надписью «Добро пожаловать» поверх
-  настоящего заголовка).
+  `UIImageView` это и так значение по умолчанию (элементами по
+  умолчанию являются только стандартные контролы — документация
+  `isAccessibilityElement`).
+- `accessibilityElementsHidden = true` — спрятать **всё, что внутри**
+  view: заголовок `UIAccessibility.h` описывает свойство как «marks all
+  the accessible elements contained within as hidden». Сам контейнер
+  оно элементом не делает и не отменяет; для декоративного блока
+  обычно ставят оба свойства. Нужно, когда блок состоит из подписей и
+  картинок, и ни одна из них не должна звучать (например, фоновая
+  иллюстрация с надписью «Добро пожаловать» поверх настоящего
+  заголовка).
 
 Скрывай декор (фоновые картинки, разделители, иконку рядом с текстом,
 который и так всё говорит), но никогда — то, что несёт смысл.
@@ -284,6 +298,15 @@ if traitCollection.accessibilityContrast == .high {
 главе 35). Есть и глобальный флаг `UIAccessibility.isDarkerSystemColorsEnabled`
 с уведомлением `darkerSystemColorsStatusDidChangeNotification`.
 
+Где читать `traitCollection`. Пока view не в окне, его trait
+collection предварительная: в замере на симуляторе у свободного
+`UIView` и у только что созданного контроллера size class равен
+`unspecified`. Надёжные места — обработчик `registerForTraitChanges`
+(iOS 17) или `traitCollectionDidChange` (iOS 15–16), `layoutSubviews`,
+а в контроллере — `viewIsAppearing`, где, по документации, трейты и
+геометрия уже актуальны. Подробно — глава 35, вводная часть и раздел
+35.6.
+
 Проще всего — не писать условия руками. Для своих цветов в Asset
 Catalog у набора цветов включи **High Contrast**: рядом с вариантами
 «Any» и «Dark» появятся высококонтрастные, и iOS подставит их сама.
@@ -380,7 +403,11 @@ label.adjustsFontForContentSizeCategory = true
 
 `automaticDimension` — высота ячейки считается из её констрейнтов,
 `estimatedRowHeight` — примерная высота для расчёта полосы прокрутки
-до того, как ячейку разложат. `numberOfLines = 0` — сколько угодно
+до того, как ячейку разложат. Первая строка — значение по умолчанию:
+у свежего `UITableView` и `rowHeight`, и `estimatedRowHeight` равны
+`automaticDimension` (это −1; замер на симуляторе), так что пишут её
+для явности, а вот явная оценка 44 помогает таблице точнее считать
+полосу прокрутки. `numberOfLines = 0` — сколько угодно
 строк. Вместе с `preferredFont` получаем ячейку, которая при размере
 AX5 вырастает в высоту, а не обрезает текст многоточием. Работает,
 только если подпись привязана констрейнтами к верху **и** к низу
@@ -399,7 +426,9 @@ productImage.accessibilityLabel = "Красные кроссовки, вид с�
 Содержательная картинка (фото товара, график, схема) должна быть
 элементом с описанием **того, что на ней**, а не «картинка» или имя
 файла. Декоративная — наоборот, остаётся невидимой для VoiceOver: у
-`UIImageView` по умолчанию `isAccessibilityElement == false`.
+`UIImageView` по умолчанию `isAccessibilityElement == false`
+(элементами по умолчанию документация объявляет только стандартные
+контролы, а `UIImageView → UIView` — не контрол).
 
 ## 34.14 Custom actions — свои действия
 
@@ -506,8 +535,14 @@ func makeCloseButton() -> UIButton {
 
 - **Label** — «что это», без слова «кнопка»; у иконок — обязательно и
   по-русски. **Hint** — «что произойдёт», глаголом, без описания жеста.
+- **Accessibility-свойства объявлены на `NSObject`** — есть у любого
+  объекта UIKit, включая `UIBarButtonItem`; `isAccessibilityElement`
+  по умолчанию `true` только у контролов.
 - **`isAccessibilityElement = false`** скрывает сам view,
-  **`accessibilityElementsHidden`** — view со всем содержимым.
+  **`accessibilityElementsHidden`** — всё его содержимое.
+- **`traitCollection`** читать после входа в иерархию:
+  `registerForTraitChanges` / `traitCollectionDidChange`,
+  `layoutSubviews`, `viewIsAppearing`.
 - **Группировка**: карточка — один элемент с общим label.
 - **Dynamic Type**: `preferredFont` + `adjustsFontForContentSizeCategory`;
   размер `.body` от 14 до 53 точек; свои шрифты — через `UIFontMetrics`.
@@ -530,6 +565,8 @@ func makeCloseButton() -> UIButton {
 - [UIAccessibility.isReduceMotionEnabled](https://developer.apple.com/documentation/uikit/uiaccessibility/isreducemotionenabled) — пользователь просит уменьшить движение.
 - [UIAccessibility.isDarkerSystemColorsEnabled](https://developer.apple.com/documentation/uikit/uiaccessibility/isdarkersystemcolorsenabled) — включено Increase Contrast.
 - [UITraitCollection.accessibilityContrast](https://developer.apple.com/documentation/uikit/uitraitcollection/accessibilitycontrast) — контраст как характеристика окружения.
+- [isAccessibilityElement](https://developer.apple.com/documentation/uikit/uiaccessibilityelement/isaccessibilityelement) — по умолчанию `false`, у контролов UIKit — `true`.
+- [UIViewController.viewIsAppearing(_:)](https://developer.apple.com/documentation/uikit/uiviewcontroller/viewisappearing(_:)) — момент, когда trait collection и геометрия уже актуальны.
 - [accessibilityLabel](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/accessibilitylabel) — короткое имя элемента для VoiceOver.
 - [accessibilityHint](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/accessibilityhint) — подсказка о результате действия.
 - [accessibilityValue](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/accessibilityvalue) — текущее значение элемента.

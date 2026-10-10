@@ -49,6 +49,14 @@ haptic.impactOccurred(intensity: 0.6)
 знает, какой именно «удар» воспроизвести. `impactOccurred()` —
 «удар произошёл, сыграй».
 
+Это не view и не контрол: `UIImpactFeedbackGenerator →
+UIFeedbackGenerator → NSObject` (цепочка снята на симуляторе; глава 0,
+раздел 0.9). Генератор никуда не добавляют в иерархию и ничем не
+рисуют — просто держат объект и зовут метод. Сам `UIFeedbackGenerator`
+— абстрактный класс: документация прямо просит не создавать его
+экземпляры, а брать один из наследников — impact, selection,
+notification и, с iOS 17.5, canvas для рисования.
+
 Стили:
 
 - **`.light`** — лёгкий, как касание мелкого предмета.
@@ -62,10 +70,13 @@ haptic.impactOccurred(intensity: 0.6)
 событие быстро утомляет.
 
 > В SDK iOS 26.5 инициализатор `init(style:)` помечен как «будет
-> устаревшим» в пользу `init(style:view:)` из iOS 17.5 — генератора,
-> привязанного к конкретному view. У нас минимум iOS 15, поэтому
-> пишем `init(style:)`; когда поднимешь минимум до 17.5, переходи на
-> новый вариант.
+> устаревшим» (`API_TO_BE_DEPRECATED` в заголовке
+> `UIImpactFeedbackGenerator.h`) в пользу `init(style:view:)` из
+> iOS 17.5 — генератора, привязанного к конкретному view: с этой
+> версии генератор ещё и `UIInteraction`, который прикрепляется к
+> view и знает, где на экране случилось событие. У нас минимум iOS 15,
+> поэтому пишем `init(style:)`; когда поднимешь минимум до 17.5,
+> переходи на новый вариант.
 
 ## 33.2 Notification (успех / предупреждение / ошибка)
 
@@ -299,10 +310,16 @@ final class HapticSlider: UISlider {
 Отдача срабатывает только при **смене** засечки, а не на каждое
 событие `valueChanged` (их при перетаскивании десятки в секунду).
 
-`required init?(coder:)` обязателен: `UISlider` — наследник `UIView`,
-а у него этот инициализатор помечен `required`. Как только ты
-переопределил свой `init(frame:)`, компилятор требует явно написать и
+`required init?(coder:)` обязателен: `UISlider → UIControl → UIView`,
+а `UIView` реализует протокол `NSCoding` и объявляет `init?(coder:)`
+как `required` (глава 0, разделы 0.4 и 0.10). Как только ты написал
+свой назначенный `init(frame:)`, компилятор требует явно написать и
 его, иначе код не соберётся.
+
+События `.valueChanged` при перетаскивании приходят десятки раз в
+секунду, потому что у ползунка `isContinuous = true` по умолчанию
+(заголовок `UISlider.h`); поставь `false` — и событие придёт один раз,
+когда палец отпустят, но тогда и засечки по пути не прощёлкают.
 
 По смыслу здесь подходит и `UISelectionFeedbackGenerator` (33.3):
 засечки — это смена значения по шагам. Разница на ощупь: selection —
@@ -356,7 +373,8 @@ func didReachGoal() {
 ```
 
 `.began` — долгое нажатие распознано (по умолчанию после 0,5 с
-удержания), `.ended` — палец отпущен. «Взять» — `.medium`: важное
+удержания — `minimumPressDuration`, значение из заголовка и
+рантайма), `.ended` — палец отпущен. «Взять» — `.medium`: важное
 событие, должно ощущаться. «Положить» — `.light`: подтверждение, без
 нажима. Здесь мы создаём генераторы на месте, без прогрева, и это
 осознанное упрощение: между «взять» и «положить» проходят секунды, а
@@ -427,6 +445,8 @@ final class HapticSlider: UISlider {
 - **Где работает**: только на устройстве; iPhone 7 и новее; на iPad
   и в симуляторе — тишина; пользователь может выключить; при записи
   звука отдача глушится.
+- **Генераторы — `NSObject`**, не view и не контролы: держи объект в
+  свойстве, в иерархию ничего не добавляй; базовый класс абстрактный.
 - **`UIImpactFeedbackGenerator`** — стили `.light` / `.medium` /
   `.heavy` / `.soft` / `.rigid`, `intensity` от 0 до 1.
 - **`UINotificationFeedbackGenerator`** — `.success` / `.warning` /
@@ -439,13 +459,15 @@ final class HapticSlider: UISlider {
   перезапуск движка в `resetHandler` и перед проигрыванием.
 - **Не нужны** при прокрутке, наборе текста, поверх стандартных
   контролов; делай отдачу отключаемой.
-- **Ползунок с засечками** — отдача только при смене засечки;
-  `required init?(coder:)` обязателен.
+- **Ползунок с засечками** — отдача только при смене засечки
+  (`isContinuous = true` даёт десятки событий в секунду);
+  `required init?(coder:)` обязателен из-за `NSCoding` у `UIView`.
 - **Синхронно с анимацией** — отдача в момент начала анимации.
 
 ## Apple Developer Documentation
 
-- [UIFeedbackGenerator](https://developer.apple.com/documentation/uikit/uifeedbackgenerator) — базовый класс тактильной отдачи.
+- [UIFeedbackGenerator](https://developer.apple.com/documentation/uikit/uifeedbackgenerator) — абстрактный базовый класс тактильной отдачи (`NSObject`).
+- [UIFeedbackGenerator.init(view:)](https://developer.apple.com/documentation/uikit/uifeedbackgenerator/init(view:)) — генератор, привязанный к view, iOS 17.5+.
 - [UIFeedbackGenerator.prepare()](https://developer.apple.com/documentation/uikit/uifeedbackgenerator/prepare()) — прогрев Taptic Engine и сколько он длится.
 - [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator) — «удар» при действиях в интерфейсе.
 - [UIImpactFeedbackGenerator.FeedbackStyle](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/feedbackstyle) — `.light` / `.medium` / `.heavy` / `.soft` / `.rigid`.

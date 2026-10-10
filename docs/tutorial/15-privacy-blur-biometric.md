@@ -30,9 +30,12 @@ Splash, онбординг, экран-пояснение для разреше�
 ## 11.1 Жизненный цикл сцены и снимок экрана
 
 Напомню, как iOS сообщает приложению о смене состояний (подробно — в
-главе 5). Приложение на iOS 13+ состоит из **сцен** (scene): сцена —
-это одно окно приложения со своим интерфейсом. На iPhone она обычно
-одна, на iPad их может быть несколько. У сцены есть состояния:
+главе 5). Приложение на iOS 13+ состоит из **сцен** (scene): сцена
+(`UIWindowScene`) — один экземпляр интерфейса приложения, обычно с
+одним окном; формально сцена управляет одним **или несколькими**
+окнами (`windowScene.windows`). На iPhone сцена обычно одна, на iPad
+их может быть несколько. Сцена — не view и не окно: `UIWindowScene →
+UIScene → UIResponder` (глава 0, раздел 0.8). У сцены есть состояния:
 
 - **активна** (foreground active) — на экране, принимает касания;
 - **неактивна** (foreground inactive) — видна, но касания не получает:
@@ -48,14 +51,19 @@ Splash, онбординг, экран-пояснение для разреше�
 - `UIScene.didEnterBackgroundNotification` — сцена ушла в фон.
 - `UIScene.didActivateNotification` — сцена снова активна.
 
+Каждому уведомлению соответствует метод делегата сцены:
+`sceneWillResignActive(_:)`, `sceneDidEnterBackground(_:)`,
+`sceneDidBecomeActive(_:)`. UIKit зовёт метод и рассылает уведомление
+в один и тот же момент; мы берём уведомления, потому что наш
+контроллер — не делегат сцены.
+
 Теперь о **снимке экрана** (snapshot). Документ Apple «Preparing your
 UI to run in the background» описывает так: после того как приложение
 ушло в фон и обработчик ухода в фон вернул управление, UIKit делает
 снимок текущего интерфейса. Этот снимок показывается в переключателе
 приложений и на мгновение — при возвращении в приложение. Та же статья
 прямо требует: в интерфейсе не должно остаться чувствительных данных —
-паролей, номеров карт. Снимок хранится в контейнере приложения на
-диске и может пережить даже перезапуск.
+паролей, номеров карт.
 
 Отсюда план:
 
@@ -113,6 +121,13 @@ final class LifecycleSecurityController {
 окна и alert'ы. Для этого накладки кладутся прямо в окно
 (`UIWindow`), выше всей иерархии view controller'ов. View controller
 для этого не нужен.
+
+Это возможно, потому что окно — тоже view: `UIWindow → UIView →
+UIResponder`. У него есть `addSubview`, `bounds`, `subviews`, и
+корневой экран (`rootViewController.view`) — лишь один из его
+подвидов. Само окно ничего не рисует: по документации Apple оно —
+«подложка», которая держит view и раздаёт им события. Подробно —
+глава 0, раздел 0.8.
 
 Контроллер принадлежит `BootCoordinator` (глава 4). Когда координатор
 показывает главный экран, он создаёт и запускает его:
@@ -235,16 +250,31 @@ private func removeBlur() {
   не прочитать цифры. `.systemMaterial` — разумная середина; для
   совсем секретных экранов можно положить сверху ещё и непрозрачный фон
   с логотипом.
-- `view.frame = window.bounds` — размытие размером с окно. `bounds` —
-  прямоугольник окна в его собственных координатах: на iPhone 16 это
-  (0, 0, 393, 852) точки.
+- `view.frame = window.bounds` — размытие размером с окно. `frame`
+  задаётся в координатах superview — здесь окна, — а `bounds` окна
+  начинается с (0, 0): на iPhone 16 это (0, 0, 393, 852) точки. Поэтому
+  «frame = bounds родителя» всегда означает «накрыть родителя целиком»
+  (глава 0, раздел 0.4).
 - `autoresizingMask = [.flexibleWidth, .flexibleHeight]` — если окно
   изменит размер (поворот на iPad, изменение окна в многозадачности),
   размытие растянется вместе с ним. Это старый механизм
-  «автоматического растягивания»: без констрейнтов, одной строкой. Для
-  view «на весь родитель» его хватает.
+  «автоматического растягивания»: без констрейнтов, одной строкой. По
+  умолчанию маска пустая (`UIViewAutoresizingNone`). Работает она,
+  пока `translatesAutoresizingMaskIntoConstraints` у view остаётся
+  `true` (так и есть по умолчанию) — UIKit превращает маску в
+  констрейнты сам; ставить здесь `false` нельзя. Проверено в
+  симуляторе: окно 393×852 растянули до 500×900 — подвид стал 500×900.
 - `window.addSubview(view)` — кладём прямо в окно, последним, то есть
-  **поверх** всего: корневого экрана, модальных окон, alert'ов.
+  **поверх** всего, что лежит в этом окне: корневого экрана, модальных
+  экранов и alert'ов, которые показало само приложение. Чужие окна
+  размытие не накрывает: системный запрос разрешения или окно Face ID
+  живут в собственных окнах и процессах.
+
+Сам `UIVisualEffectView` — наследник `UIView`, но устроен из двух
+внутренних подвидов: «фон» с эффектом и `contentView`. Отсюда правила
+Apple: свои подвиды класть только в `contentView`, а `alpha` у самой
+view и у её superview оставлять 1, иначе эффект ломается или исчезает.
+Нам это важно в 11.6.
 
 ## 11.5 Возвращение: с биометрией или без
 
@@ -264,7 +294,8 @@ private func handleEnterForeground() {
 
 Кажется логичным: вернулись — спросили Face ID. Но вспомни 11.1 (и
 это мы видели в журнале запуска: как только появилось окно проверки,
-сцена получила `willResignActive`):
+делегат сцены получил `sceneWillResignActive(_:)` — тот же момент, что
+наше `willDeactivateNotification`):
 сцена становится неактивной не только при уходе в фон, но и при
 **любом системном окне поверх приложения**. А системное окно Face ID —
 как раз такое. Получается цепочка:
@@ -377,7 +408,16 @@ private func showBiometricPrompt(on window: UIWindow) {
 - Сначала `installBlur` — на случай, если размытия почему-то нет. Наш
   guard внутри не даст положить второе.
 - `container` — прозрачная view на всё окно поверх размытия. Иконка
-  замка и кнопка — по центру.
+  замка и кнопка — по центру. Почему это отдельная view-сосед в окне,
+  а не подвид размытия: у `UIVisualEffectView` подвиды разрешено
+  добавлять только в его `contentView`, а менять `alpha` — нельзя
+  (11.4). Отдельная view обходит оба ограничения и живёт своей жизнью:
+  размытие остаётся, когда экран блокировки уже убран.
+- `container` размечен через `frame` и `autoresizingMask`, а стек
+  внутри него — констрейнтами. Так смешивать можно: важно лишь, чтобы
+  у каждой view `translatesAutoresizingMaskIntoConstraints`
+  соответствовал её способу раскладки — у стека `false`, у
+  `container` по умолчанию `true`.
 - `accessibilityViewIsModal = true` — для VoiceOver: «за этой view
   ничего нет». Без этого незрячий человек мог бы пролистать диктором
   элементы экрана **под** размытием и услышать баланс вслух.
@@ -714,9 +754,12 @@ alert разрешения — некоторые из них показываю
 экрана: уведомление `UIApplication.userDidTakeScreenshotNotification`
 приходит уже **после** снимка. Запись экрана и трансляцию (AirPlay)
 можно заметить: в iOS 17+ — через `traitCollection.sceneCaptureState`,
-в более старых — через `UIScreen.main.isCaptured` и уведомление
-`UIScreen.capturedDidChangeNotification`. При записи можно закрыть
-чувствительные элементы.
+в более старых — через `isCaptured` у экрана и уведомление
+`UIScreen.capturedDidChangeNotification`. Экран берём у сцены окна:
+`window.windowScene?.screen.isCaptured`. `UIScreen.main` Apple не
+рекомендует с iOS 16, а в SDK iOS 26 он помечен устаревшим: экран
+нужно брать «по контексту» — через `windowScene.screen`. При записи
+можно закрыть чувствительные элементы.
 
 ## 11.12 Код целиком
 
@@ -1009,7 +1052,12 @@ private func handleDidActivate() {
   размытие ставим уже на `willDeactivate` — оно закрывает и
   переключатель, и шторки, и снимок.
 - Размытие — `UIVisualEffectView` с `UIBlurEffect(style:
-  .systemMaterial)`, прямо в окне, поверх всего.
+  .systemMaterial)`, прямо в окне, поверх всего в этом окне: окно —
+  тоже `UIView`, а `frame = window.bounds` плюс `autoresizingMask`
+  держат накладку размером с окно.
+- Сцена (`UIWindowScene → UIScene → UIResponder`) — не окно и не view;
+  она управляет окнами и сообщает о смене состояния уведомлениями и
+  методами делегата одновременно.
 - `MainActor.assumeIsolated` (iOS 13+) — мост между замыканием
   NotificationCenter на `.main` и методами главного актора.
 - `[weak self]` в замыканиях подписок и `removeObserver` в `stop()` —
@@ -1035,7 +1083,8 @@ private func handleDidActivate() {
 - [Human Interface Guidelines — Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy) — хранить чувствительное в Keychain, не изобретать свои схемы проверки, предпочитать системные (Face ID, Touch ID, passkeys).
 - [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background) — когда UIKit делает снимок для переключателя приложений и почему из интерфейса нужно убрать чувствительные данные.
 - [`UIBlurEffect`](https://developer.apple.com/documentation/uikit/uiblureffect) — стили размытия; `.systemMaterial` подстраивается под светлую и тёмную тему.
-- [`UIVisualEffectView`](https://developer.apple.com/documentation/uikit/uivisualeffectview) — view с эффектом; кладём её прямо в окно, поверх всех экранов.
+- [`UIVisualEffectView`](https://developer.apple.com/documentation/uikit/uivisualeffectview) — view с эффектом; кладём её прямо в окно, поверх всех экранов. Подвиды — только в `contentView`, `alpha` — не меньше 1.
+- [`UIWindowScene`](https://developer.apple.com/documentation/uikit/uiwindowscene) — сцена управляет одним или несколькими окнами приложения; её состояния и уведомления мы слушаем.
 - [`UIScene.willDeactivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/willdeactivatenotification) — сцена перестаёт быть активной: системные окна поверх и уход в фон.
 - [`UIScene.didActivateNotification`](https://developer.apple.com/documentation/uikit/uiscene/didactivatenotification) — сцена снова активна.
 - [`UIApplication.willResignActiveNotification`](https://developer.apple.com/documentation/uikit/uiapplication/willresignactivenotification) — то же на уровне всего приложения, без различия сцен.

@@ -91,6 +91,16 @@ final class ProductsViewController: UITableViewController {
 навигационную панель через `navigationItem.searchController` можно с
 iOS 11.
 
+Кто здесь кто. `UISearchController → UIViewController` — это view
+controller, а не view: своей рамки на экране у него нет, он управляет
+показом результатов и владеет строкой поиска `searchBar`. Сама строка —
+`UISearchBar → UIView`: view, но **не** `UIControl`, поэтому у неё нет
+`addAction(_:for:)` и target-action, а о событиях она сообщает только
+через `UISearchBarDelegate`. Поле ввода внутри строки —
+`searchBar.searchTextField` (iOS 13+), класс
+`UISearchTextField → UITextField → UIControl`: вот у него `addAction`
+уже есть. Лестница классов целиком — глава 0, разделы 0.5 и 0.7.
+
 **Минимальный код.**
 
 ```swift
@@ -122,8 +132,12 @@ extension ProductsViewController: UISearchResultsUpdating {
 поручает часть работы. Похоже на секретаря, который звонит тебе
 каждый раз, когда приходит письмо: секретарь (`UISearchController`)
 сам следит за строкой, а решение «что показать» принимаешь ты в
-`updateSearchResults(for:)`. Метод вызывается на каждое изменение
-текста, при активации строки и при нажатии «Отменить».
+`updateSearchResults(for:)`. Документация называет два случая, когда
+UIKit его зовёт: строка поиска стала first responder (получила фокус и
+клавиатуру) и в строке изменился текст. Ссылка `searchResultsUpdater`
+слабая (weak), как и у всякого делегата: контроллер не удерживает твой
+экран, а объект-«обновлятель», созданный на лету и никем не удержанный,
+исчез бы сразу.
 
 `UISearchController(searchResultsController: nil)` (в заготовке) —
 `nil` значит «отдельного экрана результатов нет, фильтруй в той же
@@ -132,24 +146,41 @@ extension ProductsViewController: UISearchResultsUpdating {
 результаты выглядят иначе, чем исходный список (например, в
 результатах смешаны товары и категории).
 
-`obscuresBackgroundDuringPresentation = false` — по умолчанию
-контроллер затемняет содержимое под строкой поиска, пока она активна.
-Это нужно, когда результаты показываются на отдельном экране. У нас
-результат — та же таблица, и затемнение сделает её недоступной: тап по
-строке будет просто закрывать поиск.
+`obscuresBackgroundDuringPresentation = false` — не затемнять
+содержимое под строкой поиска, пока она активна. Значение по умолчанию
+зависит от того, с каким SDK собрано приложение: заголовок
+`UISearchController.h` говорит «default is NO for apps linked on
+iOS 15.0 and later, YES otherwise», и на iOS 26.5 свежий контроллер
+действительно отдаёт `false`. Для нашего проекта строка лишь
+закрепляет намерение, но она не лишняя: включённое затемнение нужно,
+когда результаты показывает отдельный `searchResultsController`, а у
+нас результат — та же таблица, и затемнение сделало бы её недоступной:
+тап по строке просто закрывал бы поиск.
 
 `navigationItem.searchController = searchController` — встраиваем
-строку в навигационную панель, под заголовок. Экран должен лежать
-внутри `UINavigationController`, иначе панели нет и строка не
-появится.
+строку в навигационную панель, под заголовок. `navigationItem` — это
+объект класса `UINavigationItem` (потомок `NSObject`, не view), и он
+принадлежит **view controller'у**: панель лишь показывает табличку
+того экрана, который сейчас сверху (глава 26 и глава 0, раздел 0.7).
+Экран должен лежать внутри `UINavigationController`, иначе панели
+нет и строка не появится.
 
 `hidesSearchBarWhenScrolling = false` — строка видна всегда. По
 умолчанию (`true`) iOS прячет её, когда список прокручен вниз, и
 показывает, если потянуть список от верха.
 
 `definesPresentationContext = true` — говорит: «поиск живёт в границах
-этого экрана». Без этой строки, если во время поиска открыть карточку
-товара, строка поиска может остаться висеть поверх нового экрана.
+этого экрана». `UISearchController` показывает себя собственной
+презентацией (`modalPresentationStyle` у него `.custom`), но накрывает
+он не всё окно, а **текущий контекст** (presentation context) — ту же
+область, что и стили `.currentContext`/`.overCurrentContext`. UIKit
+ищет, чей view накрыть: идёт от показывающего экрана вверх по иерархии
+view controller'ов до первого, у кого `definesPresentationContext == true`.
+У обычного `UIViewController` свойство по умолчанию `false`, а у
+`UINavigationController` — уже `true`, поэтому без этой строки
+контекстом станет весь контроллер навигации, и если во время поиска
+открыть карточку товара, строка поиска может остаться висеть поверх
+нового экрана.
 
 Теперь фильтр. `trimmingCharacters(in: .whitespacesAndNewlines)`
 срезает пробелы по краям: запрос `" кофе"` с случайным пробелом в
@@ -168,8 +199,10 @@ extension ProductsViewController: UISearchResultsUpdating {
   `didSelectRowAt` пишут `allItems[indexPath.row]` — и при активном
   поиске открывается не тот товар. Таблица показывает `filtered`,
   значит и читать надо `filtered[indexPath.row]`.
-- **Забыли `obscuresBackgroundDuringPresentation = false`** при
-  `searchResultsController: nil` — строки не нажимаются.
+- **Включили `obscuresBackgroundDuringPresentation = true`** при
+  `searchResultsController: nil` (или проект собран со старым SDK, где
+  это значение по умолчанию) — таблица под затемнением, строки не
+  нажимаются.
 - **Поиск с учётом регистра и диакритики.** `contains` ищет
   побайтово-точно: `"Apple"` не находит `"apple"`, `"cafe"` не находит
   `"café"`. Бери `localizedStandardContains` или
@@ -182,7 +215,9 @@ extension ProductsViewController: UISearchResultsUpdating {
 не `nil`) — когда результаты устроены иначе, чем список. Голый
 `UISearchBar` без контроллера — когда строка поиска должна стоять
 где-то внутри экрана, а не в навигационной панели; тогда показ, скрытие
-и кнопку «Отменить» делаешь сам. Ещё один живой пример поиска — глава
+и кнопку «Отменить» делаешь сам, а о вводе узнаёшь из
+`UISearchBarDelegate` (`searchBar(_:textDidChange:)`), потому что
+target-action у строки нет. Ещё один живой пример поиска — глава
 13 (Notes).
 
 ## 25.2 Debounced search
@@ -343,18 +378,25 @@ extension ProductsViewController: UISearchBarDelegate {
 }
 ```
 
-`scopeButtonTitles` — подписи сегментов. Пока их нет, панели нет.
+`scopeButtonTitles` — подписи сегментов. Пока их нет, панели нет; по
+документации строка не покажет панель и при одном-единственном
+заголовке — нужно хотя бы два.
 
 По умолчанию `UISearchController` сам показывает панель областей,
-когда строка поиска активна, и прячет, когда поиск закрыт. Если
-вместо этого написать `searchBar.showsScopeBar = true`, контроллер
-переключится в ручной режим: панель будет видна всегда, и прятать её
-придётся самому.
+когда строка поиска активна, и прячет, когда поиск закрыт
+(`automaticallyShowsScopeBar == true`). Если написать
+`searchBar.showsScopeBar = true`, контроллер переключится в ручной
+режим — документация прямо говорит, что установка `showsScopeBar`
+сбрасывает `automaticallyShowsScopeBar` в `false` (проверено на
+iOS 26.5): панель будет видна всегда, и прятать её придётся самому.
+С iOS 16 тот же переключатель называется `scopeBarActivation`
+(`.automatic` / `.manual` / `.onTextEntry` / `.onSearchActivation`).
 
 `searchBar.delegate = self` — делегат строки поиска сообщает о
 нажатиях: смена сегмента, кнопка «Найти» на клавиатуре, «Отменить».
-Строку внутри `UISearchController` разрешено делать делегатом своего
-экрана, контроллер при этом продолжает работать.
+`UISearchController` не занимает это свойство (у строки внутри
+свежего контроллера `delegate == nil`), так что экран может быть
+делегатом строки, а контроллер продолжит работать.
 
 `selectedScopeButtonIndexDidChange` — смена сегмента. Текст не
 менялся, поэтому пересчитываем выдачу сами через `applyFilter()`.
@@ -491,7 +533,10 @@ func makeChipsLayout() -> UICollectionViewFlowLayout {
 `sectionInset` — поля по краям: первая таблетка начнётся в 16 точках
 от левого края экрана, как и текст в ячейках таблицы.
 
-Сама таблетка:
+Сама таблетка — ячейка коллекции. `UICollectionViewCell →
+UICollectionReusableView → UIView`: это view, которую коллекция
+переиспользует, а своё содержимое кладут в её `contentView` (глава 0,
+раздел 0.6).
 
 ```swift
 final class ChipCell: UICollectionViewCell {
@@ -598,8 +643,9 @@ final class ChipsController: NSObject, UICollectionViewDelegate {
 - **`minimumInteritemSpacing` вместо `minimumLineSpacing`** в
   горизонтальной строке — таблетки слипаются, и непонятно почему.
 - **`itemSize = automaticSize`.** `automaticSize` — особое значение
-  только для `estimatedItemSize`. В `itemSize` оно превращается в
-  бессмысленный размер.
+  только для `estimatedItemSize`. Само по себе это `CGSize` с
+  гигантскими сторонами (`CGFloat.greatestFiniteMagnitude`), и в
+  `itemSize` раскладка примет его за буквальный размер ячейки.
 - **Слишком много таблеток.** Если фильтров больше пяти-шести, строка
   уезжает далеко за край. Лучше одна кнопка «Фильтры» и отдельный
   экран со всеми фильтрами и кнопкой «Применить».
@@ -670,8 +716,13 @@ action sheet показывается не снизу, а **поповером**
 стрелкой, указывающей на кнопку. Облачку нужно знать, откуда
 расти: `sourceView` — view-источник, `sourceRect` — прямоугольник в
 его координатах (здесь — вся кнопка). Без этих строк на iPad
-приложение **упадёт** при показе. На iPhone `popoverPresentationController`
-равен `nil`, и строки с `?.` просто ничего не делают.
+приложение **упадёт** при показе. На iPhone объект тоже есть: у
+action sheet стиль показа `.popover` (у свежего `UIAlertController`
+со стилем `.actionSheet` свойство `modalPresentationStyle` читается
+как `.popover`, проверено на iOS 26.5), просто в компактной ширине
+UIKit адаптирует поповер в лист, выезжающий снизу, и источник ему не
+нужен. Поэтому строки безвредны на любом устройстве, а `?.` страхует
+на случай, если стиль кто-то сменил.
 
 У `UIAlertAction` нет публичного способа поставить галочку у текущего
 варианта. Встречается совет `setValue(true, forKey: "checked")` — это
@@ -700,7 +751,9 @@ extension SortableViewController {
 ```
 
 `UIAction` — пункт меню с заголовком и замыканием. Свойство `state`
-со значением `.on` рисует у пункта галочку.
+со значением `.on` рисует у пункта галочку. И `UIAction`, и `UIMenu` —
+не view и не контролы (`UIAction → UIMenuElement → NSObject`): это
+описание пункта, а рисует и показывает его кнопка (глава 0, раздел 0.9).
 
 `showsMenuAsPrimaryAction = true` — меню открывается обычным тапом по
 кнопке. Без этого — только долгим нажатием.
@@ -952,9 +1005,14 @@ cell.contentConfiguration = content
 
 ## Что мы выучили
 
-- **`UISearchController`** встраивается в `navigationItem.searchController`;
-  с `searchResultsController: nil` фильтруем ту же таблицу и
-  выключаем `obscuresBackgroundDuringPresentation`.
+- **`UISearchController`** — view controller, а не view; его строка
+  `UISearchBar` — view, но не `UIControl` (события — только через
+  делегат), поле ввода внутри — `UISearchTextField → UITextField`.
+- **`UISearchController`** встраивается в `navigationItem.searchController`
+  (табличка принадлежит view controller'у); с
+  `searchResultsController: nil` фильтруем ту же таблицу и держим
+  `obscuresBackgroundDuringPresentation = false` (для проектов на
+  iOS 15 SDK это и так значение по умолчанию).
 - **Два массива**: `allItems` — источник правды, `filtered` — то, что
   на экране. Индексы строк берём из `filtered`.
 - **`localizedStandardContains`** ищет без учёта регистра и
@@ -970,8 +1028,9 @@ cell.contentConfiguration = content
 - **Filter chips** — горизонтальный collection view; отступ между
   таблетками задаёт `minimumLineSpacing`; активная таблетка отличается
   цветом, значком и признаком `.selected` для VoiceOver.
-- **Сортировка** — action sheet (на iPad обязательно `sourceView`) или
-  `UIMenu` с `.singleSelection`, чтобы галочка переезжала сама.
+- **Сортировка** — action sheet (стиль показа `.popover`; на iPad
+  обязательно `sourceView`, на iPhone поповер сам становится листом)
+  или `UIMenu` с `.singleSelection`, чтобы галочка переезжала сама.
 - **Live search** — отмена прошлой задачи и проверка `isCancelled`
   **после** ответа сервера, иначе старый ответ перетрёт новый.
 - **Подсветка** — все вхождения, по тем же правилам, что и поиск,
@@ -980,7 +1039,8 @@ cell.contentConfiguration = content
 ## Apple Developer Documentation
 
 - [`UISearchController`](https://developer.apple.com/documentation/uikit/uisearchcontroller) — стандартный контроллер поиска; крепится к `navigationItem.searchController`.
-- [`UISearchBar`](https://developer.apple.com/documentation/uikit/uisearchbar) — сама строка ввода (scope buttons, placeholder, кнопка «Отменить»).
+- [`UISearchBar`](https://developer.apple.com/documentation/uikit/uisearchbar) — сама строка ввода (scope buttons, placeholder, кнопка «Отменить»); [`searchTextField`](https://developer.apple.com/documentation/uikit/uisearchbar/searchtextfield) — поле ввода внутри неё (iOS 13+).
+- [`UIViewController.definesPresentationContext`](https://developer.apple.com/documentation/uikit/uiviewcontroller/definespresentationcontext) — какой экран накрывает презентация «в текущем контексте».
 - [`UISearchResultsUpdating`](https://developer.apple.com/documentation/uikit/uisearchresultsupdating) — протокол обновления результатов при каждом изменении текста.
 - [`UISearchBarDelegate`](https://developer.apple.com/documentation/uikit/uisearchbardelegate) — «Найти», «Отменить», смена сегмента области поиска.
 - [`UINavigationItem.searchController`](https://developer.apple.com/documentation/uikit/uinavigationitem/searchcontroller) — встраивание строки поиска в навигационную панель.

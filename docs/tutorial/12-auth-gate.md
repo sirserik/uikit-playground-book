@@ -33,11 +33,17 @@ Auth gate (гейт авторизации) показывается, если m
 ## 8.1 Архитектура: контейнер + три экрана
 
 Auth gate — это **отдельный** `UINavigationController` со своим
-стеком экранов. `UINavigationController` — контейнер, который
-показывает экраны стопкой: новый экран «кладётся сверху» (push) и
-выезжает справа, кнопка «Назад» или свайп от левого края снимают его
-(pop). Стек гейта не связан ни с лаунчером, ни с главным экраном
-mini-app.
+стеком экранов. `UINavigationController` — контейнер (container view
+controller), который показывает экраны стопкой: новый экран «кладётся
+сверху» (push) и выезжает справа, кнопка «Назад» или свайп от левого
+края снимают его (pop). Сам он ничего не рисует, кроме панели
+`navigationBar` (`UINavigationBar → UIView`), а экраны держит в
+массиве `viewControllers` как дочерние контроллеры — тем же
+механизмом containment, что мы разбирали в главе 6. Заголовок «Вход»,
+который каждый экран задаёт через `title`, панель читает из его
+`navigationItem` — объекта, который принадлежит экрану, а не панели
+(глава 0, разделы 0.7 и 0.9). Стек гейта не связан ни с лаунчером, ни
+с главным экраном mini-app.
 
 ```swift
 final class AuthGateContainerViewController: UINavigationController {
@@ -144,7 +150,11 @@ weak var delegate: LoginViewControllerDelegate?
   объявлении свойства `delegate`. Ограничение `AnyObject` в протоколе
   нужно, чтобы `weak` вообще было разрешено (слабой бывает только
   ссылка на класс). Заставить написать `weak` компилятор не может —
-  это остаётся на тебе, но место одно, и его легко проверить.
+  это остаётся на тебе, но место одно, и его легко проверить. Так же
+  устроены делегаты самого UIKit: у `UITextField.delegate` в
+  заголовке стоит `weak`, и в главе 0 (раздел 0.10) показано, что
+  `tableView.dataSource` обнуляется, как только его владелец
+  освобождён.
 - **Стиль UIKit.** Apple использует делегатов повсюду:
   `UITableViewDelegate`, `UITextFieldDelegate`, `UIPageViewControllerDelegate`.
   Книга показывает обычный UIKit-код.
@@ -481,10 +491,24 @@ do {
 ## 8.5 Login — что внутри
 
 Экран логина — `UIScrollView`, внутри вертикальный `UIStackView` с
-полями и кнопками. Прокрутка нужна, чтобы на маленьком экране
-клавиатура не закрыла форму: содержимое можно подвинуть пальцем.
+полями и кнопками. Прокрутка нужна из-за клавиатуры: она занимает
+нижнюю треть экрана, и поля под ней надо иметь возможность подвинуть
+вверх. Сам по себе scroll view о клавиатуре ничего не знает:
+прокручивать он даёт ровно настолько, насколько содержимое больше его
+рамки, и если форма помещалась на экран целиком, под клавиатурой она
+просто останется закрытой. Поэтому нижний край scroll view мы
+привязываем не к низу экрана, а к `view.keyboardLayoutGuide.topAnchor`
+(iOS 15+) — это layout guide, который следит за клавиатурой. Пока
+клавиатуры нет, его верх совпадает с низом safe area (так сказано в
+заголовке `UIKeyboardLayoutGuide.h`); когда клавиатура выезжает, guide
+поднимается вместе с ней, рамка scroll view укорачивается, и
+содержимое снова можно прокрутить до последнего поля. До iOS 15 то же
+делали вручную: подписывались на
+`UIResponder.keyboardWillChangeFrameNotification` и по рамке
+клавиатуры из `userInfo` меняли `contentInset` scroll view.
 `keyboardDismissMode = .interactive` — клавиатура уезжает вниз вслед
-за пальцем, когда прокручиваешь форму.
+за пальцем, когда прокручиваешь форму (по умолчанию `.none`:
+прокрутка клавиатуру не трогает).
 
 Ключевые куски.
 
@@ -522,17 +546,28 @@ func makeAuthField(placeholder: String, contentType: UITextContentType, secure: 
 
 Остальное:
 
-- `isSecureTextEntry = true` — символы пароля скрываются точками, а
-  система не показывает введённое в подсказках клавиатуры и на
-  записи экрана.
+- `isSecureTextEntry = true` — символы пароля скрываются точками,
+  текст из поля нельзя скопировать, а в некоторых случаях система не
+  даёт записать его и при записи экрана (документация говорит
+  осторожно: «in some cases»).
 - `autocapitalizationType = .none`, `autocorrectionType = .no` —
   клавиатура не делает первую букву email заглавной и не «исправляет»
   адрес по словарю.
 - `.emailAddress` — клавиатура с `@` и точкой на виду.
 - Высота поля не меньше 44 точек — минимальный размер области касания
-  по HIG, в неё уверенно попадает палец.
+  по HIG, в неё уверенно попадает палец. Свой `intrinsicContentSize` у
+  пустого поля без рамки всего 22 точки в высоту, поэтому без
+  констрейнта поля получились бы низкими.
 
-**Проверка на лету** — на каждое изменение текста:
+**Проверка на лету** — на каждое изменение текста. `UITextField` —
+контрол (`UITextField → UIControl → UIView`), поэтому о правках он
+сообщает через target-action, как кнопка о нажатии. События у него
+свои: `.editingDidBegin` (поле стало first responder), `.editingChanged`
+(текст изменился), `.editingDidEnd` и `.editingDidEndOnExit` (нажали
+Return). Для тонкого контроля есть ещё делегат `UITextFieldDelegate`
+— например, `textField(_:shouldChangeCharactersIn:replacementString:)`
+может запретить символ до того, как он попадёт в поле. Нам хватает
+`.editingChanged`:
 
 ```swift
 emailField.addTarget(self, action: #selector(textChanged), for: .editingChanged)
@@ -552,6 +587,15 @@ passwordField.addTarget(self, action: #selector(textChanged), for: .editingChang
 кнопка на `UIButton.Configuration` сама становится бледной при
 `isEnabled = false`. Заодно прячем прошлую ошибку — человек уже
 исправляет ввод.
+
+`.editingChanged` приходит на каждую правку **пользователя**. Когда ты
+сам присваиваешь `field.text` в коде, событие не рассылается: контролы
+UIKit шлют действия только в ответ на действия человека (глава 0,
+раздел 0.5). Поэтому, если поле когда-нибудь будет заполняться кодом,
+`textChanged()` после этого придётся вызвать руками. В `stopLoading()`
+ниже мы зовём его по соседней причине: на время запроса кнопка была
+выключена, и после ответа её состояние надо пересчитать по текущему
+вводу.
 
 **Состояние загрузки:**
 
@@ -588,9 +632,16 @@ private func startLoading() {
 
 1. Текст полей читаем **до** запуска задачи, пока мы на главном потоке
    и поля точно те, что ввёл человек.
-2. `startLoading()` прячет клавиатуру (`view.endEditing(true)` снимает
-   фокус со всех полей), выключает кнопку и включает спиннер прямо
-   внутри неё: `UIButton.Configuration` умеет это свойством
+2. `startLoading()` прячет клавиатуру. Клавиатура на экране
+   принадлежит **first responder** — тому `UITextField`, в котором
+   сейчас стоит курсор; поле становится first responder, когда человек
+   его тапает, и система сама показывает клавиатуру (глава 0, раздел
+   0.3). `view.endEditing(true)` ищет среди subview текущий first
+   responder и заставляет его отказаться от статуса
+   (`resignFirstResponder()`), после чего клавиатура уезжает; `true`
+   значит «не спрашивать разрешения у делегата, снимать принудительно».
+   Затем метод выключает кнопку и включает спиннер прямо внутри неё:
+   `UIButton.Configuration` умеет это свойством
    `showsActivityIndicator` (iOS 15+), отдельный
    `UIActivityIndicatorView` не нужен.
 3. `Task { [weak self] in ... }` запускает асинхронную работу. Внутри —
@@ -705,11 +756,16 @@ agreeButton.addTarget(self, action: #selector(toggleAgree), for: .touchUpInside)
 
 Ни `UISwitch`, ни `UISegmentedControl` — просто `UIButton` с двумя
 картинками из SF Symbols: пустой квадрат для обычного состояния
-(`.normal`) и квадрат с галочкой для выбранного (`.selected`). Тап
-переключает `isSelected`, кнопка сама подставляет нужную картинку.
-Бонус: VoiceOver читает выбранную кнопку как «выбрано», потому что
-`isSelected` у `UIControl` автоматически попадает в свойства
-доступности.
+(`.normal`) и квадрат с галочкой для выбранного (`.selected`). Сам
+`UIControl` флаг `isSelected` по тапу **не** переключает — это делаем
+мы в `toggleAgree`; по документации «most controls don't modify their
+appearance or behavior when selected». Зато картинку кнопка подбирает
+сама: `state` — набор флагов (`.highlighted`, `.selected`,
+`.disabled`; `.normal` — когда ни один не поднят), и `UIButton` при
+каждой перерисовке берёт изображение для текущего набора. Бонус:
+VoiceOver обычно озвучивает такую кнопку как «выбрано» — слой
+доступности UIKit добавляет признак по `isSelected`; проверить это
+можно только с включённым VoiceOver или в Accessibility Inspector.
 
 `validateForm()` включает кнопку «Создать аккаунт», только если email
 правдоподобен, пароль от 6 символов, повтор совпадает и галочка
@@ -943,7 +999,7 @@ func makeScrollingForm(in view: UIView, arrangedSubviews: [UIView]) -> UIScrollV
         scroll.topAnchor.constraint(equalTo: view.topAnchor),
         scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        scroll.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
 
         stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 32),
         stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -32),
@@ -1219,16 +1275,24 @@ final class ForgotPasswordViewController: UIViewController {
 ```
 
 Про `makeScrollingForm` — общую функцию раскладки формы — стоит
-сказать отдельно. У `UIScrollView` два «прямоугольника»:
+сказать отдельно. У `UIScrollView` два «прямоугольника», и оба —
+layout guide, а не view (глава 0, раздел 0.6):
 
 - `frameLayoutGuide` — рамка самой прокрутки на экране;
-- `contentLayoutGuide` — всё прокручиваемое содержимое.
+- `contentLayoutGuide` — всё прокручиваемое содержимое; его размер и
+  становится `contentSize`.
 
 Стек привязан боками к **рамке** (ширина формы = ширина экрана минус
 по 24 точки с каждой стороны), а верхом и низом — к **содержимому**.
-Поэтому прокрутка идёт только по вертикали, а высота содержимого
-равна высоте стека плюс по 32 точки сверху и снизу. Если форма
-выше экрана (крупный шрифт, открытая клавиатура), её можно прокрутить.
+Поэтому высота содержимого равна высоте стека плюс по 32 точки сверху
+и снизу, а по горизонтали к `contentLayoutGuide` не привязано ничего —
+ширина содержимого остаётся нулевой, и горизонтальная прокрутка не
+включается. Мы проверили это на симуляторе: при трёх надписях в стеке
+высотой 85 точек `contentSize` получился (0, 149) — 85 + 32 + 32.
+Нижний край scroll view — `keyboardLayoutGuide.topAnchor` (8.5):
+когда клавиатура выезжает, рамка укорачивается, содержимое становится
+выше рамки, и форму можно прокрутить до последнего поля. То же
+происходит и без клавиатуры при крупном шрифте.
 
 ## Ответы к упражнениям
 
@@ -1284,6 +1348,15 @@ Keychain, а Keychain переживает перезапуск приложен
   флаг первого запуска.
 - `textContentType` (`.username`, `.password`, `.newPassword`)
   включает Password AutoFill и генерацию паролей.
+- `UITextField` — контрол: о правках сообщает через `.editingChanged`
+  и другие `.editing…`-события; программное присваивание `text`
+  событий не шлёт. Тонкий контроль — через `UITextFieldDelegate`.
+- Клавиатура принадлежит first responder; `view.endEditing(true)`
+  снимает этот статус с поля, и клавиатура уезжает.
+- Форма в `UIScrollView`: бока — к `frameLayoutGuide`, верх и низ — к
+  `contentLayoutGuide`, низ scroll view — к
+  `view.keyboardLayoutGuide.topAnchor` (iOS 15+), иначе клавиатура
+  закроет поля, а прокрутить к ним будет нельзя.
 - `UIButton.Configuration.showsActivityIndicator = true` — спиннер
   внутри кнопки.
 - `LocalizedError` даёт человекочитаемый `localizedDescription`.
@@ -1301,6 +1374,10 @@ Keychain, а Keychain переживает перезапуск приложен
 - [`UINavigationController`](https://developer.apple.com/documentation/uikit/uinavigationcontroller) — стек гейта: login как корневой экран, register/forgot — `pushViewController` со штатным жестом «назад».
 - [`UIButton.Configuration`](https://developer.apple.com/documentation/uikit/uibutton/configuration) — `showsActivityIndicator = true` даёт встроенный спиннер без отдельного `UIActivityIndicatorView`.
 - [`UITextContentType`](https://developer.apple.com/documentation/uikit/uitextcontenttype) — подсказки полям для автозаполнения: `.username`, `.password`, `.newPassword`, `.oneTimeCode`.
+- [`UITextField`](https://developer.apple.com/documentation/uikit/uitextfield) — контрол для ввода текста: события `.editing…`, делегат, клавиатура и first responder.
+- [`UIView.endEditing(_:)`](https://developer.apple.com/documentation/uikit/uiview/endediting(_:)) — найти в иерархии first responder и снять с него статус; так мы прячем клавиатуру перед запросом.
+- [`UIKeyboardLayoutGuide`](https://developer.apple.com/documentation/uikit/uikeyboardlayoutguide) — layout guide, который следует за клавиатурой (iOS 15+); к его `topAnchor` привязан низ scroll view формы.
+- [`UIResponder.keyboardWillChangeFrameNotification`](https://developer.apple.com/documentation/uikit/uiresponder/keyboardwillchangeframenotification) — старый способ узнать рамку клавиатуры и подвинуть `contentInset`, если нужно поддерживать iOS младше 15.
 - [`LocalizedError`](https://developer.apple.com/documentation/foundation/localizederror) — протокол, благодаря которому `error.localizedDescription` возвращает нашу строку.
 - [Keychain Services](https://developer.apple.com/documentation/security/keychain_services) — `SecItemAdd` / `SecItemUpdate` / `SecItemCopyMatching` / `SecItemDelete`; сюда кладём токен, а не в `UserDefaults`.
 - [Updating and deleting keychain items](https://developer.apple.com/documentation/security/updating-and-deleting-keychain-items) — почему повторное сохранение делают через `SecItemUpdate`.

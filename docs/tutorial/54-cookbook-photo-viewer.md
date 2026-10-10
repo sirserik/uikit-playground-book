@@ -38,6 +38,18 @@
 под лупой (`scrollView`): scroll view может увеличивать лист и двигать
 его под лупой.
 
+Как устроен зум внутри. `UIScrollView → UIView` (глава 0, раздел 0.6)
+масштабирует не себя, а **один** свой subview — тот, что делегат вернёт из
+`viewForZooming(in:)`. Scroll view ставит этому view `transform` с нужным
+масштабом и сам пересчитывает `contentSize`. На симуляторе iOS 26.5:
+`imageView` 393 × 262 при `setZoomScale(2.5)` получает
+`transform` = scale 2,5, его `bounds` остаются 393 × 262, а `frame` и
+`contentSize` scroll view становятся 982,5 × 655. Отсюда два правила этой
+главы: `imageView.transform` принадлежит scroll view (37.3), а
+`contentSize` после зума читаем, не задаём (37.1, `centerImage`). Зум
+включается, только когда `maximumZoomScale` больше `minimumZoomScale` — по
+умолчанию оба равны 1,0 (заголовок `UIScrollView.h`).
+
 ```swift
 import UIKit
 import Photos
@@ -97,12 +109,18 @@ final class PhotoViewerViewController: UIViewController {
   него код не соберётся.
 - `autoresizingMask = [.flexibleWidth, .flexibleHeight]` — scroll view
   растягивается вместе с экраном (например, при повороте). Для такого
-  простого случая это короче констрейнтов.
+  простого случая это короче констрейнтов. Это же спасает от ловушки
+  `viewDidLoad`: `view.bounds` здесь ещё не окончательные — view только
+  что создано и не разложено (глава 0, раздел 0.7), — но благодаря маске
+  scroll view подтянется под настоящий размер в первом же проходе
+  раскладки.
 - `contentInsetAdjustmentBehavior = .never` — не сдвигать содержимое
   под **safe area** (зону экрана без «чёлки» и полоски жестов внизу):
   фото мы центрируем сами.
 - `minimumZoomScale = 1.0`, `maximumZoomScale = 4.0` — от «фото
-  целиком» до «в 4 раза крупнее».
+  целиком» до «в 4 раза крупнее». Строка с минимумом — для наглядности:
+  1,0 и так значение по умолчанию; а вот без максимума больше 1,0 pinch
+  не заработает.
 - Спиннер держится по центру: гибкие отступы со всех сторон.
 
 Загрузка и раскладка:
@@ -180,16 +198,20 @@ iPhone 16 — 393 × 852 точки. Во сколько раз уменьшит
 Остаётся 852 − 262 = 590 точек пустоты, по 295 сверху и снизу.
 `contentInset` — отступ вокруг листа внутри scroll view: с ним фото
 стоит ровно посередине (в прогоне: `inset top: 295, bottom: 295`).
-При зуме ×2,5 лист становится 262 × 2,5 = 655 точек, пустоты
-остаётся (852 − 655) / 2 = 98,5 — и прогон показал `98.5`. Поэтому
-центрирование вызывается в `scrollViewDidZoom`: при каждом изменении
-масштаба. Когда фото больше экрана, `max(0, …)` обнуляет отступ, и
-фото прокручивается от края до края.
+При зуме ×2,5 лист становится 262 × 2,5 = 655 точек — это новое
+`contentSize`, которое scroll view выставил сам, нам его только
+прочитать. Пустоты остаётся (852 − 655) / 2 = 98,5 — и прогон показал
+`98.5`. Поэтому центрирование вызывается в `scrollViewDidZoom`: при
+каждом изменении масштаба. Когда фото больше экрана, `max(0, …)` обнуляет
+отступ, и фото прокручивается от края до края.
 
 `viewForZooming(in:)` — метод делегата, который отвечает: «какой view
-увеличивать». Без него pinch-жест ничего не делает. **Делегат** — объект,
+увеличивать». Без него pinch-жест ничего не делает: в заголовке SDK так и
+написано — «if delegate returns nil, nothing happens». **Делегат** — объект,
 которому scroll view задаёт вопросы и сообщает о событиях; здесь это
-наш контроллер.
+наш контроллер. Как у всех делегатов UIKit, `scrollView.delegate` —
+слабая ссылка (`weak` в `UIScrollView.h`): контроллер владеет scroll
+view, а не наоборот, и цикла не возникает (глава 0, раздел 0.10).
 
 `viewWillTransition` — экран поворачивается. Сбрасываем зум, и в
 `viewDidLayoutSubviews` фото впишется заново под новые размеры.
@@ -322,15 +344,21 @@ extension PhotoViewerViewController: UIGestureRecognizerDelegate {
 **Три частые ошибки в таком рецепте:**
 
 1. Двигать `imageView.transform`. Но `transform` у `imageView`
-   занят самим scroll view: именно через него работает зум. Жест
-   ломает масштаб. Двигать нужно весь `scrollView`.
+   занят самим scroll view: именно через него работает зум (см. начало
+   37.1). Scroll view о твоём изменении не узнает: на симуляторе после
+   ручного `imageView.transform = translation(0, 100)` `zoomScale` остался
+   1,0 и `contentSize` не сдвинулся, а при следующем pinch scroll view
+   перезапишет transform своим. Двигать нужно весь `scrollView`.
 2. Ставить проверку «тянем вниз» в начало обработчика: тогда жест,
    начатый вбок, вообще не сбрасывает состояние. Делегат с
    `gestureRecognizerShouldBegin` решает это до начала жеста.
 3. Прозрачный фон бессмыслен, если под экраном ничего не видно. При
-   обычном показе на весь экран UIKit **убирает** экран-источник из
-   окна после показа. Чтобы при смахивании просвечивала галерея,
-   экран показывают со стилем `.overFullScreen` (см. 37.7).
+   показе со стилем `.fullScreen` UIKit **убирает** view экрана-источника
+   из иерархии, как только анимация показа закончилась (за это отвечает
+   `shouldRemovePresentersView` у `UIPresentationController`, глава 0,
+   раздел 0.7). Чтобы при смахивании просвечивала галерея, экран
+   показывают со стилем `.overFullScreen` — он оставляет источник на месте
+   (см. 37.7).
 
 ## 37.4 Кнопка «Поделиться»
 
@@ -350,9 +378,18 @@ AirDrop, сообщения, мессенджеры, «Сохранить в Ф�
 `popoverPresentationController?.barButtonItem = sender` — на iPad это
 меню показывается **поповером** (всплывающим окошком со стрелкой), и
 ему надо знать, к чему прикрепить стрелку. Без этой строки на iPad
-приложение падает. На iPhone `popoverPresentationController` — `nil`,
-и строка ничего не делает. Этот метод и те, что ниже, живут в
-`PhotoPagerViewController` (37.6), у которого есть панель с кнопками.
+приложение падает. На iPhone объект тоже есть: у свежего
+`UIActivityViewController` на симуляторе iPhone `modalPresentationStyle`
+читается как `.popover`, и `popoverPresentationController` не `nil`. Просто
+в компактной ширине поповер **адаптируется** в лист снизу, и якорь не
+используется — строка безвредна, а код один для обоих устройств.
+`UIPopoverPresentationController → UIPresentationController → NSObject` —
+это не view и не view controller, а объект, который управляет показом
+(глава 0, раздел 0.7). У него два якоря: `sourceView` для обычных view и
+отдельный `barButtonItem` — потому что `UIBarButtonItem` не view
+(`UIBarItem → NSObject`, раздел 0.9), и `convert` или `frame` у него нет.
+Этот метод и те, что ниже, живут в `PhotoPagerViewController` (37.6), у
+которого есть панель с кнопками.
 
 ## 37.5 Сохранить в Фото
 
@@ -479,7 +516,12 @@ final class PhotoPagerViewController: UIViewController {
 - `addChild` → `addSubview` → `didMove(toParent:)` — три шага
   встраивания **дочернего контроллера**: сообщаем UIKit, что
   `pageVC` — наш ребёнок, чтобы он получал события жизненного цикла
-  (`viewWillAppear` и другие) и повороты.
+  (`viewWillAppear` и другие) и повороты. `addChild` сам вызывает
+  `willMove(toParent:)`, а `didMove(toParent:)` после `addSubview` —
+  наша обязанность (containment — глава 0, раздел 0.7).
+- `dataSource` и `delegate` у `UIPageViewController` — слабые ссылки
+  (`weak` в заголовке SDK); без `dataSource` листание жестом вообще
+  выключено.
 - `view.backgroundColor = .clear` — фон пейджера прозрачный, чёрный фон
   рисует каждая страница: так при смахивании вниз (37.3) сквозь него
   видна галерея.
@@ -637,7 +679,16 @@ final class PhotoZoomTransition: NSObject, UIViewControllerAnimatedTransitioning
 2. `thumbnail.convert(thumbnail.bounds, to: container)` — где
    миниатюра находится в координатах сцены. У миниатюры свой `frame`
    внутри ячейки (например, x = 20 в ячейке), а нам нужна её позиция
-   на всём экране. `convert` пересчитывает.
+   на всём экране. `convert(_:to:)` берёт прямоугольник **в своей
+   системе координат** (в `bounds` получателя) и возвращает его в системе
+   координат другого view; оба должны быть в одном окне, а `to: nil`
+   даёт координаты окна. Поэтому передаём `bounds`, а не `frame`: на
+   симуляторе для миниатюры (20, 10, 100 × 100) в ячейке на y = 300
+   `convert(bounds, to:)` даёт правильные (20, 310), а `convert(frame,
+   to:)` — (40, 320), сдвинутые на лишний origin (глава 0, раздел 0.4).
+   Если у view есть `transform`, результат — описывающий прямоугольник
+   (bounding box): миниатюра 100 × 100, повёрнутая на 45°, вернётся как
+   141 × 141.
 3. Новый экран кладём на сцену прозрачным (`alpha = 0`).
 4. Конечная рамка — фото, вписанное в экран, тем же расчётом, что в
    37.1: для фото 1200 × 800 это 393 × 262 точки по центру.
@@ -762,9 +813,14 @@ final class GalleryViewController: UIViewController {
 фон, тень, цвет заголовка. Задаём его **через `navigationItem`** этого
 экрана, а не через `navigationBar` — так настройка действует только
 пока этот экран наверху и не «протекает» на другие экраны того же
-навигационного стека. `standardAppearance` — обычное состояние,
-`scrollEdgeAppearance` — когда контент прокручен к самому верху.
-`shadowColor = .clear` убирает тонкую линию под панелью.
+навигационного стека. Почему так работает: `navigationItem` — свойство
+**view controller'а** (класс `UINavigationItem → NSObject`, не view),
+панель `UINavigationBar` показывает `navigationItem` верхнего экрана как
+свой `topItem` (на симуляторе `vc.navigationItem === navigationBar.topItem`),
+и Apple пишет, что `standardAppearance` у item'а перекрывает одноимённое
+свойство панели (глава 0, разделы 0.7 и 0.9). `standardAppearance` —
+обычное состояние, `scrollEdgeAppearance` — когда контент прокручен к
+самому верху. `shadowColor = .clear` убирает тонкую линию под панелью.
 
 **Почему чёрный фон, а не прозрачный.** Классический рецепт —
 `configureWithTransparentBackground()`, чтобы фото было видно и под
@@ -776,7 +832,10 @@ final class GalleryViewController: UIViewController {
 можно спрятать тапом (37.9).
 
 Кнопки системные: `.close` — крестик, `.action` — стандартный значок
-«Поделиться», для сохранения — SF Symbol `square.and.arrow.down`.
+«Поделиться», для сохранения — SF Symbol `square.and.arrow.down`. Сами
+`UIBarButtonItem` — тоже не view (`UIBarItem → NSObject`): их нельзя
+добавить через `addSubview` или повесить на них жест, панель сама рисует
+для каждого кнопку по описанию.
 
 ## 37.9 Спрятать панель тапом
 
@@ -915,7 +974,10 @@ func zoomRect(around point: CGPoint, in scrollView: UIScrollView) -> CGRect {
 
 ## Что мы выучили
 
-- **`UIScrollView` + `viewForZooming`** — зум из коробки;
+- **`UIScrollView` + `viewForZooming`** — зум из коробки: scroll view
+  ставит `transform` одному subview и сам пересчитывает `contentSize`;
+  `bounds` subview не меняются; зум включён, только если
+  `maximumZoomScale` > `minimumZoomScale` (по умолчанию оба 1,0).
   `imageView` по размеру вписанного фото, а не на весь экран.
 - **Вписывание**: масштаб — меньшее из двух отношений сторон; 1200 × 800
   на экране 393 × 852 → 393 × 262.
@@ -926,7 +988,12 @@ func zoomRect(around point: CGPoint, in scrollView: UIScrollView) -> CGRect {
   только при исходном масштабе и вертикальном движении; порог 150
   точек или 1000 точек в секунду.
 - **`.overFullScreen`**, чтобы под просмотрщиком была видна галерея.
-- **Поделиться** — `UIActivityViewController` с поповером для iPad.
+- **Поделиться** — `UIActivityViewController`; `popoverPresentationController`
+  есть и на iPhone (там поповер адаптируется в лист), якорь нужен iPad.
+- **`convert(_:to:)`** — прямоугольник в своих `bounds` → координаты другого
+  view того же окна; с `transform` возвращает bounding box.
+- **`navigationItem`** и **`UIBarButtonItem`** — не view: описания, которые
+  панель показывает для верхнего экрана.
 - **Сохранить** — `PHPhotoLibrary.performChanges` (async с iOS 15) и
   ключ `NSPhotoLibraryAddUsageDescription`.
 - **`UIPageViewController`** — data source с соседями, счётчик по
@@ -940,7 +1007,11 @@ func zoomRect(around point: CGPoint, in scrollView: UIScrollView) -> CGRect {
 ## Apple Developer Documentation
 
 - [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview) — прокрутка и масштабирование, основа просмотрщика.
+- [UIScrollView.zoomScale](https://developer.apple.com/documentation/uikit/uiscrollview/zoomscale) — текущий масштаб содержимого; по умолчанию 1.0.
 - [UIScrollView.zoom(to:animated:)](https://developer.apple.com/documentation/uikit/uiscrollview/zoom(to:animated:)) — приблизить к прямоугольнику.
+- [UIView.convert(_:to:)](https://developer.apple.com/documentation/uikit/uiview/convert(_:to:)-2kf3d) — пересчёт прямоугольника из своих `bounds` в координаты другого view.
+- [UIPopoverPresentationController](https://developer.apple.com/documentation/uikit/uipopoverpresentationcontroller) — якоря `sourceView` / `barButtonItem`, адаптация в компактной ширине.
+- [UIViewController.navigationItem](https://developer.apple.com/documentation/uikit/uiviewcontroller/navigationitem) — `UINavigationItem` принадлежит view controller'у, панель показывает его как `topItem`.
 - [UIScrollViewDelegate.viewForZooming(in:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/viewforzooming(in:)) — какой view масштабировать.
 - [UIScrollViewDelegate.scrollViewDidZoom(_:)](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate/scrollviewdidzoom(_:)) — реакция на изменение масштаба (центрирование).
 - [UIPanGestureRecognizer](https://developer.apple.com/documentation/uikit/uipangesturerecognizer) — основа закрытия смахиванием.

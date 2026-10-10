@@ -205,7 +205,7 @@ final class ProfileViewController: UIViewController {
         }
 
         let spinner = UIActivityIndicatorView(style: .large)
-        spinner.center = view.center
+        spinner.center = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
         view.addSubview(spinner)
         spinner.startAnimating()
         view.isUserInteractionEnabled = false
@@ -257,9 +257,23 @@ final class ProfileViewController: UIViewController {
   `.destructive` (красная), «Отмена» — `.cancel`.
 - `performDelete()` сначала проверяет токен. Нет токена — человек не
   вошёл, серверного аккаунта нет, чистим только устройство.
+- Центр спиннера — середина **`bounds`** нашего view, а не `view.center`.
+  `center` — это центр `frame`, он задан в координатах superview; `bounds`
+  — своя система координат view, и именно в ней живут subviews (глава 0,
+  раздел 0.4). У корневого view экрана на весь экран эти точки совпадают,
+  поэтому ошибка `spinner.center = view.center` долго не замечается. Но
+  стоит вложить этот экран как child view controller со сдвигом — и
+  спиннер уедет: на симуляторе у view с `frame.origin.y = 400` и высотой
+  452 `center.y` = 626, а `bounds.midY` = 226; спиннер, поставленный в
+  `center`, оказался за нижней границей view.
 - Спиннер и `isUserInteractionEnabled = false` — пока идёт запрос,
-  экран заблокирован от повторных нажатий. Иначе человек нажмёт
-  «Удалить» дважды и отправит два запроса.
+  касания к этому view и всем его subviews не доставляются (глава 0,
+  раздел 0.4), и человек не нажмёт «Удалить» дважды. Панель навигации в
+  это не входит: `UINavigationBar` лежит не внутри `view` экрана, а рядом,
+  в контейнере `UINavigationController` (на симуляторе
+  `navigationBar.isDescendant(of: view)` даёт `false`), так что кнопка
+  «Назад» останется живой — если это важно, на время запроса поставь
+  `navigationItem.hidesBackButton = true`.
 - `Task { ... }` — запускаем асинхронную работу. Контроллер в нашем
   режиме на главном акторе, поэтому код внутри `Task` тоже выполняется
   на главном потоке, и трогать `view` после `await` безопасно.
@@ -477,7 +491,11 @@ extension ProfileViewController {
   возврата денег).
 - `AppStore.showManageSubscriptions(in:)` — системный лист управления
   подписками прямо поверх приложения. Ему нужна сцена окна
-  (`UIWindowScene`), берём её у `view.window`.
+  (`UIWindowScene`), берём её у `view.window`. Сцена — это не view:
+  `UIWindowScene → UIScene → UIResponder`, она владеет окнами
+  (`windows`) и экраном (`screen`), а окно `UIWindow → UIView` знает свою
+  сцену через `windowScene` (глава 0, раздел 0.8). Пока view не в окне,
+  `view.window` — `nil`, и `guard` просто выйдет.
 - Если лист показать не удалось, открываем ссылку
   `https://apps.apple.com/account/subscriptions` — её Apple приводит на
   странице про удаление. Схема `itms-apps://`
@@ -588,6 +606,9 @@ private func showError() {
   (кроме регулируемых отраслей); подтверждение и повторный вход — можно.
 - **Сначала сервер, потом устройство.** Упал запрос — ничего не стираем
   и показываем ошибку.
+- Спиннер ставим в середину `bounds`, а не в `view.center` (`center` — в
+  координатах superview); `isUserInteractionEnabled = false` закрывает
+  view и его subviews, но не панель навигации.
 - Локально: Keychain, `removePersistentDomain(forName:)`, содержимое
   `Documents` и `Caches`.
 - Удаляется и контент, который видели другие. Храним только то, что
@@ -610,6 +631,7 @@ private func showError() {
 - [`Transaction.currentEntitlements`](https://developer.apple.com/documentation/storekit/transaction/currententitlements) — текущие подписки и покупки пользователя.
 - [`beginRefundRequest(for:in:)`](https://developer.apple.com/documentation/storekit/transaction/beginrefundrequest(for:in:)-65tph) — системный лист запроса возврата.
 - [`removePersistentDomain(forName:)`](https://developer.apple.com/documentation/foundation/userdefaults/removepersistentdomain(forname:)) — очистка всех настроек приложения.
+- [UIView.center](https://developer.apple.com/documentation/uikit/uiview/center) — центр `frame` в координатах superview; для subviews используй середину `bounds`.
 - [Keychain services](https://developer.apple.com/documentation/security/keychain-services) — удаление токенов и паролей из связки ключей.
 
 → [Глава 41. Production: push notifications + deep links](./63-production-push-deeplinks.md)

@@ -26,11 +26,19 @@ Command + Z) или через меню **Device → Shake**.
 Аналогия: окно — рама картины, `rootViewController` — сама картина.
 Картину можно заменить, рама остаётся.
 
+При этом окно — само view: `UIWindow → UIView → UIResponder →
+NSObject`. У него есть всё, что есть у view (слой, `addSubview`,
+`backgroundColor`), только нет superview — оно и есть корень дерева
+(подробно — глава 0, раздел 0.8).
+
 Окно принадлежит **сцене** (`UIWindowScene`) — одному «экземпляру»
 интерфейса приложения. На iPhone сцена обычно одна, на iPad
 приложение может открыть несколько сцен рядом (подробнее — в главе 5).
-Кроме твоего окна система держит и свои: например, клавиатура и
-системные алерты рисуются в отдельных окнах поверх твоего.
+Кроме твоего окна в сцене бывают и другие: например, клавиатура живёт
+в отдельном окне поверх твоего (на iOS 26.5 в `windowScene.windows`
+рядом с нашим окном мы увидели `UITextEffectsWindow`). Порядок окон
+задаёт `UIWindow.Level`: `.normal` = 0, `.statusBar` = 1000, `.alert`
+= 2000 — окно с большим уровнем рисуется выше.
 
 В большинстве проектов окно создают одной строкой и забывают:
 
@@ -113,15 +121,24 @@ responder chain»):
 - у view controller'а — родительский view его view (или окно,
   если экран — корневой в окне; или экран, который его показал, если
   он показан модально);
-- у окна — сцена, у сцены — `UIApplication`;
+- у окна — сцена, у сцены — `UIApplication` (в документации
+  написано «у окна — `UIApplication`»: текст старше сцен; на iOS 26.5
+  `window.next` — это `UIWindowScene`, мы проверили);
 - у `UIApplication` — делегат приложения (`AppDelegate`), если он
-  наследник `UIResponder`.
+  наследник `UIResponder` и при этом сам не view, не view controller
+  и не `UIApplication`.
 
 **First responder** (первый ответчик) — тот, кому событие достаётся
-первым. Для касания это view, по которому попал палец. Для клавиатуры
-и встряхивания — объект, который сейчас «в фокусе»: например,
-текстовое поле, в котором мигает курсор. Когда такого объекта нет,
-UIKit начинает с окна.
+первым. Для касания это view, по которому попал палец (его находит
+hit-testing — глава 0, раздел 0.4). Для клавиатуры и встряхивания —
+объект, который сам объявил себя первым ответчиком через
+`becomeFirstResponder()` (и ответил `true` в `canBecomeFirstResponder`):
+например, текстовое поле, в котором мигает курсор (глава 0, раздел
+0.3). Когда такого объекта нет, UIKit отдаёт встряхивание view
+controller'у текущего экрана, и дальше оно идёт по цепочке вверх — к
+окну. Мы проверили на iOS 26.5: с полем ввода в фокусе `motionEnded`
+получили по очереди текстовое поле, view controller и окно; без
+первого ответчика — view controller и окно.
 
 Чтобы не гадать, мы распечатали цепочку в нашем собранном playground'е
 (как — в упражнении 3.2). От таблицы лаунчера она такая:
@@ -226,9 +243,12 @@ func scene(_ scene: UIScene,
 невидимым.
 
 `self.window = window` — сохраняем **сильную ссылку** на окно в
-свойстве `SceneDelegate`. UIKit сам окно не удерживает. Если не
-сохранить ссылку, окно освободится сразу после выхода из метода —
-приложение не упадёт, но экран останется чёрным.
+свойстве `SceneDelegate`. UIKit сам окно не удерживает: сцена хранит
+свои окна слабо. Если не сохранить ссылку, окно освободится сразу
+после выхода из метода — приложение не упадёт, но экран останется
+чёрным. Мы проверили это на iOS 26.5: без `self.window = window`
+через полторы секунды после запуска `windowScene.windows` пуст,
+`keyWindow` равен `nil`, а на снимке экрана — чернота.
 
 ## 3.6 Как проверить встряхивание в симуляторе
 
@@ -298,7 +318,11 @@ func scene(_ scene: UIScene,
 он показывает системное «Отменить ввод?». Пользователь заметит это,
 когда наберёт текст в любом поле ввода и встряхнёт телефон: алерта с
 отменой не будет. Наш выход в лаунчер при этом работать продолжит —
-`onShake` вызывается после `super`, и от него не зависит.
+`onShake` вызывается после `super`, и от него не зависит. Мы
+проверили это на iOS 26.5 в тестовом приложении: с `super` после
+встряхивания над полем ввода появляется алерт «Undo Typing»
+(`UIAlertController`, показанный поверх корневого экрана), без `super`
+— ничего.
 
 **3.2.** Функция — обход по `next`, пока он не станет `nil`:
 
@@ -345,11 +369,14 @@ UIView → PlaceholderViewController → UIViewControllerWrapperView
 ## Что мы выучили
 
 - `UIWindow` — самый верхний контейнер интерфейса, «рама» для
-  `rootViewController`. Принадлежит сцене. Обычно его не трогают, но
-  для глобальных жестов это самое надёжное место.
+  `rootViewController`; сам при этом — view (`UIWindow → UIView`).
+  Принадлежит сцене, а порядок окон задаёт `UIWindow.Level`. Обычно
+  его не трогают, но для глобальных жестов это самое надёжное место.
 - **Responder chain** — цепочка передачи событий через `next`: view →
   view controller → … → окно → сцена → `UIApplication` → `AppDelegate`.
-  **First responder** получает событие первым.
+  **First responder** получает событие первым; встряхивание без
+  первого ответчика начинается с view controller'а экрана и всё равно
+  доходит до окна.
 - `motionEnded(_:with:)` — метод `UIResponder`, который вызывается по
   окончании встряхивания. Проверяем `motion == .motionShake`.
 - Всегда вызывай `super.motionEnded(...)` — иначе сломается системное
@@ -367,6 +394,7 @@ UIView → PlaceholderViewController → UIViewControllerWrapperView
 - [`UIWindowScene`](https://developer.apple.com/documentation/uikit/uiwindowscene) — сцена, к которой привязано окно; инициализатор `UIWindow(windowScene:)`.
 - [Using responders and the responder chain to handle events](https://developer.apple.com/documentation/uikit/using-responders-and-the-responder-chain-to-handle-events) — правила передачи событий по цепочке и first responder.
 - [`UIResponder.motionEnded(_:with:)`](https://developer.apple.com/documentation/uikit/uiresponder/1621090-motionended) — метод, в котором ловим встряхивание.
+- [`becomeFirstResponder()`](https://developer.apple.com/documentation/uikit/uiresponder/becomefirstresponder()) — как объект становится первым ответчиком.
 - [`UIEvent.EventSubtype.motionShake`](https://developer.apple.com/documentation/uikit/uievent/eventsubtype/motionshake) — подтип события «встряхивание».
 - [`UIApplication.applicationSupportsShakeToEdit`](https://developer.apple.com/documentation/uikit/uiapplication/applicationsupportsshaketoedit) — системная функция «встряхни для отмены», которую не должен ломать наш `motionEnded`.
 

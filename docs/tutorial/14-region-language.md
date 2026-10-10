@@ -218,15 +218,24 @@ extension RegionPickerViewController: UITableViewDataSource, UITableViewDelegate
 бы «принести» чужую галочку. Строка с тернарным оператором как раз
 выставляет оба варианта. Идентификатор `"cell"` мы зарегистрировали
 заранее: `tableView.register(UITableViewCell.self,
-forCellReuseIdentifier: "cell")` (см. 10.12).
+forCellReuseIdentifier: "cell")` (см. 10.12). Раз класс
+зарегистрирован, `dequeueReusableCell(withIdentifier:for:)` всегда
+возвращает ячейку: из запаса — тогда перед выдачей таблица зовёт у неё
+`prepareForReuse()` — или новую, созданную через
+`init(style:reuseIdentifier:)`. Сама ячейка — обычная view
+(`UITableViewCell → UIView`), а не контрол: нажатие на строку
+обрабатывает таблица, а не ячейка. Подробно про таблицу, ячейки и
+reuse — глава 0, раздел 0.6.
 
 **`UIListContentConfiguration`** (iOS 14+) — современный способ задать
 содержимое стандартной ячейки. `defaultContentConfiguration()` даёт
 заготовку со стилем ячейки; заполняешь `text`, `secondaryText`, при
 желании `image`, и присваиваешь в `cell.contentConfiguration`. Раньше
 для того же брали `UITableViewCell(style: .value1)` и трогали
-`textLabel` / `detailTextLabel` напрямую — эти свойства теперь
-устаревшие.
+`textLabel` / `detailTextLabel` напрямую. В SDK эти свойства помечены
+«будут объявлены устаревшими в будущем выпуске» (`API_TO_BE_DEPRECATED`):
+компилятор пока не предупреждает, но Apple просит новый код писать
+через `UIListContentConfiguration`.
 
 `prefersSideBySideTextAndSecondaryText = true` — название и валюта
 **в одну строку**: название слева, валюта справа. Без этого валюта
@@ -346,9 +355,11 @@ datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
 
 - `datePickerMode = .date` — только дата, без времени.
 - `preferredDatePickerStyle = .wheels` — три крутящихся барабана:
-  день, месяц, год. По умолчанию стиль `.automatic`, и для даты iOS
-  выбирает компактный вариант — строку с датой, по тапу на которую
-  открывается календарь. Для даты рождения это неудобно: до 1990 года
+  день, месяц, год. По умолчанию стиль `.automatic`: конкретный вид
+  система подбирает сама по платформе и режиму, и для режима `.date`
+  на iOS это компактный вариант — строка с датой, по тапу на которую
+  открывается календарь (в симуляторе `datePickerStyle` свежего
+  пикера читается как `.compact`). Для даты рождения это неудобно: до 1990 года
   пришлось бы листать календарь месяц за месяцем. Барабан года
   прокручивается за пару взмахов.
 - `maximumDate = Date()` — нельзя выбрать **будущее**: родиться в 2030
@@ -365,6 +376,12 @@ datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
   выбором по умолчанию. По той же причине на экране не написано,
   какой возраст нужен. Так советуют, например, разъяснения
   американского регулятора FTC к закону о детской приватности COPPA.
+
+`addTarget(_:action:for: .valueChanged)` работает, потому что
+`UIDatePicker` — наследник `UIControl` (`UIDatePicker → UIControl →
+UIView`): у него есть target-action и событие `.valueChanged`, как у
+`UISwitch` или `UISlider`. У `UILabel` или `UIPickerView` такого
+механизма нет — они не контролы (глава 0, раздел 0.5).
 
 `dateChanged` вызывается при каждом повороте барабана. В нём
 пересчитываем возраст и обновляем подпись:
@@ -517,7 +534,9 @@ private func showBlocker() {
 - `blockerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }` —
   на случай повторного вызова: старое содержимое убираем, чтобы не
   получить две иконки.
-- `UIButton(configuration:primaryAction:)` (iOS 14+) — кнопка сразу с
+- `UIButton(configuration:primaryAction:)` (iOS 15+ — вместе с самим
+  `UIButton.Configuration`; с iOS 14 есть только
+  `UIButton(type:primaryAction:)`) — кнопка сразу с
   действием в виде `UIAction`, без `addTarget` и `@objc`-метода.
   `[weak self]` — потому что кнопка принадлежит экрану, а замыкание
   без `weak` держало бы экран сильно: экран → кнопка → действие →
@@ -893,7 +912,8 @@ final class AgeGateViewController: UIViewController {
 - Таблица занимает всё от верха экрана до кнопки
   (`tableView.bottomAnchor` = верх кнопки минус 12 точек), а кнопка
   прижата к низу safe area. Таблица сама прокручивается, если стран
-  станет много.
+  станет много: `UITableView` — наследник `UIScrollView` (глава 0,
+  раздел 0.6).
 - Оба стека возрастного гейта центрируются по вертикали одинаково: они
   лежат друг на друге, а виден в каждый момент только один.
 
@@ -957,6 +977,7 @@ final class AgeGateViewController: UIViewController {
 - [`UIDatePicker`](https://developer.apple.com/documentation/uikit/uidatepicker) — `preferredDatePickerStyle = .wheels`, `minimumDate` / `maximumDate`.
 - [`Calendar.dateComponents(_:from:to:)`](https://developer.apple.com/documentation/foundation/calendar/datecomponents(_:from:to:)-5g20t) — разница между датами в календарных единицах; так считаем полные годы.
 - [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — содержимое стандартной ячейки (iOS 14+), замена `textLabel` / `detailTextLabel`.
+- [`UITableView.dequeueReusableCell(withIdentifier:for:)`](https://developer.apple.com/documentation/uikit/uitableview/dequeuereusablecell(withidentifier:for:)) — всегда возвращает ячейку: из запаса (с вызовом `prepareForReuse()`) или новую из зарегистрированного класса.
 - [Age ratings values and definitions](https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions/) — шкала возрастных рейтингов App Store и вопросы анкеты.
 - [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) — пункты 1.2.1(a) и 4.7.5 о проверке возраста для пользовательского контента и мини-приложений.
 

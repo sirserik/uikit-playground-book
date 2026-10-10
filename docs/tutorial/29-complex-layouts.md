@@ -33,7 +33,11 @@
 
 **`contentOffset`** — насколько содержимое scroll view прокручено. Это точка
 содержимого, которая сейчас стоит в верхнем левом углу scroll view. Прокрутил
-на 100 точек вниз по списку — `contentOffset.y = 100`.
+на 100 точек вниз по списку — `contentOffset.y = 100`. Под капотом это
+`bounds.origin` самого scroll view: сдвиг начала `bounds` сдвигает всё
+содержимое, а `frame` при этом не меняется (замер: `contentOffset.y = 120` →
+`bounds.origin = (0, 120)`, `frame.origin = (0, 0)`). Подробно о `UIScrollView`
+и его наследниках — глава 0, раздел 0.6.
 
 **`contentInset`** — дополнительные поля вокруг содержимого, внутри которых
 тоже можно прокручивать. `contentInset.top = 280` значит: «над первой строкой
@@ -165,7 +169,7 @@ final class StretchyHeaderViewController: UIViewController {
 экрана меняется (при первом показе, при повороте) — возвращает нижний отступ
 руками: `contentInset.bottom = 34`.
 
-**`verticalScrollIndicatorInsets`** (iOS 13+) — отступы полосы прокрутки.
+**`verticalScrollIndicatorInsets`** (iOS 11.1+) — отступы полосы прокрутки.
 Иначе полоса начиналась бы с самого верха, «поверх» шапки.
 
 **`backgroundColor = .clear`** у таблицы — фон даёт `view`
@@ -183,8 +187,12 @@ final class StretchyHeaderViewController: UIViewController {
 ## 21.3 ScrollViewDelegate — главная логика
 
 `UITableView` — наследник `UIScrollView` (цепочку мы проверили в рантайме,
-см. главу 22), а протокол `UITableViewDelegate` наследует
-`UIScrollViewDelegate`. Поэтому делегат таблицы получает и события прокрутки:
+см. главу 22 и главу 0, раздел 0.6), а протокол `UITableViewDelegate`
+наследует `UIScrollViewDelegate` — в заголовке `UITableView.h` так и написано:
+`@protocol UITableViewDelegate<NSObject, UIScrollViewDelegate>` (глава 0,
+раздел 0.10). Поэтому делегат таблицы получает и события прокрутки, а
+отдельного «делегата прокрутки» таблице назначать не нужно (и нельзя:
+`delegate` у неё один):
 
 ```swift
 extension StretchyHeaderViewController: UITableViewDataSource, UITableViewDelegate {
@@ -224,8 +232,9 @@ extension StretchyHeaderViewController: UITableViewDataSource, UITableViewDelega
 
 Первые четыре метода — обычный data source таблицы: сколько разделов,
 сколько строк, заголовок раздела, ячейка. Главное — `scrollViewDidScroll`.
-Его вызывают на **каждом кадре** прокрутки — до 60 раз в секунду (на экранах
-ProMotion — до 120), поэтому внутри только арифметика и два присваивания.
+Его вызывают при каждом изменении `contentOffset`; во время прокрутки это
+**каждый кадр** — до 60 раз в секунду (на экранах ProMotion — до 120),
+поэтому внутри только арифметика и два присваивания.
 
 Разберём формулу на числах. У нас `contentInset.top = 280` и автоматика
 выключена, значит `adjustedContentInset.top` тоже 280.
@@ -286,16 +295,25 @@ ProMotion — до 120), поэтому внутри только арифмет
 градиент и потянет вниз?
 
 Когда палец касается экрана, UIKit ищет, какому view достался тап. Процесс
-называется **hit-testing** («проверка попадания»): система идёт от верхних
-view к нижним и отдаёт касание самому верхнему, который лежит под пальцем и
-**принимает касания**. Жест прокрутки таблицы (`UIPanGestureRecognizer`
-внутри `UIScrollView`) получает только те касания, которые достались самой
+называется **hit-testing** («проверка попадания»): окно вызывает у себя
+`hitTest(_:with:)`, тот проверяет `point(inside:with:)` и спускается в
+subviews — **с конца массива `subviews`**, то есть сначала к тому, что
+нарисовано выше, — и так до самого глубокого view, которое содержит точку.
+Кто первым нашёлся сверху, тот и получает касание. По документации
+`hitTest` пропускает view с `isHidden = true`, с `alpha` меньше 0,01 и с
+`isUserInteractionEnabled = false`, а точку за пределами `bounds` view не
+считает попаданием, даже если там торчит её subview (подробно — глава 0,
+раздел 0.4). Жест прокрутки таблицы (`UIPanGestureRecognizer` внутри
+`UIScrollView`) получает только те касания, которые достались самой
 таблице или её subview.
 
 Замер в симуляторе: точка (100; 100) над таблицей, накрытой обычным `UIView`
-высотой 280, — `hitTest` возвращает накрывающий `UIView`. То есть тянуть
-таблицу за шапку **нельзя**: палец «застревает» на шапке, и потянуть
-таблицу вниз получится, только если начинать жест ниже шапки.
+высотой 280, — `hitTest` возвращает накрывающий `UIView`. Шапка добавлена
+**позже** таблицы (она выше в `subviews`), и hit-testing доходит до неё
+первой. То есть тянуть таблицу за шапку **нельзя**: палец «застревает» на
+шапке, и потянуть таблицу вниз получится, только если начинать жест ниже
+шапки. Прозрачный фон не помог бы: hit-testing смотрит на геометрию, а не на
+то, что нарисовано.
 
 Лечение — одна строка в шапке:
 
@@ -375,23 +393,31 @@ final class StretchyHeaderView: UIView {
 ```
 
 **`CAGradientLayer`** — слой Core Animation, который рисует градиент. У каждого
-`UIView` есть свой **layer** (слой) — то, что реально рисуется на экране; view
-управляет им и добавляет касания и Auto Layout.
+`UIView` есть ровно один **layer** (слой) — то, что реально рисуется на
+экране; view управляет им и добавляет касания и Auto Layout. Сам слой — не
+view и не responder: `CAGradientLayer → CALayer → NSObject`, у него нет
+constraints и он не получает касаний (глава 0, разделы 0.4 и 0.9).
 
 **`override class var layerClass`** — говорим UIKit: «слой этого view —
-не обычный `CALayer`, а `CAGradientLayer`». Замер: у обычного `UIView` слой
-типа `CALayer`, у `StretchyHeaderView` — `CAGradientLayer`. Слой самого view
-всегда совпадает с ним по размеру, поэтому при растяжении шапки градиент
-растягивается сам.
+не обычный `CALayer`, а `CAGradientLayer`». UIKit читает это свойство один
+раз, при создании view, поэтому поменять класс слоя у готового view уже
+нельзя. Замер: у обычного `UIView` слой типа `CALayer`, у
+`StretchyHeaderView` — `CAGradientLayer`. Слой самого view всегда совпадает с
+ним по размеру (`frame` и `bounds` view — это и есть геометрия его слоя),
+поэтому при растяжении шапки градиент растягивается сам.
 
 Градиент можно сделать **отдельным** слоем
 (`layer.insertSublayer(gradient, at: 0)`) и обновлять его размер в
 `layoutSubviews`. Так делают часто, но у отдельного слоя есть подвох: любое
-изменение его `frame` по умолчанию **неявно анимируется** за 0,25 секунды.
-Замер: после изменения размера у такого слоя появились анимации `position` и
-`bounds`, у `layerClass`-варианта — ни одной. При растяжении шапки пальцем
-отдельный градиент отставал бы от краёв. `layerClass` убирает и
-`layoutSubviews`, и эту проблему.
+изменение его `frame` по умолчанию **неявно анимируется** за 0,25 секунды
+(`CATransaction.animationDuration()`). Замер: после изменения размера у
+такого слоя появились анимации `position` и `bounds`, у `layerClass`-варианта
+— ни одной. Причина в делегате: слой перед изменением спрашивает у делегата
+`action(forKey:)`, а делегат слоя view — сама view, и вне блока
+`UIView.animate` она отвечает «анимации нет» (замер: `view.layer.action(forKey:
+"bounds")` возвращает `nil`, у отдельного слоя — готовый `CABasicAnimation`).
+При растяжении шапки пальцем отдельный градиент отставал бы от краёв.
+`layerClass` убирает и `layoutSubviews`, и эту проблему.
 
 `layer as! CAGradientLayer` — принудительное приведение типа. Обычно `as!`
 — повод насторожиться, но здесь класс слоя мы задали сами строкой выше, и
@@ -497,8 +523,13 @@ func applyParallax(offset: CGFloat) {
 
 Как это считается. `transform` — **аффинное преобразование**: сдвиг, поворот
 или масштаб, наложенный на view поверх Auto Layout. Constraints не меняются,
-view просто рисуется в другом месте. `CGAffineTransform(translationX: 0, y: d)`
-— сдвиг на `d` точек по вертикали (плюс — вниз, минус — вверх).
+view просто рисуется в другом месте: документация `UIView.transform` говорит,
+что Auto Layout считает рамку выравнивания по **непреобразованной** view, а
+`frame` при `transform`, отличном от identity, не определён и читать его не
+стоит. `center` и `bounds` при этом не трогаются (замер: сдвиг на −20 по
+вертикали — `center` тот же, `bounds` те же, `frame.origin.y` уехал на 20).
+`CGAffineTransform(translationX: 0, y: d)` — сдвиг на `d` точек по вертикали
+(плюс — вниз, минус — вверх).
 
 На числах:
 
@@ -572,11 +603,13 @@ view просто рисуется в другом месте. `CGAffineTransfor
 `UINavigationController` (в playground'е mini-app показывается именно так).
 Градиент во весь верх и выглядит как продолжение панели.
 
-Как выглядит сама панель, решает iOS. С iOS 15 у навигационной панели два
-вида: `scrollEdgeAppearance` — когда связанный с ней scroll view прокручен в
-самое начало, — по умолчанию **прозрачный**, без фона; и
-`standardAppearance` — когда контент уехал под панель, — с размытым
-полупрозрачным фоном. На нашем экране в начальном положении панель
+Как выглядит сама панель, решает iOS. У навигационной панели два вида:
+`scrollEdgeAppearance` — когда край прокручиваемого контента совпадает с
+краем панели, — и `standardAppearance` — когда контент уехал под панель, с
+размытым полупрозрачным фоном. Если `scrollEdgeAppearance` не задан, UIKit
+берёт `standardAppearance` и делает ему **прозрачный** фон; до iOS 15 это
+касалось только панелей с большим заголовком, с iOS 15 — всех (документация
+`UINavigationBar.scrollEdgeAppearance`). На нашем экране в начальном положении панель
 прозрачная, кнопка «Назад» лежит прямо на градиенте; прокрутишь — появится
 размытый фон.
 
@@ -851,10 +884,15 @@ final class SectionHeaderView: UICollectionReusableView {
   тянут вниз, минус — листают вверх.
   - `offset > 0` → высота = 280 + offset, верх = 0.
   - `offset < 0` → высота = 280, верх = offset.
-- Шапка поверх таблицы обязана пропускать касания:
-  `isUserInteractionEnabled = false`, иначе тянуть за неё нельзя.
+- Hit-testing идёт по `subviews` с конца (верхние первыми) и пропускает
+  `isHidden`, `alpha < 0.01`, `isUserInteractionEnabled = false`. Шапка поверх
+  таблицы обязана пропускать касания: `isUserInteractionEnabled = false`,
+  иначе тянуть за неё нельзя.
 - `layerClass = CAGradientLayer` — градиент сам тянется за view, без
-  неявной анимации отдельного слоя; цвета под тему — через `resolvedColor`.
+  неявной анимации отдельного слоя (view как делегат своего слоя отвечает
+  на `action(forKey:)` `nil`); цвета под тему — через `resolvedColor`.
+- `transform` не трогает constraints, `center` и `bounds`; `frame` при нём
+  не определён.
 - Содержимое шапки привязано к **низу** — растягивается пустой верх.
 - **Параллакс** — `CGAffineTransform` со сдвигом `-offset × 0,2`: текст
   движется со скоростью 0,8; больший коэффициент — сильнее эффект.
@@ -875,6 +913,9 @@ final class SectionHeaderView: UICollectionReusableView {
 - [layerClass](https://developer.apple.com/documentation/uikit/uiview/layerclass) — свой класс слоя для view.
 - [CAGradientLayer](https://developer.apple.com/documentation/quartzcore/cagradientlayer) — градиент шапки.
 - [CGAffineTransform](https://developer.apple.com/documentation/corefoundation/cgaffinetransform) — сдвиг для параллакса.
+- [UIView.transform](https://developer.apple.com/documentation/uikit/uiview/transform) — почему `frame` при transform не определён и как это ладит с Auto Layout.
+- [CALayer.action(forKey:)](https://developer.apple.com/documentation/quartzcore/calayer/action(forkey:)) — откуда у отдельного слоя берётся неявная анимация.
+- [UINavigationBar.scrollEdgeAppearance](https://developer.apple.com/documentation/uikit/uinavigationbar/scrolledgeappearance) — прозрачная панель у края прокрутки, с iOS 15 для всех панелей.
 - [hitTest(_:with:)](https://developer.apple.com/documentation/uikit/uiview/hittest(_:with:)) — как UIKit выбирает view для касания.
 - [UICollectionViewCompositionalLayout](https://developer.apple.com/documentation/uikit/uicollectionviewcompositionallayout) — раскладка item → group → section.
 - [NSCollectionLayoutDimension](https://developer.apple.com/documentation/uikit/nscollectionlayoutdimension) — `fractionalWidth`, `absolute`, `estimated`.

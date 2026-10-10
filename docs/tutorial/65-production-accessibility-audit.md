@@ -75,8 +75,13 @@ Reduce Motion, 44 точки) разобран в главе 34 (Cookbook — ac
 
 - [ ] Все тексты — `UIFont.preferredFont(forTextStyle:)` или свои шрифты
       через `UIFontMetrics.scaledFont(for:)` (34.4).
-- [ ] `adjustsFontForContentSizeCategory = true` у лейблов, полей и
-      кнопок — тогда шрифт меняется без перезапуска.
+- [ ] `adjustsFontForContentSizeCategory = true` — тогда шрифт меняется
+      без перезапуска. Свойство объявлено в протоколе
+      `UIContentSizeCategoryAdjusting`, который по заголовкам SDK
+      реализуют только `UILabel`, `UITextField` и `UITextView`; по
+      умолчанию оно `false`. У `UIButton` его нет — включай у
+      `button.titleLabel`. Работает только с шрифтом из
+      `preferredFont(forTextStyle:)` или `UIFontMetrics`.
 - [ ] Ячейки таблиц с автоматической высотой и `numberOfLines = 0` (34.12).
 - [ ] На самых крупных размерах текст не обрезается, горизонтальные
       стопки перестраиваются в вертикальные.
@@ -444,7 +449,8 @@ App Store:
 - **`performAccessibilityAudit`** в UI-тестах (iOS 17+) — аудит на
   каждой сборке.
 - **Dynamic Type**: `.body` от 14 до 53 pt; критерий Larger Text — 200%
-  и больше.
+  и больше; `adjustsFontForContentSizeCategory` есть только у `UILabel`,
+  `UITextField`, `UITextView` (у кнопки — на `titleLabel`).
 - **Светофильтры**, особенно оттенки серого.
 - **Производительность**: зависание — от 250 мс, кадр при 60 Гц —
   16,7 мс; Time Profiler, Allocations, Hangs.
@@ -458,6 +464,7 @@ App Store:
 - [Accessibility Inspector](https://developer.apple.com/documentation/accessibility/accessibility-inspector) — инспектор и аудит в Xcode.
 - [`performAccessibilityAudit(for:_:)`](https://developer.apple.com/documentation/xcuiautomation/xcuiapplication/performaccessibilityaudit(for:_:)) — аудит доступности в UI-тестах.
 - [`UIFontMetrics`](https://developer.apple.com/documentation/uikit/uifontmetrics) — масштабирование своих шрифтов под Dynamic Type.
+- [`adjustsFontForContentSizeCategory`](https://developer.apple.com/documentation/uikit/uicontentsizecategoryadjusting/adjustsfontforcontentsizecategory) — автообновление шрифта; только для `UILabel`, `UITextField`, `UITextView`.
 - [`UIAccessibility`](https://developer.apple.com/documentation/uikit/uiaccessibility) — флаги и уведомления настроек доступности.
 - [`accessibilityElements`](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/accessibilityelements) — порядок чтения элементов для VoiceOver.
 - [Understanding hangs in your app](https://developer.apple.com/documentation/xcode/understanding-hangs-in-your-app) — что считается зависанием и как его найти.

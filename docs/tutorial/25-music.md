@@ -576,8 +576,13 @@ final class CoverView: UIView {
 экране (96 pt). `preferredSymbolConfiguration` задаёт размер и толщину
 SF Symbol. `translatesAutoresizingMaskIntoConstraints = false` —
 обязательная строка для любого вида, который мы расставляем
-ограничениями (constraints) Auto Layout: иначе UIKit добавит свои
-ограничения из старой системы «пружинок», и они конфликтуют с нашими.
+ограничениями (constraints) Auto Layout: у view, созданного в коде,
+это свойство по умолчанию `true`, и UIKit переводит его маску
+autoresizing в собственные ограничения размера и положения; наши
+ограничения с ними конфликтуют. Исключение — arranged subviews
+стека (`coverView`, `titleLabel`, `playButton` ниже): `UIStackView`
+выставляет это свойство сам, и Apple прямо просит его там не трогать.
+Подробно о свойстве — глава 0, раздел 0.4, и глава 19, раздел 19.12.
 
 Mini-player — полоска над нижним краем: обложка, название, кнопка
 «играть/пауза» и тонкая полоса прогресса сверху.
@@ -659,12 +664,24 @@ final class MiniPlayerView: UIView {
 - **Прогресс на числах:** трек 9 секунд, играет 4,5-я — 4,5 / 9 = 0,5,
   полоса заполнена наполовину. Деление только при `duration > 0`,
   иначе в самом начале вышло бы деление на ноль.
-- **`layoutMarginsGuide`** — стандартные внутренние поля вида (layout
-  margins, обычно 16 точек по бокам на iPhone). Контент не прилипает к
-  краям экрана.
+- **`layoutMarginsGuide`** — направляющая по внутренним полям вида
+  (layout margins). У обычного `UIView` они по умолчанию 8 точек со
+  всех сторон — так в документации `layoutMargins`, и так показал
+  симулятор для view, вложенного в экран. Больше — системные
+  минимальные поля (16 по бокам на iPhone, на симуляторе iPhone 16 мы
+  сняли именно столько) плюс safe area — только у корневого `view`
+  контроллера. Mini-player — обычный view,
+  так что контент отступает от его краёв на 8 точек. Нужны поля как у
+  экрана — задай `directionalLayoutMargins` сам или включи
+  `preservesSuperviewLayoutMargins`.
 - **Жест на весь вид.** `UITapGestureRecognizer` на полоске открывает
-  полный плеер. Нажатие на кнопку «пауза» до жеста не доходит: у
-  `UIControl` своя обработка касаний, и жест родителя ей не мешает.
+  полный плеер. Нажатие на кнопку «пауза» жест не перехватит: по
+  правилу Apple («Attaching gesture recognizers to UIKit controls»)
+  события внутри границ контрола сначала обрабатывает сам контрол, и
+  одиночный тап по `UIButton`, `UISwitch`, `UIStepper` или
+  `UISegmentedControl` уходит в его action, а не в распознаватель
+  жестов на родительском view. Перебить это можно, только повесив жест
+  прямо на кнопку — тогда уже он получит касание первым.
 - **`accessibilityLabel`** у кнопки — что прочитает VoiceOver
   (экранный диктор для незрячих пользователей). Без него он прочитал
   бы имя картинки «pause.fill».
@@ -763,7 +780,11 @@ extension MusicLibraryViewController: UITableViewDataSource, UITableViewDelegate
 
 **Вёрстка через `UIStackView`.** Таблица и mini-player лежат в
 вертикальном стеке. У стека полезное свойство: скрытый
-(`isHidden = true`) элемент не занимает места. Пока ничего не играет,
+(`isHidden = true`) элемент не занимает места — стек, по документации,
+перестраивает раскладку при каждой смене `isHidden` у arranged
+subview, а сам скрытый view из `arrangedSubviews` не выпадает (мы
+проверили: после скрытия второго элемента первый занял всю высоту, а в
+`arrangedSubviews` их по-прежнему два). Пока ничего не играет,
 таблица тянется до низа. Появился трек — mini-player показывается, и
 таблица сама укорачивается над ним. Если бы mini-player висел поверх
 таблицы, последняя строка пряталась бы под ним.
@@ -795,8 +816,11 @@ playingTrackID` важна: обработчик вызывается четыр
 - `modalPresentationStyle = .pageSheet` — стиль листа. На iPhone он
   почти во весь экран, сверху видно край предыдущего экрана; на iPad —
   карточка по центру.
-- `sheetPresentationController` (iOS 15+) — настройки листа.
-  `detents` — «фиксаторы», высоты, на которых лист может
+- `sheetPresentationController` (iOS 15+) — настройки листа. Это не
+  view и не view controller: `UISheetPresentationController →
+  UIPresentationController → NSObject`, объект, который управляет
+  показом (presentation) и живёт, пока экран показан (глава 0,
+  раздел 0.7). `detents` — «фиксаторы», высоты, на которых лист может
   остановиться. `[.large()]` — только полная высота. Можно `[.medium(),
   .large()]`, и лист будет стоять на половине экрана, но для «Сейчас
   играет» половины мало: обложка и ползунок не помещаются.
@@ -848,6 +872,19 @@ final class HapticSlider: UISlider {
 }
 ```
 
+**`UISlider` — это `UIControl`.** Лестница: `UISlider → UIControl →
+UIView`. От `UIControl` ползунок получает target-action, события
+`UIControl.Event` и состояния `isEnabled`/`isHighlighted`; именно
+поэтому у него есть `addTarget(_:action:for:)` и `addAction(_:for:)`,
+а у `UILabel` или `UIImageView` — нет (таблица «кто контрол, а кто
+нет» — глава 0, раздел 0.5). `.valueChanged` — событие контрола
+«значение изменилось»; у ползунка оно по умолчанию приходит
+непрерывно, пока палец тянет бегунок (`isContinuous = true`), а при
+`isContinuous = false` — один раз, когда палец отпущен.
+`beginTracking(_:with:)` — тоже метод `UIControl`: точка для
+подклассов, которую UIKit зовёт, когда касание входит в границы
+контрола.
+
 **Засечки на числах.** Шкалу делим на 20 участков по 5%. `tick(for:)`
 переводит положение ползунка в номер засечки: значение 0,37 — это 37%,
 × 20 = 7,4, округляем — засечка 7. Сдвинул до 0,41: 8,2 → 8. Номер
@@ -878,7 +915,11 @@ final class HapticSlider: UISlider {
 частых щелчках утомляет.
 
 `valueChanged` приходит только от **пальца**. Когда плеер сам двигает
-`slider.value` (17.11), событие не отправляется и щелчков нет.
+`slider.value` (17.11), событие не отправляется и щелчков нет. Это
+общее правило `UIControl`: программная установка значения
+(`value = …`, `setValue(_:animated:)`, `isOn = …` у `UISwitch`) не
+рассылает action'ы. Мы проверили на симуляторе: после двух программных
+присваиваний счётчик `.valueChanged` остался на нуле.
 
 ## 17.11 Scrubbing — перемотка ползунком
 
@@ -1008,7 +1049,10 @@ final class NowPlayingViewController: UIViewController {
 }
 ```
 
-Перемотка идёт в три фазы:
+Перемотка идёт в три фазы. Все три события — из `UIControl.Event`,
+набора флагов (`OptionSet`), который ползунок наследует от
+`UIControl`; поэтому их можно перечислить массивом в одном
+`addTarget`, как `[.touchUpInside, .touchUpOutside, .touchCancel]`.
 
 1. **`touchDown`** — палец лёг на ползунок, `isUserScrubbing = true`.
    С этого момента `apply(state:)` не трогает ползунок и подписи
@@ -1034,8 +1078,12 @@ final class NowPlayingViewController: UIViewController {
 **`coverView.heightAnchor == widthAnchor`** — обложка всегда
 квадратная: ширину задаёт стек, высота равна ей.
 
-`UIView()` посередине стека `times` — растягивающаяся «распорка»:
-она занимает всё свободное место, прижимая подписи к краям.
+`UIView()` посередине стека `times` — растягивающаяся «распорка».
+У пустого `UIView` нет собственного размера: `intrinsicContentSize`
+возвращает `UIView.noIntrinsicMetric` (это −1) по обеим осям, тогда
+как у подписей он равен размеру текста. Стек с распределением `.fill`
+отдаёт лишнее место тому, кому нечего «обнимать», — распорке, и
+подписи остаются прижатыми к краям.
 
 > **Упражнение 17.2.** Добавь в плеер метод `jump(by:)`, который
 > перематывает на заданное число секунд вперёд или назад, не выходя за
@@ -1227,8 +1275,13 @@ let controls = UIStackView(arrangedSubviews: [backJump, backButton, playButton, 
 - Переход по кругу: `(index + offset + count) % count`.
 - Уведомление о конце трека — `didPlayToEndTimeNotification` с
   `object: item`, старое наблюдение снимаем.
+- `UISlider → UIControl → UIView`: target-action и события
+  `UIControl.Event`; программная установка `value` action'ы не
+  рассылает.
 - Перемотка ползунком: `touchDown` → флаг, `valueChanged` → только
   подписи, `touchUp`/`touchCancel` → один `seek`.
+- `layoutMargins` обычного view — 8 точек со всех сторон; 16–20 по
+  бокам только у корневого `view` контроллера.
 - Тактильные засечки: 20 участков по 5%, щелчок при смене участка,
   `prepare()` при касании.
 - Скрытый элемент `UIStackView` не занимает места — mini-player
@@ -1249,6 +1302,9 @@ let controls = UIStackView(arrangedSubviews: [backJump, backButton, playButton, 
 - [MPNowPlayingInfoCenter](https://developer.apple.com/documentation/mediaplayer/mpnowplayinginfocenter) — информация «Сейчас играет» на экране блокировки.
 - [MPRemoteCommandCenter](https://developer.apple.com/documentation/mediaplayer/mpremotecommandcenter) — команды с экрана блокировки и наушников.
 - [UISlider](https://developer.apple.com/documentation/uikit/uislider) — ползунок, основа `HapticSlider`.
+- [UIControl.Event](https://developer.apple.com/documentation/uikit/uicontrol/event) — события контролов: `.touchDown`, `.valueChanged`, `.touchUpInside` и другие.
+- [UIView.layoutMargins](https://developer.apple.com/documentation/uikit/uiview/layoutmargins) — внутренние поля view; по умолчанию 8 точек, у корневого view контроллера — системные минимальные.
+- [Attaching gesture recognizers to UIKit controls](https://developer.apple.com/documentation/uikit/attaching-gesture-recognizers-to-uikit-controls) — почему тап по кнопке не достаётся жесту на родительском view.
 - [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator) — тактильный «удар» для засечек.
 - [UISheetPresentationController](https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller) — лист с фиксаторами высоты (iOS 15+).
 - [HIG: Playing audio](https://developer.apple.com/design/human-interface-guidelines/playing-audio) — как приложение должно вести себя со звуком: «Без звука», прерывания, фон.

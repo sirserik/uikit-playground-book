@@ -188,7 +188,11 @@ windows, or views») у Apple прямые правила для экранов 
 1. `requestInFlight` — защита от двойного тапа. Если человек быстро
    нажмёт дважды, второй тап ничего не сделает, пока первый запрос не
    закончится. Кнопка ещё и выключается (`isEnabled = false`) — теперь
-   второй тап физически некуда сделать.
+   второй тап физически некуда сделать: по документации выключенный
+   `UIControl` «ignores touch events», а в его `state` добавляется флаг
+   `.disabled`, по которому кнопка на `UIButton.Configuration` сама
+   перерисовывается бледной (состояния контролов — глава 0, раздел
+   0.5).
 2. `let kind = self.kind` — копируем тип разрешения до запуска задачи,
    чтобы задаче не понадобилась сильная ссылка на экран.
 3. `PermissionService.shared.request(kind)` — наша обёртка над
@@ -261,12 +265,20 @@ private func makeBullet(_ text: String) -> UIView {
 растягиванию шире своего естественного размера. Естественный размер
 (intrinsic content size) у картинки — размер самой иконки, у надписи —
 размер текста. В горизонтальном стеке лишнее место достаётся тому, у
-кого hugging ниже. Ставим иконке максимальный (`.required`) — она
-остаётся размером с иконку, а всю ширину забирает текст.
+кого hugging ниже. По умолчанию hugging у всех view одинаковый —
+250 (`.defaultLow`), поэтому без подсказки стек растянул бы кого
+захочет. Ставим иконке максимальный (`.required`, то есть 1000) — она
+остаётся размером с иконку, а всю ширину забирает текст. Обратный
+приоритет, compression resistance (сопротивление сжатию), по
+умолчанию 750 — поэтому надпись скорее перенесётся на вторую строку,
+чем даст себя обрезать. Приоритеты и `intrinsicContentSize` подробно
+— глава 0, раздел 0.4.
 
 `alignment = .firstBaseline` — выравнивание по базовой линии первой
 строки: галочка стоит ровно на уровне первой строки текста, даже если
-текст переносится на две строки.
+текст переносится на две строки. Этот вариант имеет смысл только для
+горизонтального стека — в заголовке UIKit он так и помечен: «valid
+for horizontal axis only».
 
 Шрифты — через `preferredFont(forTextStyle:)` и
 `adjustsFontForContentSizeCategory = true`: это Dynamic Type (см. главу
@@ -314,10 +326,13 @@ final class PermissionService: NSObject {
 
 Интерфейс вызывает `await PermissionService.shared.request(.camera)` и
 получает `Outcome`. Что внутри — забота сервиса. `NSObject` в предках
-нужен, потому что сервис станет делегатом `CLLocationManager`, а
-делегаты Objective-C-классов должны быть потомками `NSObject`.
-`private override init()` — чтобы никто не создал второй экземпляр
-мимо `shared`.
+нужен, потому что сервис станет делегатом `CLLocationManager`: протокол
+`CLLocationManagerDelegate`, как почти все протоколы-делегаты в UIKit
+и соседних фреймворках Apple, наследует `NSObjectProtocol`, а значит,
+класс-делегат должен быть потомком `NSObject` (глава 0, разделы 0.2 и
+0.10). При этом сервису не нужны ни view, ни `UIViewController` — у
+него нет интерфейса, только логика. `private override init()` — чтобы
+никто не создал второй экземпляр мимо `shared`.
 
 ### CoreLocation — делегат через `withCheckedContinuation`
 
@@ -1019,6 +1034,9 @@ xcrun simctl privacy booted reset location <bundle id приложения>
   типичная причина отказа в App Review (5.1.1(iv)).
 - Текст под тип разрешения — `switch` по `PermissionKind` с
   кортежем `(icon, title, body, bullets)`.
+- Выключенный контрол (`isEnabled = false`) игнорирует касания и
+  получает флаг `.disabled` в `state`; hugging у view по умолчанию 250,
+  compression resistance — 750, `.required` — 1000.
 - `PermissionService` прячет разные системные API за одним `async`
   методом и возвращает `Outcome` (granted / limited / denied /
   notSupported).
@@ -1044,6 +1062,7 @@ xcrun simctl privacy booted reset location <bundle id приложения>
 - [`PHPickerViewController`](https://developer.apple.com/documentation/photosui/phpickerviewcontroller) — выбор фото без разрешения на библиотеку.
 - [`AVCaptureDevice`](https://developer.apple.com/documentation/avfoundation/avcapturedevice) — `requestAccess(for:)` для камеры и микрофона, у метода есть async-версия.
 - [`UNUserNotificationCenter`](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter) — `requestAuthorization(options:)` для уведомлений; статус — только асинхронно через `notificationSettings()`.
+- [`UIControl`](https://developer.apple.com/documentation/uikit/uicontrol) — `isEnabled`, `state` и target-action: почему выключенная кнопка «Продолжить» не реагирует на второй тап.
 - [`ATTrackingManager.requestTrackingAuthorization`](https://developer.apple.com/documentation/apptrackingtransparency/attrackingmanager/requesttrackingauthorization(completionhandler:)) — App Tracking Transparency; для экрана перед этим запросом правила ещё строже.
 - [Bundle resources — Information Property List](https://developer.apple.com/documentation/bundleresources/information_property_list) — справочник ключей `NS...UsageDescription`.
 

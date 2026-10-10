@@ -89,8 +89,16 @@ Swift не разрешил бы сохранить замыкание.
 потоке. Писать `@MainActor` над классом в нашем проекте не нужно: с
 Default Actor Isolation = MainActor (введение, раздел 0.2) это
 получается автоматически. В проекте без этой настройки пометку
-пришлось бы добавить — иначе Swift 6 не даст вызвать из координатора
-методы UIKit.
+пришлось бы добавить. Мы проверили такой вариант компилятором Swift
+6.3 в режиме Swift 6: вызов `manifest.makeMain()` — нашего
+`@MainActor`-замыкания — даёт ошибку «call to main actor-isolated
+function in a synchronous nonisolated context», а обращения к
+свойствам и методам UIKit (`window.rootViewController = …`,
+`UINavigationController(rootViewController:)`) — предупреждения с тем
+же смыслом. Почему только предупреждения: UIKit импортирован из
+Objective-C, и его `@MainActor`-пометки компилятор считает
+«унаследованными» (preconcurrency), поэтому смягчает нарушение до
+предупреждения; подробнее — глава 5, раздел 5.7.
 
 В главе 11 у координатора появится ещё одно свойство — контроллер
 защиты при сворачивании (`LifecycleSecurityController`). Пока его нет.
@@ -280,16 +288,22 @@ Main-экран:
 ```
 
 `manifest.makeMain()` — вызываем фабрику из главы 2 и получаем свежий
-main-экран. Оборачиваем его в **`UINavigationController`** — контейнер,
-который держит экраны **стопкой**: `push` кладёт новый экран сверху,
-кнопка «Назад» снимает верхний. Сверху у него **панель навигации**
-(navigation bar) с заголовком экрана и кнопками. Многие mini-app
-открывают из main-экрана вложенные экраны (карточку заметки, настройки),
-и стопка им нужна.
+main-экран. Оборачиваем его в **`UINavigationController`** —
+**контейнерный view controller** (container view controller): сам
+наследник `UIViewController`, который держит другие экраны как
+дочерние (`children`) и показывает их **стопкой**: `push` кладёт новый
+экран сверху, кнопка «Назад» снимает верхний. Сверху у него **панель
+навигации** — `UINavigationBar`, это view. Заголовок и кнопки на ней
+берутся не из панели, а из `navigationItem` того экрана, который
+сейчас сверху (глава 2, раздел 2.4; подробно — глава 0, раздел 0.7).
+Многие mini-app открывают из main-экрана вложенные экраны (карточку
+заметки, настройки), и стопка им нужна.
 
 `navigationBar.tintColor` — цвет кнопок на панели. Берём фирменный
 цвет mini-app: кнопки в «Списке дел» будут синими, в «Чате» —
-зелёными.
+зелёными. Сами кнопки — `UIBarButtonItem`, потомки `NSObject`, а не
+view: их нельзя добавить через `addSubview`, они лишь описывают, что
+панели нарисовать (глава 0, раздел 0.9).
 
 **Упражнение 4.1.** Добавь в начало каждого метода цепочки (`start`,
 `showSplash`, все `proceedAfter…`, `showMain`) строку
@@ -334,9 +348,11 @@ main-экран. Оборачиваем его в **`UINavigationController`** �
 тихо выходим.
 
 `UIView.transition(with:duration:options:animations:)` — анимированная
-замена содержимого view. Внутри `animations` мы меняем
-`rootViewController`, а UIKit делает «снимок до» и «снимок после» и
-плавно переводит одно в другое. `.transitionCrossDissolve` —
+смена содержимого **контейнера**: по документации Apple, изменения
+дерева subviews, сделанные в `animations` (добавить, убрать, скрыть
+view), UIKit показывает как переход. Контейнер у нас — окно, а
+присваивание `rootViewController` как раз убирает view старого экрана
+и вставляет view нового. `.transitionCrossDissolve` —
 **перекрёстное растворение**: старый экран за 0.35 секунды становится
 прозрачным, новый одновременно проявляется. Около трети секунды —
 достаточно, чтобы глаз заметил смену, и недостаточно, чтобы заскучать.
@@ -415,10 +431,12 @@ final class AppListViewController: UITableViewController {
 
 **`UITableViewController`** — готовый view controller, у которого
 корневой view — **таблица** (`UITableView`): вертикальный
-прокручиваемый список строк. Стиль `.insetGrouped` — строки собраны в
-скруглённую «карточку» с отступами по бокам на сером фоне, как в
-приложении «Настройки». Этот серый фон мы и повторили в launch screen
-(глава 1).
+прокручиваемый список строк. Таблица — наследник `UIScrollView`
+(`UITableView → UIScrollView → UIView`), отсюда её прокрутка,
+`contentOffset` и инерция (глава 0, раздел 0.6). Стиль `.insetGrouped`
+— строки собраны в скруглённую «карточку» с отступами по бокам на
+сером фоне, как в приложении «Настройки». Этот серый фон мы и
+повторили в launch screen (глава 1).
 
 Два свойства-замыкания — `windowProvider` и `onReturnToLauncher` —
 лаунчер получает от `SceneDelegate` (глава 5). Самому лаунчеру окно не
@@ -466,9 +484,13 @@ final class AppListViewController: UITableViewController {
 
 Таблица сама не знает, что показывать. Она спрашивает у своего
 **data source** (источника данных) — объекта, который отвечает на
-вопросы «сколько строк?» и «что в строке номер N?». У
-`UITableViewController` источник данных — он сам, поэтому мы
-переопределяем эти два метода.
+вопросы «сколько строк?» и «что в строке номер N?». Это протокол
+`UITableViewDataSource`, а свойства `dataSource` и `delegate` у
+таблицы **weak**: таблица не владеет своими помощниками, владеть ими
+должен кто-то другой (в заголовке `UITableView.h` оба объявлены
+`weak`; подробно — глава 0, раздел 0.10). `UITableViewController`
+назначает себя и делегатом, и источником данных своей таблицы,
+поэтому мы просто переопределяем эти два метода.
 
 `numberOfRowsInSection` — сколько строк: столько, сколько манифестов.
 
@@ -478,7 +500,11 @@ final class AppListViewController: UITableViewController {
 около десяти. Строка ушла за верх экрана — её ячейка возвращается в
 «запас» и тут же используется для строки, появившейся снизу.
 `dequeueReusableCell(withIdentifier:for:)` — «дай ячейку из запаса,
-а если там пусто — создай новую».
+а если там пусто — создай новую» (класс для создания мы указали в
+`register`). Перед выдачей ячейки из запаса таблица зовёт у неё
+`prepareForReuse()`, но, по документации Apple, этот метод сбрасывает
+только служебное состояние — выделение, подсветку, `alpha`, — а не
+содержимое.
 
 Отсюда правило: в `cellForRowAt` нужно **заново задать всё**, что
 отличается между строками. Ячейка может прийти из запаса с данными
@@ -492,8 +518,11 @@ mini-app.
 `UIListContentConfiguration` (iOS 14+) — готовая раскладка
 содержимого ячейки: картинка слева, основной текст, дополнительный
 текст под ним. Вариант `.subtitleCell()` — дополнительный текст
-второй строкой. Заполняем поля и присваиваем конфигурацию ячейке, а
-раскладку, отступы и поддержку Dynamic Type UIKit делает сам.
+второй строкой. Это **content configuration** — структура-описание
+(протокол `UIContentConfiguration`), а не view: заполняем поля и
+присваиваем конфигурацию ячейке, а view под неё ячейка создаёт сама
+в своём `contentView`; раскладку, отступы и поддержку Dynamic Type
+UIKit делает сам (глава 0, раздел 0.10).
 
 ```swift
     override func tableView(_ tableView: UITableView,
@@ -522,8 +551,13 @@ mini-app.
 «что делать». Аналогия: data source — повар, который готовит блюда,
 delegate — официант, которому говорят «вот этот столик позвал».
 
-По тапу снимаем выделение со строки (иначе, вернувшись в лаунчер,
-пользователь увидит её подсвеченной серым) и запускаем mini-app.
+По тапу снимаем выделение со строки и запускаем mini-app. Строго
+говоря, `UITableViewController` снял бы выделение и сам: у него есть
+свойство `clearsSelectionOnViewWillAppear`, по умолчанию `true`
+(заголовок `UITableViewController.h`: «defaults to YES»), и при
+возврате лаунчера в окно его `viewWillAppear` очистит выделение. Но
+снимать его сразу, с анимацией, — принятый приём: строка коротко
+«вспыхивает» в ответ на тап и тут же гаснет, не дожидаясь возврата.
 
 ### Запуск mini-app
 
@@ -731,10 +765,15 @@ splash'е. Встряхивание тоже не поможет: замыкан
 - `setRoot` меняет `window.rootViewController` целиком, с
   перекрёстным растворением за 0.35 секунды. Открытый модальный экран
   перед выходом закрываем через `dismiss`.
-- Лаунчер (`AppListViewController`) — таблица: data source отвечает
-  «что показать», delegate — «что делать по тапу». Ячейки
-  переиспользуются, поэтому в `cellForRowAt` задаём все отличающиеся
+- Лаунчер (`AppListViewController`) — таблица (`UITableView →
+  UIScrollView`): data source отвечает «что показать», delegate — «что
+  делать по тапу»; оба свойства у таблицы weak. Ячейки
+  переиспользуются (`prepareForReuse` сбрасывает только служебное
+  состояние), поэтому в `cellForRowAt` задаём все отличающиеся
   свойства заново.
+- `UINavigationController` — контейнерный view controller; заголовок
+  и кнопки на `UINavigationBar` берутся из `navigationItem` экрана,
+  `UIBarButtonItem` — не view.
 - Координатор держит лаунчер (`activeCoordinator`); при выходе ссылку
   обнуляем, и ARC освобождает координатор вместе с экранами mini-app.
 - У гейта может быть несколько выходов (`onPass` / `onTooYoung`), а
@@ -749,7 +788,9 @@ splash'е. Встряхивание тоже не поможет: замыкан
 - [`UIView.transition(with:duration:options:animations:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622574-transition) — анимация перекрёстного растворения при смене корневого экрана.
 - [`UINavigationController`](https://developer.apple.com/documentation/uikit/uinavigationcontroller) — стопка экранов с панелью навигации, в которую `showMain()` кладёт main-экран.
 - [`UITableViewController`](https://developer.apple.com/documentation/uikit/uitableviewcontroller) и [`UITableViewDataSource`](https://developer.apple.com/documentation/uikit/uitableviewdatasource) — основа лаунчера.
-- [`dequeueReusableCell(withIdentifier:for:)`](https://developer.apple.com/documentation/uikit/uitableview/1614878-dequeuereusablecell) — переиспользование ячеек.
+- [`dequeueReusableCell(withIdentifier:for:)`](https://developer.apple.com/documentation/uikit/uitableview/1614878-dequeuereusablecell) и [`prepareForReuse()`](https://developer.apple.com/documentation/uikit/uitableviewcell/prepareforreuse()) — переиспользование ячеек и что при нём сбрасывается.
+- [`UITableView.dataSource`](https://developer.apple.com/documentation/uikit/uitableview/datasource) — weak-свойство: таблица не владеет источником данных.
+- [`clearsSelectionOnViewWillAppear`](https://developer.apple.com/documentation/uikit/uitableviewcontroller/clearsselectiononviewwillappear) — почему `UITableViewController` и сам снял бы выделение.
 - [`UIListContentConfiguration`](https://developer.apple.com/documentation/uikit/uilistcontentconfiguration) — готовая раскладка содержимого ячейки.
 - [`dismiss(animated:completion:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621505-dismiss) — закрытие модальных экранов перед выходом в лаунчер.
 - [Automatic Reference Counting — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting) — сильные и слабые ссылки, циклы сильных ссылок и почему координатор должен кто-то держать.

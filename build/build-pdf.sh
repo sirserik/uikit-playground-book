@@ -17,6 +17,7 @@ else
   FILES=(
     # Часть I. Фундамент playground'а
     "$ROOT/docs/tutorial/00-intro.md"
+    "$ROOT/docs/tutorial/00-uikit-map.md"
     "$ROOT/docs/tutorial/01-launch-screen-vs-splash.md"
     "$ROOT/docs/tutorial/02-app-manifest.md"
     "$ROOT/docs/tutorial/03-playground-window.md"

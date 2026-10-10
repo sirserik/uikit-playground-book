@@ -9,6 +9,36 @@
 он разобран подробнее. Встретил незнакомое слово — загляни сюда, а за
 полным объяснением с примерами иди в указанную главу.
 
+## Карта UIKit: классы и наследование
+
+**Ветка ответчиков (`UIResponder`)** — левая половина карты UIKit: приложение, сцена, окно, экраны и все view. Всё, что получает события. Правая половина — объекты, наследующие `NSObject` напрямую: слои, жесты, элементы панелей, цвета, constraints. (гл. 0)
+
+**Делегат и источник данных (delegate, data source)** — два протокола, через которые класс UIKit общается с твоим кодом: делегату сообщает о событиях и задаёт вопросы, у источника данных запрашивает содержимое. Обе ссылки слабые, протоколы наследуют `NSObjectProtocol`. (гл. 0, 4, 12)
+
+**Иерархия классов (class hierarchy)** — кто от кого наследуется. В UIKit почти всё стоит на лестнице `NSObject → UIResponder → UIView → UIControl → конкретный класс`; каждая ступень добавляет умения. Проверяется в рантайме через `class_getSuperclass`. (гл. 0, 22)
+
+**Контрол (`UIControl`)** — view, которое умеет target-action и имеет состояния `isEnabled` / `isSelected` / `isHighlighted`. Контролы: `UIButton`, `UISwitch`, `UISlider`, `UITextField`, `UIRefreshControl`, `UIPageControl`, `UIDatePicker`. Не контролы: `UILabel`, `UIImageView`, `UISearchBar`, `UITextView`. (гл. 0, 12, 14)
+
+**Корневой класс (`NSObject`)** — предок каждого класса UIKit. Даёт равенство по адресу, `description`, селекторы (`#selector` требует `@objc`) и возможность реализовать протоколы делегатов. Структуры `CGRect`, `IndexPath`, `UIControl.Event` его не наследуют. (гл. 0)
+
+**Ответчик (`UIResponder`)** — объект, умеющий получать события (касания, клавиши, встряхивание) и передавать их по цепочке через `next`. Ступень между `NSObject` и `UIView`; на ней же стоят `UIViewController`, `UIWindow`, `UIScene`, `UIApplication`. (гл. 0, 3)
+
+**Первый ответчик (first responder)** — объект, с которого начинается цепочка для событий без координат: клавиатура, встряхивание, команды меню. `canBecomeFirstResponder` по умолчанию `false`, у текстовых полей `true`; `becomeFirstResponder()` поднимает клавиатуру. (гл. 0, 3, 8)
+
+**Правило «нет `frame` — не view»** — если у объекта нет `frame`, его нельзя `addSubview`, он не получает касаний и не участвует в Auto Layout: `CALayer`, `UIGestureRecognizer`, `UIBarButtonItem`, `UINavigationItem`, `UIAction`, `NSLayoutConstraint`, `UIPresentationController`. (гл. 0)
+
+**Ступень наследования** — один класс в цепочке предков и набор умений, которые он добавляет: `NSObject` — личность, `UIResponder` — события, `UIView` — прямоугольник и раскладка, `UIControl` — target-action. (гл. 0)
+
+**Фреймворки под `import UIKit`** — Foundation (`NSObject`, `NotificationCenter`), Core Graphics (`CGRect`, `CGFloat` — структуры), Core Animation (`CALayer`, `CAAnimation`) и сам UIKit. Префикс имени (`NS`, `CG`, `CA`, `UI`) подсказывает, откуда класс. (гл. 0)
+
+**Цепочка ответчиков (responder chain)** — порядок передачи необработанного события: view → его view controller → superview → … → окно → сцена → `UIApplication` → `AppDelegate`. Правило «кто следующий» задаёт свойство `next`. (гл. 0, 3)
+
+**Экран — не view (`UIViewController`)** — view controller наследует `UIResponder`, а не `UIView`: у него нет `frame` и `addSubview`, он управляет своим `view`, который создаётся лениво через `loadView`. (гл. 0, 1, 22)
+
+**`UIBarItem`** — общий предок `UIBarButtonItem` и `UITabBarItem`: описание кнопки для панели, наследник `NSObject`, не view. Рисует его панель (`UINavigationBar`, `UITabBar`, `UIToolbar`). (гл. 0, 22, 26)
+
+**`UIScrollView` и наследники** — `UITableView`, `UICollectionView` и `UITextView` наследуют scroll view, поэтому у всех трёх есть `contentOffset`, `contentInset`, `refreshControl`, а их делегаты наследуют `UIScrollViewDelegate`. (гл. 0, 12, 21)
+
 ## Приложение и жизненный цикл
 
 **Восстановление состояния (state restoration)** — вернуть пользователя на тот экран, где он был, после того как система выгрузила приложение из памяти. В приложении со сценами делается через `NSUserActivity` сцены; в книге не используется. (гл. 5)
@@ -109,13 +139,33 @@
 
 **`UITabBarController`** — стандартный таб-бар: полоса с иконками внизу, тап переключает раздел. На iPhone помещается до пяти вкладок, лишние уходят в «Ещё»; бейджи и VoiceOver даёт бесплатно. (гл. 20, 26)
 
+**Back item (кнопка «Назад»)** — панель навигации берёт кнопку «назад» из `navigationItem` экрана **под** верхним: `backBarButtonItem`, `backButtonTitle`, `backButtonDisplayMode` настраивают в экране, куда вернёмся. (гл. 0, 26)
+
+**Container view controller (контейнер)** — view controller без своего содержимого, который держит дочерние экраны в `children`: `UINavigationController`, `UITabBarController`, `UIPageViewController`, свой контейнер в главе 20. Порядок встраивания: `addChild` → view в иерархию → `didMove(toParent:)`. (гл. 0, 6, 20)
+
+**Presentation controller (`UIPresentationController`)** — объект-`NSObject`, который ведёт модальный показ: размер, затемнение, лист или popover. Наследники — `UISheetPresentationController` и `UIPopoverPresentationController`. Не view и не view controller. (гл. 0, 17, 28)
+
+**Presenting / presented view controller** — показывающий и показанный экраны. `dismiss` у показанного UIKit пересылает показывающему. (гл. 0, 22, 28)
+
+**Presentation context** — экран, чью view накрывает показ в стиле `.currentContext` / `.overCurrentContext` и `UISearchController`; задаётся `definesPresentationContext`, у `UINavigationController` по умолчанию `true`. (гл. 13, 25)
+
+**`shouldRemovePresentersView`** — убирать ли view нижнего экрана при показе; `true` только у `.fullScreen`, поэтому лист не вызывает `viewWillDisappear` у нижнего экрана. (гл. 28, 37)
+
+**`UISearchTextField`** — поле ввода внутри `UISearchBar` (`searchTextField`, iOS 13+): наследник `UITextField`, то есть контрол, хотя сам `UISearchBar` — нет. (гл. 22, 25)
+
+**`loadView` / `isViewLoaded` / `viewIfLoaded`** — `view` экрана создаётся лениво при первом обращении; `loadView` создаёт его (не вызывать самому), `isViewLoaded` отвечает, создан ли, не создавая. (гл. 0, 1)
+
+**`viewIsAppearing(_:)`** — метод экрана (iOS 13+, объявлен в SDK iOS 17), который приходит после `viewWillAppear`, когда view уже в иерархии и у него верные размеры и трейты. (гл. 0, 34, 35)
+
+**`clearsSelectionOnViewWillAppear`** — свойство `UITableViewController`, по умолчанию `true`: при возврате на экран выделение строки снимается само. (гл. 4)
+
 ## Раскладка
 
 **Внутренний размер (intrinsic content size)** — размер, который view хочет занимать по своему содержимому: у надписи — размер текста, у картинки — размер иконки. Auto Layout берёт его, если ширина или высота не заданы. (гл. 7, 12, 27)
 
 **Дробный размер (`fractionalWidth`, `absolute`, `estimated`)** — размеры в compositional layout: `.fractionalWidth(0.5)` — половина ширины контейнера, `.absolute(60)` — ровно 60 точек, `.estimated(44)` — «примерно 44», настоящий размер посчитает Auto Layout. (гл. 16, 21)
 
-**Направляющая (layout guide)** — невидимый прямоугольник, к которому привязывают constraints, как к обычному view. Самые известные — `safeAreaLayoutGuide`, `layoutMarginsGuide` и `keyboardLayoutGuide`. (гл. 15, 18)
+**Направляющая (layout guide, `UILayoutGuide`)** — невидимый прямоугольник с якорями, к которому привязывают constraints, как к обычному view; наследник `NSObject`, не view. Самые известные — `safeAreaLayoutGuide`, `layoutMarginsGuide`, `readableContentGuide` и `keyboardLayoutGuide`. (гл. 0, 1, 15, 18, 30)
 
 **Направляющая клавиатуры (`keyboardLayoutGuide`)** — направляющая iOS 15+, которая совпадает с клавиатурой, а без клавиатуры — с низом safe area. Одна строка `textView.bottomAnchor == keyboardLayoutGuide.topAnchor` заменяет ручную подписку на уведомления клавиатуры. (гл. 13, 18, 30)
 
@@ -173,6 +223,18 @@
 
 **@2x и @3x** — множитель экрана: сколько пикселей в одной точке по каждой стороне. Для превью шириной 131 точка на экране @3x нужна картинка 131 × 3 = 393 пикселя; текущий множитель — `traitCollection.displayScale`. (гл. 1, 16, 38)
 
+**Layout margins (поля)** — `layoutMargins` / `layoutMarginsGuide`: у обычного view 8 точек с каждой стороны, у корневого view экрана — системные минимальные с учётом safe area (на iPhone 16: 16 по бокам, 59 сверху, 34 снизу). (гл. 0, 1, 17, 19)
+
+**`followsUndockedKeyboard`** — флаг `keyboardLayoutGuide`: отслеживать ли отстыкованную или плавающую клавиатуру iPad; по умолчанию `false`, тогда направляющая стоит у низа safe area. (гл. 30)
+
+**Compression resistance (сопротивление сжатию)** — приоритет, с которым view не даёт сжать себя меньше `intrinsicContentSize`; по умолчанию 750. Hugging — сопротивление растяжению, 250. (гл. 0, 7, 15)
+
+**Arranged subview** — view из `arrangedSubviews` стека: для неё стек сам строит constraints и сам ставит `translatesAutoresizingMaskIntoConstraints = false`. Подмножество `subviews`; `removeArrangedSubview` не удаляет из иерархии; скрытая не занимает места. (гл. 2, 14, 17)
+
+**Distribution и alignment стека** — правило деления места вдоль оси (`.fill`, `.fillEqually`, `.fillProportionally`, `.equalSpacing`, `.equalCentering`) и расстановки поперёк (`.fill`, `.leading`/`.top`, `.center`, `.trailing`/`.bottom`, `.firstBaseline`/`.lastBaseline`). (гл. 14)
+
+**Non-rendering view** — view, которая только расставляет subviews и ничего не рисует сама: `UIStackView` запрещает переопределять `layerClass` и `draw(_:)`; фон у стека появился с iOS 14. (гл. 15)
+
 ## Списки и ячейки
 
 **Индекс строки (`IndexPath`)** — пара «секция, строка», которой таблица и коллекция называют конкретную ячейку. Все их методы данных и событий получают его параметром. (гл. 4, 12)
@@ -214,6 +276,12 @@
 **`UIRefreshControl`** — стандартный pull-to-refresh: крутилка, которая появляется, если потянуть список вниз. Это `UIControl`, поэтому его событие — `.valueChanged`. (гл. 15, 22, 23)
 
 **`willDisplay`** — метод делегата «эта ячейка сейчас появится на экране». Для пагинации: загружено 20 строк, условие `row >= count − 6` сработает на строке 14, и новая страница успеет прийти, пока пользователь долистает оставшиеся. (гл. 16, 23)
+
+**Self-sizing cells** — ячейки, высоту которых считает Auto Layout: `rowHeight` и `estimatedRowHeight` по умолчанию равны `UITableView.automaticDimension` (это −1), содержимое прибито к `contentView` сверху и снизу. (гл. 0, 12, 27)
+
+**`contentView` ячейки** — штатный superview содержимого: ячейка меняет его размер в режиме редактирования и под аксессуар. Всё своё кладут туда, а не в саму ячейку. (гл. 0, 12, 27)
+
+**Layout object (объект раскладки коллекции)** — `UICollectionViewLayout`, `UICollectionViewFlowLayout`, `UICollectionViewCompositionalLayout`: наследник `NSObject`, считает положение элементов и не рисует. (гл. 0, 16)
 
 ## Ввод, касания и жесты
 
@@ -274,6 +342,16 @@
 **`UISelectionFeedbackGenerator`** — самый тонкий «тик» для смены выбора: прокрутка барабана, засечки ползунка. (гл. 14, 33)
 
 **`UITextField` и `UITextView`** — однострочное поле ввода и многострочное с прокруткой. У `UITextView` нет `placeholder`, подсказку «Сообщение» кладут поверх отдельной надписью. (гл. 8, 13, 18)
+
+**Hit-testing** — поиск view под касанием: `hitTest(_:with:)` идёт от окна вглубь, обходит `subviews` с конца (верхние первыми) и пропускает view с `isHidden`, `alpha < 0.01`, `isUserInteractionEnabled == false`; точка вне `bounds` родителя — не попадание. (гл. 0, 20, 21)
+
+**`isContinuous`** — у `UISlider` и `UIDatePicker`: слать `.valueChanged` непрерывно во время перетаскивания (по умолчанию `true`) или один раз при отпускании. (гл. 17, 33)
+
+**Continuous interaction** — протягивание пальцем по точкам `UIPageControl` листает страницы подряд; `allowsContinuousInteraction` включено по умолчанию. (гл. 36)
+
+**`lineFragmentPadding`** — 5 точек слева и справа от строк внутри text container у `UITextView`; добавляются к `textContainerInset` (по умолчанию 8 сверху и снизу). (гл. 13, 18)
+
+**`countDownDuration`** — значение `UIDatePicker` в режиме `.countDownTimer` в секундах; `date` и границы `minimumDate`/`maximumDate` в этом режиме не используются. (гл. 31)
 
 ## Графика, цвет и анимации
 
@@ -339,6 +417,24 @@
 
 **`UIVisualEffectView`** — view с системным эффектом, например размытием `UIBlurEffect` «как в системе». Им закрывают экран перед уходом в фон. (гл. 11)
 
+**Animatable property** — свойство, изменение которого внутри `UIView.animate` UIKit интерполирует; у `UIView` документированы `frame`, `bounds`, `center`, `transform`, `alpha`, `backgroundColor`; `isHidden` не анимируется. (гл. 32)
+
+**`isRemovedOnCompletion` / `fillMode`** — снимать ли CA-анимацию после окончания (по умолчанию `true`) и что показывать вне её интервала (`.removed`). Анимация не меняет модельное значение слоя — его присваивают отдельно. (гл. 15, 32)
+
+**`scrubsLinearly`** — у `UIViewPropertyAnimator` перемотка через `fractionComplete` линейная, кривая не применяется; по умолчанию `true`. (гл. 32)
+
+**`action(forKey:)`** — вопрос слоя к делегату, анимировать ли изменение свойства; view-делегат вне блока анимации отвечает `nil`, отдельный слой получает неявную анимацию 0,25 с. (гл. 21, 23)
+
+**Содержимое слоя (layer contents)** — то, что слой рисует внутри себя; у `UILabel` фон и текст рисуются в содержимом `_UILabelLayer`, поэтому `cornerRadius` без `masksToBounds` фон не скругляет. (гл. 23, 36)
+
+**Bounding box (описывающий прямоугольник)** — `frame` view с `transform` ≠ identity и результат `convert(_:to:)` для неё: прямоугольник, в который вписана повёрнутая или увеличенная view. (гл. 0, 37)
+
+**`UITraitEnvironment`** — протокол объектов с `traitCollection`: `UIScreen`, `UIWindow`, `UIViewController`, `UIView`, `UIPresentationController`. `UITraitCollection.current` — трейты текущего контекста, по ним разрешается `cgColor`. (гл. 0, 35)
+
+**`UIAppearance` / appearance proxy** — протокол и прокси-объект класса (`UINavigationBar.appearance()`) для настройки вида всех экземпляров; применяется, когда view попадает в окно. (гл. 0, 35)
+
+**`tintColorDidChange()`** — метод `UIView`, который UIKit зовёт у subview при смене `tintColor` или `tintAdjustmentMode` у предка. (гл. 35)
+
 ## Конкурентность и память
 
 **Актор (actor)** — объект со «своей очередью»: к его данным обращаются строго по одному, поэтому гонки внутри него нет. (введение, гл. 5)
@@ -398,6 +494,10 @@
 **`withCheckedContinuation`** — мост между API, которое отвечает через делегат или замыкание, и `async`-функцией. Continuation одноразовая: `resume` дважды — падение, ни разу — функция будет ждать вечно. (гл. 7)
 
 **`withTaskGroup`** — группа параллельных задач: запросы по пяти городам уходят в сеть одновременно, а результаты приходят в `for await` по мере готовности, в любом порядке. (гл. 15)
+
+**Preconcurrency (`@preconcurrency`)** — для API, импортированных из Objective-C, нарушения `@MainActor` Swift 6 показывает предупреждениями, а не ошибками; с чистыми Swift-функциями та же конструкция — ошибка. (гл. 4, 5)
+
+**Designated / required инициализатор** — подкласс со своим назначенным `init` не наследует родительские; `init?(coder:)` у `UIView` и `UIViewController` помечен `required` из-за `NSCoding`, поэтому его приходится объявлять. (гл. 0, 24, 33)
 
 ## Данные, файлы и сеть
 
@@ -596,6 +696,8 @@
 **VoiceOver** — экранный диктор iOS для незрячих: читает вслух элемент под пальцем, свайп вправо — к очередному элементу, двойной тап — нажатие. В симуляторе его нет, проверяют на устройстве. (гл. 12, 34, 43)
 
 **WCAG** — международные правила доступности веб-контента, на которые ссылается Apple. Уровень AA: 4.5:1 для обычного текста и 3:1 для крупного и значков; AAA: 7:1 и 4.5:1. (гл. 1, 34, 35)
+
+**`accessibilityElementsHidden`** — скрыть от VoiceOver все элементы внутри view; сам контейнер элементом не становится. (гл. 34)
 
 ## Публикация, пуши и расширения
 

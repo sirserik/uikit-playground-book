@@ -122,7 +122,13 @@ struct OnboardingPage {
 > справа от текущего?». О событиях («листание закончилось») он
 > сообщает **делегату** — объекту, которому поручено реагировать.
 > Оба — просто ссылки на объекты, реализующие нужный протокол. У нас
-> обе роли играет сам экран онбординга.
+> обе роли играет сам экран онбординга. Обе ссылки — `weak` (в
+> заголовке UIKit: `@property (nullable, nonatomic, weak) id
+> <UIPageViewControllerDataSource> dataSource`), поэтому контейнер не
+> держит экран онбординга и цикла ссылок не возникает. Оставишь
+> `dataSource` пустым — листание жестами просто отключится. Почему
+> делегат и data source в UIKit всегда weak — глава 0, раздел 0.10;
+> семейство контейнеров — раздел 0.7.
 
 ## 6.3 Параметры контейнера
 
@@ -143,9 +149,14 @@ private let pageController = UIPageViewController(
   `.vertical` — вверх-вниз; так иногда делают ленты в духе «историй».
 
 Контейнер нужно встроить в наш экран как **дочерний view
-controller** (child). Это отдельный механизм UIKit: родитель не
-просто кладёт чужую view к себе, а берёт на себя ответственность за
-дочерний контроллер целиком.
+controller** (child view controller). Это отдельный механизм UIKit —
+**containment** («вложение» view controller'ов): родитель не просто
+кладёт чужую view к себе, а берёт на себя ответственность за дочерний
+контроллер целиком — держит его в памяти, передаёт ему события
+появления и смены размеров, делится safe area. Так устроены и
+`UINavigationController`, и `UITabBarController`, и сам
+`UIPageViewController` по отношению к своим страницам (глава 0,
+раздел 0.7).
 
 ```swift
 private func embedPageController() {
@@ -167,23 +178,49 @@ private func embedPageController() {
 Встраивание — три шага, это стандартный порядок из документации
 Apple про контейнерные view controller'ы:
 
-1. `addChild(pageController)` — объявляем: «это мой дочерний
-   контроллер». UIKit запоминает связь родитель → ребёнок.
+1. `addChild(pageController)` — создаём связь «родитель — ребёнок»:
+   у `pageController.parent` появляется наш экран, а сам он попадает
+   в массив `children`. Внутри `addChild` UIKit сам зовёт у ребёнка
+   `willMove(toParent:)`.
 2. Кладём `pageController.view` в свою иерархию и растягиваем на весь
    экран **констрейнтами**. Констрейнт (constraint) — правило
    раскладки Auto Layout вида «верхний край этой view равен верхнему
    краю той». Четыре правила «край к краю» делают дочернюю view ровно
    размером с экран. Строка `translatesAutoresizingMaskIntoConstraints
-   = false` выключает старый механизм автоматической раскладки,
-   иначе его правила конфликтуют с нашими.
+   = false` выключает старый механизм автоматической раскладки
+   (по умолчанию он включён у любой view), иначе его правила
+   конфликтуют с нашими.
 3. `pageController.didMove(toParent: self)` — сообщаем ребёнку, что
-   встраивание закончено.
+   встраивание закончено. Этот вызов UIKit за нас **не** делает:
+   `addChild` зовёт только `willMove`, а `didMove` документация
+   требует вызвать самим — сразу после `addChild`, если перехода с
+   анимацией нет.
 
-Первый и третий шаги нельзя пропускать. Без них дочерний контроллер
-не получает вызовы жизненного цикла (`viewWillAppear`,
-`viewDidAppear` — методы, которые UIKit зовёт при появлении и
-исчезновении экрана) и неправильно узнаёт свою safe area — область
-экрана, не закрытую чёлкой, статус-баром и полоской «домой» внизу.
+Что ломается без первого шага, видно в эксперименте: мы положили view
+«сироты» — контроллера без `addChild` — рядом с настоящим ребёнком и
+показали окно (симулятор iOS 26.5). У ребёнка `view.safeAreaInsets`
+= (59, 0, 34, 0), как у родителя; у сироты — нули, и `layoutMargins`
+тоже нули: safe area — область экрана, не закрытая чёлкой,
+статус-баром и полоской «домой», — ребёнку сообщает родитель, а у
+сироты родителя нет. `parent` и `navigationController` у сироты —
+`nil`: цепочка `parent` разорвана, и он не найдёт ни навигационный
+контроллер, ни tab bar. Методы появления (`viewWillAppear`,
+`viewDidAppear`) сироте всё же приходят, но не согласованно с
+родителем: его `viewDidAppear` сработал раньше, чем у родителя. И
+никто не держит сам контроллер: не будь `pageController` свойством
+экрана, он освободился бы сразу после `viewDidLoad`, а его view
+осталась бы на экране без хозяина.
+
+Третий шаг на поведение нашего экрана не влияет: `didMove(toParent:)`
+— уведомление для ребёнка, который может его переопределить и,
+например, начать работу только после встраивания. Но это часть
+контракта контейнера, и пропускать его нельзя. Зеркальная операция —
+убрать ребёнка — делается в обратном порядке: `child.willMove(toParent:
+nil)` (здесь UIKit за тебя его не вызовет), затем
+`child.view.removeFromSuperview()`, затем `child.removeFromParent()` —
+последний сам зовёт `didMove(toParent: nil)`. В онбординге убирать
+ничего не нужно: страницы контейнер убирает сам. Подробно про
+containment — глава 0, раздел 0.7.
 
 `insertSubview(_:at: 0)` кладёт страницы **под** всё остальное:
 индекс 0 — самый нижний слой. Кнопки и точки мы добавим позже, и они
@@ -251,6 +288,13 @@ private func makePage(at index: Int) -> UIViewController? {
 освобождает сам. Кешировать страницы вручную не нужно: их мало, и
 каждая лёгкая.
 
+Страница, которую мы отдали контейнеру, становится его дочерним
+контроллером: после `setViewControllers` у неё `parent ===
+pageController`, и в `children` она тоже есть (проверено на
+симуляторе). То есть `UIPageViewController` делает с нашими
+страницами ровно то, что мы в 6.3 сделали с ним самим — `addChild`,
+view в иерархию, `didMove(toParent:)`.
+
 ## 6.5 PageControl и синхронизация со свайпом
 
 Точки внизу — это `UIPageControl`:
@@ -274,15 +318,24 @@ pageControl.addTarget(self, action: #selector(pageControlChanged), for: .valueCh
   `.quaternaryLabel` — системный «очень бледный» цвет текста; он сам
   подстраивается под светлую и тёмную тему.
 - `hidesForSinglePage = true` — если страница одна, точки прячутся
-  (вернёмся к этому в 6.9).
+  (по умолчанию `false`; вернёмся к этому в 6.9).
 - `addTarget(_:action:for: .valueChanged)` — подписка на событие
   «пользователь сменил страницу через точки».
 
+`addTarget` здесь есть потому, что `UIPageControl` — контрол:
+`UIPageControl → UIControl → UIView`. Точки — не просто картинка, а
+view, которая умеет отслеживать касания и рассылать события
+target-action. У `UILabel` или `UIImageView` такого метода нет — они
+не наследуют `UIControl` (таблица «кто контрол, а кто нет» — глава 0,
+раздел 0.5).
+
 `UIPageControl` сам по себе интерактивный. Тап справа от активной
-точки переключает на страницу вперёд, слева — назад. С iOS 14 по
-точкам можно ещё и вести пальцем, листая страницы подряд; это
-поведение включено по умолчанию и управляется свойством
-`allowsContinuousInteraction`. Мы его не трогаем.
+точки переключает на страницу вперёд, слева — назад — ровно на одну.
+С iOS 14 по точкам можно ещё и вести пальцем, листая страницы подряд;
+это поведение включено по умолчанию (`allowsContinuousInteraction ==
+true`, проверено на симуляторе). Мы его не трогаем. Значение
+`currentPage` контрол сам держит в допустимых пределах: присвоишь 99
+при четырёх страницах — прочитаешь 3.
 
 Синхронизация точек и страниц идёт в обе стороны.
 
@@ -347,8 +400,17 @@ private func showPage(at index: Int,
 `setViewControllers(_:direction:animated:)` — способ программно
 поставить в контейнер нужную страницу. Сразу после этого обновляем
 `currentIndex`, точки и заголовок кнопки. Метод
-`didFinishAnimating` при программной смене **не** вызывается — он
-только для жестов пальцем, поэтому состояние обновляем здесь сами.
+`didFinishAnimating` при программной смене **не** вызывается — в
+заголовке UIKit он описан как «sent when a gesture-initiated
+transition ends», то есть только для жестов пальцем, поэтому
+состояние обновляем здесь сами.
+
+Обрати внимание на `pageControl.currentPage = index`: в обратную
+сторону зацикливания не будет. Контролы UIKit рассылают действия
+только в ответ на действия пользователя; когда значение меняет код,
+`.valueChanged` не уходит (у `UISwitch.setOn(_:animated:)` Apple пишет
+это прямо: «doesn't result in an action message being sent»). Поэтому
+наш `pageControlChanged` от этой строки не сработает.
 
 ## 6.6 Кнопки «Пропустить» и «Дальше»
 
@@ -385,9 +447,13 @@ private func updateNextButtonTitle() {
 ```
 
 `UIButton.Configuration` (iOS 15+) — современный способ описать
-кнопку целиком: текст, цвета, скругление, отступы. Конфигурацию нельзя
-поправить «на месте»: копируем её в переменную, меняем заголовок и
-присваиваем обратно — кнопка перерисуется.
+кнопку целиком: текст, цвета, скругление, отступы. Это структура
+(значимый тип), а не объект: `nextButton.configuration` возвращает
+копию. Поэтому читаем её в переменную, меняем заголовок и присваиваем
+обратно — на присваивание кнопка перерисовывается. Короткая запись
+`nextButton.configuration?.title = "Поехали"` тоже компилируется и
+делает то же самое: Swift сам берёт копию, меняет поле и записывает
+структуру назад.
 
 На последней странице кнопка называется «Поехали» (призыв к действию),
 а «Пропустить» прячется: пропускать уже нечего. Мелочь, но без неё на
@@ -781,10 +847,13 @@ private final class OnboardingPageViewController: UIViewController {
 
 Что в файле нового по сравнению с кусками из разделов:
 
-- `required init?(coder:)` с `fatalError`. UIKit требует этот
-  инициализатор у каждого наследника `UIViewController` — через него
-  экран создаётся из storyboard. Мы собираем экран кодом, поэтому
-  честно падаем, если кто-то попробует загрузить его из storyboard.
+- `required init?(coder:)` с `fatalError`. Этого требует не UIKit, а
+  Swift: в `UIViewController` инициализатор `init?(coder:)` объявлен
+  как `required` (он приходит из протокола `NSCoding`, через него
+  экран создаётся из storyboard), а класс, который добавил свой
+  `init`, обязан повторить все `required`-инициализаторы родителя. Мы
+  собираем экран кодом, поэтому честно падаем, если кто-то попробует
+  загрузить его из storyboard.
 - В `setupControls()` кнопки привязаны к `safeAreaLayoutGuide` —
   прямоугольнику safe area. Поэтому «Пропустить» не залезает под
   чёлку, а «Дальше» — под полоску «домой».
@@ -799,8 +868,12 @@ private final class OnboardingPageViewController: UIViewController {
   текст переносится, а не обрезается многоточием.
 - Страница центрируется по safe area со сдвигом на 40 точек вверх
   (`constant: -40`), чтобы не наезжать на кнопки внизу. Отступы по
-  бокам — от `layoutMarginsGuide`: это «поля» view, стандартно
-  16–20 точек от края на iPhone.
+  бокам — от `layoutMarginsGuide`: это «поля» view (layout margins).
+  У обычной `UIView` они по 8 точек со всех сторон, а корневая view
+  контроллера уважает системный минимум `systemMinimumLayoutMargins`:
+  на iPhone 16 это 16 точек слева и справа, а сверху и снизу в поля
+  входит ещё и safe area (59 и 34 точки — проверено на симуляторе).
+  Подробнее про поля и safe area — глава 0, раздел 0.4.
 - Цвета фона и текста — системные (`.systemBackground`,
   `.secondaryLabel`), поэтому тёмная тема работает без единой строки
   кода.
@@ -845,11 +918,17 @@ static func key(for manifest: AppManifest) -> String {
 - Data source отдаёт соседние страницы через `viewControllerBefore` и
   `viewControllerAfter`. Номер страницы храним в свойстве `index`
   отдельного класса страницы.
-- Встраивание дочернего контроллера: `addChild` → view в иерархию →
-  `didMove(toParent:)`. Первый и третий шаги обязательны.
+- Встраивание дочернего контроллера (containment): `addChild` → view
+  в иерархию → `didMove(toParent:)`. Без `addChild` у ребёнка нет
+  `parent`, нулевая safe area и никто его не держит; `didMove` UIKit
+  сам не зовёт — это обязанность контейнера по контракту.
+- `UIPageControl` — контрол (`UIControl`), поэтому у него есть
+  `addTarget`; данные и события `UIPageViewController` получает через
+  weak-ссылки `dataSource` и `delegate`.
 - Точки и страницы синхронизируем вручную: свайп — через
   `didFinishAnimating` с проверкой `completed`, тап по точкам — через
-  `.valueChanged` и `setViewControllers(...)`.
+  `.valueChanged` и `setViewControllers(...)`. Программная установка
+  `currentPage` событие не шлёт.
 - На последней странице «Дальше» превращается в «Поехали», а
   «Пропустить» прячется.
 - `shouldShow(for:) -> Bool` — статический метод гейта; координатор
@@ -863,6 +942,8 @@ static func key(for manifest: AppManifest) -> String {
 
 - [Human Interface Guidelines — Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding) — вводный тур должен быть коротким и необязательным, не повторяться при новых запусках и оставаться доступным из настроек.
 - [`UIPageViewController`](https://developer.apple.com/documentation/uikit/uipageviewcontroller) — контейнер для листания страниц; `transitionStyle: .scroll`, `navigationOrientation: .horizontal` — наша конфигурация.
+- [`UIPageViewControllerDataSource`](https://developer.apple.com/documentation/uikit/uipageviewcontrollerdatasource) и [`UIPageViewControllerDelegate`](https://developer.apple.com/documentation/uikit/uipageviewcontrollerdelegate) — соседние страницы по запросу и уведомления о жестовых переходах; обе ссылки у контейнера weak.
+- [Creating a custom container view controller](https://developer.apple.com/documentation/uikit/creating-a-custom-container-view-controller) — порядок `addChild` → view → `didMove(toParent:)` и зеркальное удаление; то, что мы делаем в 6.3.
 - [`UIPageControl`](https://developer.apple.com/documentation/uikit/uipagecontrol) — индикатор-точки; `hidesForSinglePage`, с iOS 14 — `allowsContinuousInteraction` и `preferredIndicatorImage` для своих иконок вместо точек.
 - [`UIScrollView`](https://developer.apple.com/documentation/uikit/uiscrollview) — низкоуровневая альтернатива (`isPagingEnabled = true`), когда возможностей `UIPageViewController` уже не хватает.
 - [`UserDefaults`](https://developer.apple.com/documentation/foundation/userdefaults) — простое хранилище под флаг «онбординг пройден»; годится для настроек, но не для секретов.

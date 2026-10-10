@@ -248,8 +248,14 @@ Actor Isolation = MainActor замыкание, написанное в наше
 property 'allApps' is not concurrency-safe» — глобальная константа не
 может хранить значение, которое нельзя безопасно передавать между
 потоками. С пометкой такое замыкание разрешено передавать между
-потоками (всё равно выполнится оно только на главном), и ошибки нет.
-Мы пишем `@MainActor` явно, чтобы код не зависел от настройки проекта.
+потоками (всё равно выполнится оно только на главном), и ошибки нет:
+остальные поля манифеста — `String`, `Bool`, `UIColor` — и так
+`Sendable` (`UIColor` Apple пометила `NS_SWIFT_SENDABLE` в заголовке
+`UIColor.h`), так что вся структура становится безопасной для
+передачи. Мы проверили оба варианта компилятором Swift 6.3 в модуле
+без Default Actor Isolation: без `@MainActor` — именно эта ошибка, с
+ним — чисто. Мы пишем `@MainActor` явно, чтобы код не зависел от
+настройки проекта.
 
 Когда mini-app будет готово (например, «Список дел» после главы 12),
 его манифест будет выглядеть так:
@@ -388,7 +394,15 @@ final class PlaceholderViewController: UIViewController {
 Что здесь нового по сравнению со splash'ем из главы 1.
 
 `title = name` — заголовок экрана. Координатор покажет main-экран
-внутри панели навигации (глава 4), и заголовок появится на ней.
+внутри панели навигации (глава 4), и заголовок появится на ней. Как
+это устроено: у каждого view controller'а есть свой `navigationItem`
+(класс `UINavigationItem`, потомок `NSObject`, а не view), и
+присваивание `title` обновляет его `navigationItem.title`; панель
+`UINavigationBar` лишь показывает item того экрана, который сейчас
+сверху. Мы проверили на симуляторе: после `title = "T"` у
+`navigationItem.title` то же значение, а `navigationItem` в
+`UINavigationController` совпадает с `navigationBar.topItem` (подробно
+— глава 0, разделы 0.7 и 0.9).
 
 `.systemBackground`, `.secondaryLabel` — **семантические цвета**: их
 имя говорит не «какой цвет», а «для чего». `systemBackground` — фон
@@ -402,11 +416,24 @@ final class PlaceholderViewController: UIViewController {
 столбика. Иконке и лейблу constraints не нужны: их расставляет стек,
 а constraints задаём только самому стеку.
 
+Стек — обычный `UIView` (`UIStackView → UIView`), но его работа —
+раскладка, а не рисование. Он держит два списка: `arrangedSubviews`
+(те, кого расставляет) и обычные `subviews`; первый всегда входит во
+второй. `addArrangedSubview` (и `init(arrangedSubviews:)`) добавляет
+view и в тот, и в другой, а простой `addSubview` — только в
+`subviews`: такой view стек не расставляет. Для каждого arranged
+subview стек сам выставляет `translatesAutoresizingMaskIntoConstraints
+= false` и строит constraints по его `intrinsicContentSize` — мы
+проверили это на симуляторе, поэтому иконке и лейблу эта строка не
+нужна (подробно — глава 0, раздел 0.4).
+
 `readableContentGuide` — полоса «удобной для чтения ширины». На
 iPhone она почти совпадает с полями экрана, а на широком iPad
 ограничивает ширину текста, чтобы строка не растянулась на весь экран
-(длинные строки читать тяжело). Стек привязан к ней слева и справа и
-стоит по центру safe area по вертикали.
+(длинные строки читать тяжело). Как и `safeAreaLayoutGuide` из главы
+1, это `UILayoutGuide` — прямоугольник для constraints, а не view.
+Стек привязан к ней слева и справа и стоит по центру safe area по
+вертикали.
 
 Текст склеен из двух строк через `+`, а `\n` внутри — перевод строки.
 
@@ -612,6 +639,9 @@ if manifest.hasAnimatedSplash {
   `@MainActor` делает код независимым от настройки изоляции проекта.
 - `AppManifest.placeholder(...)` — короткая запись для заглушек
   «СКОРО»; экран-заглушка — `PlaceholderViewController`.
+- `title` экрана живёт в его `navigationItem` (не view), панель лишь
+  показывает его. `UIStackView` расставляет только `arrangedSubviews`
+  и сам снимает у них `translatesAutoresizingMaskIntoConstraints`.
 - `AppRegistry` — пустой enum-«папка» с `static let allApps`. Порядок
   массива = порядок в лаунчере.
 - Манифест + координатор = конфигурация + исполнение. Манифест
@@ -623,7 +653,8 @@ if manifest.hasAnimatedSplash {
 - [Properties — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/properties) — `let` и `var`, значения по умолчанию у свойств.
 - [Deinitialization — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/deinitialization) — `deinit` из упражнения 2.1.
 - [`UIColor`](https://developer.apple.com/documentation/uikit/uicolor) — тип `brandColor`; системные цвета сами подстраиваются под светлую и тёмную тему.
-- [`UIStackView`](https://developer.apple.com/documentation/uikit/uistackview) — контейнер, который выстраивает элементы заглушки в столбик.
+- [`UIStackView`](https://developer.apple.com/documentation/uikit/uistackview) и [`addArrangedSubview(_:)`](https://developer.apple.com/documentation/uikit/uistackview/addarrangedsubview(_:)) — контейнер, который выстраивает элементы заглушки в столбик; `arrangedSubviews` как подмножество `subviews`.
+- [`UINavigationItem`](https://developer.apple.com/documentation/uikit/uinavigationitem) — объект, в который попадает `title` экрана.
 - [`UserDefaults`](https://developer.apple.com/documentation/foundation/userdefaults) — хранилище «ключ → значение», в котором гейты запоминают свои отметки по `id`.
 - [SF Symbols](https://developer.apple.com/sf-symbols/) — каталог имён, которые можно класть в `symbolName`.
 

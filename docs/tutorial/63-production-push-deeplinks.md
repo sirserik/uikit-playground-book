@@ -191,10 +191,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 Разбор:
 
 - `UNUserNotificationCenter.current().delegate = self` — в
-  `didFinishLaunching`. В заголовке SDK сказано, что делегат нужно
-  установить до того, как приложение вернётся из этого метода: иначе
-  событие «пользователь тапнул уведомление, и оно запустило приложение»
-  некому будет получить.
+  `didFinishLaunching`. В документации свойства `delegate` сказано, что
+  делегат нужно установить до того, как приложение закончит запуск — в
+  `application(_:willFinishLaunchingWithOptions:)` или
+  `application(_:didFinishLaunchingWithOptions:)`: иначе событие
+  «пользователь тапнул уведомление, и оно запустило приложение» некому
+  будет получить. Сам делегат, как и в UIKit, хранится слабой ссылкой
+  (`weak` в `UNUserNotificationCenter.h`); `AppDelegate` живёт всё время
+  работы приложения, поэтому проблем с этим нет.
 - `registerForRemoteNotifications()` — асинхронный запрос к APNs.
   Результат придёт в один из двух методов ниже.
 - `requestPushPermission()` — отдельно, чтобы вызвать его в удачный
@@ -547,6 +551,20 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 ```
+
+Что здесь строится в `scene(_:willConnectTo:options:)`. Сцена
+(`UIWindowScene → UIScene → UIResponder`) — не view, а «сеанс» приложения
+на экране; она владеет окнами. Окно — `UIWindow → UIView`, корень дерева
+view: `UIWindow(windowScene:)` привязывает его к сцене,
+`rootViewController` даёт окну единственный верхний subview — `nav.view`, а
+`makeKeyAndVisible()` показывает окно (снимает `isHidden`) и делает его
+**ключевым** — тем, что получает события клавиатуры и стоит в начале
+responder chain. Сильная ссылка `self.window = window` обязательна: это
+свойство требует протокол `UIWindowSceneDelegate`, и именно оно держит окно
+живым — сцена свои окна не удерживает. Проверено на симуляторе: окно,
+созданное в локальной переменной и показанное через `makeKeyAndVisible()`,
+после выхода из области видимости освободилось, а `windowScene.windows`
+опустел. Подробно про окно, сцену и их делегатов — глава 0, раздел 0.8.
 
 Главная ловушка — **холодный старт**. Если приложение не было запущено, iOS **не** вызывает
 `scene(_:openURLContexts:)` — ссылка приезжает в
@@ -910,6 +928,9 @@ extension AppDelegate {
   доставка не гарантирована.
 - **Deep links**: один `DeepLink`-парсер и один маршрутизатор; ссылки
   на холодном старте приходят в `connectionOptions`.
+- **Окно и сцена**: `UIWindow` — view, корень дерева; `UIWindowScene` —
+  responder, не view; `makeKeyAndVisible()` показывает окно и делает его
+  ключевым; окно держим сильной ссылкой в делегате сцены.
 - **Universal Links**: `apple-app-site-association` без расширения в
   `/.well-known/`, формат `appIDs` + `components`, https без редиректов,
   Associated Domains `applinks:домен`.
@@ -926,7 +947,9 @@ extension AppDelegate {
 - [Generating a remote notification](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification) — ключи словаря `aps`.
 - [Pushing background updates to your app](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app) — тихие пуши и их ограничения.
 - [`aps-environment`](https://developer.apple.com/documentation/bundleresources/entitlements/aps-environment) — какая среда APNs у какой сборки.
+- [`UNUserNotificationCenter.delegate`](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/delegate) — почему делегат ставят до конца запуска.
 - [`UNUserNotificationCenterDelegate`](https://developer.apple.com/documentation/usernotifications/unusernotificationcenterdelegate) — `willPresent` и `didReceive`.
+- [`UIWindow.makeKeyAndVisible()`](https://developer.apple.com/documentation/uikit/uiwindow/makekeyandvisible()) — показать окно и сделать его ключевым.
 - [`UNNotificationCategory`](https://developer.apple.com/documentation/usernotifications/unnotificationcategory) — кнопки в уведомлениях.
 - [`UNNotificationServiceExtension`](https://developer.apple.com/documentation/usernotifications/unnotificationserviceextension) — изменение содержимого пуша перед показом.
 - [Testing notifications using the Push Notification Console](https://developer.apple.com/documentation/usernotifications/testing-notifications-using-the-push-notification-console) — отправка тестовых пушей на устройство.

@@ -12,8 +12,10 @@
 вычисляет все промежуточные значения. Это называется **интерполяцией**:
 между двумя известными точками достраиваются промежуточные. Считает и
 рисует их **Core Animation** — слой системы, который работает с
-`CALayer`. У каждого `UIView` внутри есть свой слой (`view.layer`), и
-именно слой отображается на экране.
+`CALayer`. У каждого `UIView` внутри есть ровно один свой слой
+(`view.layer`), и именно слой отображается на экране. Слой — не view:
+`CALayer → NSObject`, он не responder, не получает касаний и не
+участвует в Auto Layout (глава 0, разделы 0.4 и 0.9).
 
 Две вещи, которые важно держать в голове:
 
@@ -48,17 +50,34 @@ UIView.animate(withDuration: 0.3) {
 положение. Обычно так заканчивают анимацию, которая началась из
 сдвинутого или уменьшенного состояния.
 
-Что можно анимировать через `UIView.animate`:
+Что можно анимировать через `UIView.animate` — документация `UIView`
+перечисляет шесть свойств:
 
 - `frame`, `bounds`, `center` — положение и размер;
 - `transform` — сдвиг, масштаб, поворот;
 - `alpha` — прозрачность;
-- `backgroundColor`;
-- `constant` у констрейнта — через `layoutIfNeeded()` (раздел 32.8).
+- `backgroundColor`.
 
-Чего нельзя: `cornerRadius`, `shadowOpacity`, `borderColor` и другие
-свойства слоя — для них `CABasicAnimation` (раздел 32.6). `isHidden`
-тоже не анимируется — прячут через `alpha`.
+Плюс `constant` у констрейнта — не напрямую, а через
+`layoutIfNeeded()` (раздел 32.8). `isHidden` не анимируется — прячут
+через `alpha` (замер на симуляторе: после `isHidden = true` внутри
+блока у слоя не появилось ни одной анимации).
+
+Со свойствами слоя (`view.layer.cornerRadius`, `shadowOpacity`,
+`borderColor`…) всё тоньше, и здесь ошибаются в обе стороны. Снаружи
+анимационного блока они меняются рывком: `UIView` — делегат своего
+слоя и отключает ему неявные анимации (у отдельного `CALayer`, который
+ты создал сам и добавил через `addSublayer`, они есть — 0,25 с по
+умолчанию; замер: смена `opacity` у такого слоя сразу вешает на него
+анимацию, у `view.layer` — нет). Внутри `UIView.animate` на iOS 26.5
+замер показал, что `cornerRadius`, `borderWidth`, `borderColor`,
+`shadowOpacity` и `shadowRadius` у `view.layer` получают анимацию
+наравне с `alpha`; для `cornerRadius` Apple показала это ещё в iOS 11.
+Но в документации этот список не зафиксирован, а на слой, добавленный
+через `addSublayer`, `UIView.animate` не действует вовсе (замер: ноль
+анимаций). Отсюда правило: шесть свойств view — через
+`UIView.animate`; свойства своих слоёв, бесконечные и точно
+управляемые анимации — через `CABasicAnimation` (раздел 32.6).
 
 С действием в конце:
 
@@ -272,7 +291,7 @@ imageView.image = UIImage(systemName: "heart.fill")
 if #available(iOS 17, *) {
     imageView.addSymbolEffect(.bounce, options: .speed(1.5))   // подпрыгнуть
     imageView.addSymbolEffect(.pulse)                          // пульсировать
-    imageView.addSymbolEffect(.scale.up, options: .repeating)  // увеличиться и держать
+    imageView.addSymbolEffect(.scale.up)                       // увеличиться и держать
 }
 ```
 
@@ -312,20 +331,54 @@ view.layer.add(pulse, forKey: "pulse")
   возвращается, полный «вдох-выдох» — 1,6 с.
 - `repeatCount = .infinity` — без конца.
 - `forKey: "pulse"` — имя, по которому анимацию потом снимают.
+  `layer.add(_:forKey:)` **копирует** объект анимации (документация:
+  «this object is copied by the render tree, not referenced») — менять
+  `pulse` после добавления бессмысленно.
+
+Сама анимация — не слой и не view, а объект-описание:
+`CABasicAnimation → CAPropertyAnimation → CAAnimation → NSObject`
+(глава 0, раздел 0.9).
 
 Чем это отличается от `UIView.animate`: `CABasicAnimation` **не
-меняет модель**. Свойство слоя остаётся 1.0, анимация лишь рисует
-промежуточные значения поверх. Когда анимация закончится или её
-снимут, слой вернётся к модельному значению. Поэтому для «один раз
+меняет модель**. Свойство слоя остаётся 1.0 (замер: после `add`
+`layer.opacity` для аналогичной анимации прозрачности так и равен
+1.0), анимация лишь рисует промежуточные значения в presentation
+layer. Когда анимация закончится или её снимут, экран вернётся к
+модельному значению — тот самый «отскок». Поэтому для «один раз
 увеличить и оставить» сначала присваивают новое значение слою, а
-потом добавляют анимацию от старого к новому.
+потом добавляют анимацию от старого к новому:
+
+```swift
+let grow = CABasicAnimation(keyPath: "transform.scale")
+grow.fromValue = 1.0
+grow.toValue = 1.4
+grow.duration = 0.3
+view.layer.transform = CATransform3DMakeScale(1.4, 1.4, 1)  // модель
+view.layer.add(grow, forKey: "grow")                         // картинка
+```
+
+Два свойства, которыми часто «чинят» отскок, — `isRemovedOnCompletion`
+и `fillMode`. По умолчанию анимация после окончания снимается со слоя
+(`isRemovedOnCompletion = true`, `fillMode = .removed` — оба значения
+из документации), и экран возвращается к модели. Если поставить
+`isRemovedOnCompletion = false` и `fillMode = .forwards`, картинка
+застынет в конечном состоянии, но модель не изменится: в замере на
+симуляторе после такой анимации `layer.opacity` остался 1.0, а
+`layer.presentation()?.opacity` — 0. Слой выглядит прозрачным, а для
+твоего кода, хит-тестинга и следующих анимаций он непрозрачный; к
+тому же законченная анимация так и висит на слое. Это не способ
+«оставить результат», а способ получить расхождение между моделью и
+экраном. Оставлять результат нужно так, как в листинге выше.
 
 Когда `CABasicAnimation`, а не `UIView.animate`:
 
 - **Бесконечная анимация** (пульс, мерцание скелетона) —
   `repeatCount = .infinity`.
-- **Свойства слоя**: `cornerRadius`, `shadowOpacity`, `strokeEnd` у
-  `CAShapeLayer`, цвета градиента в `CAGradientLayer`.
+- **Свойства своих слоёв**: `strokeEnd` у `CAShapeLayer`, цвета
+  градиента в `CAGradientLayer` — на sublayer `UIView.animate` не
+  действует (раздел 32.1); а также `cornerRadius` и `shadowOpacity` у
+  `view.layer`, если нужна гарантия одинакового поведения на всех
+  версиях iOS.
 - **Плавная смена картинки** — `keyPath: "contents"`.
 
 Снять: `view.layer.removeAnimation(forKey: "pulse")`.
@@ -375,9 +428,14 @@ UIView.animate(withDuration: 0.3) {
 внутри анимационного блока, поэтому все новые `frame` поедут плавно:
 высота со 120 до 200 точек за 0,3 с.
 
-Вызывать `layoutIfNeeded()` нужно у **общего предка** — обычно
-`self.view` контроллера. Если вызвать у самого изменившегося view,
-соседи, которые от него зависят, переедут рывком.
+Вызывать `layoutIfNeeded()` нужно у **общего предка** всех view, чьи
+рамки изменятся, — обычно это `self.view` контроллера. Документация
+описывает метод так: «используя view-получателя как корень, он
+раскладывает поддерево начиная с этого корня». Рамку каждого view
+выставляет `layoutSubviews` его superview, поэтому
+`changedView.layoutIfNeeded()` разложит только то, что внутри
+`changedView`; его собственная высота и соседи, которые от неё
+зависят, переедут рывком при следующем обычном проходе layout.
 
 ## 32.9 Смена одного view на другой
 
@@ -392,7 +450,11 @@ UIView.transition(from: oldView, to: newView,
 **Cross-dissolve** — «наплыв»: старое изображение растворяется,
 новое проявляется. Этот вариант метода сам удаляет `oldView` из
 родителя и добавляет `newView` на его место — не забудь, что у
-`newView` должны быть свои констрейнты или `frame`.
+`newView` должны быть свои констрейнты или `frame`. Если оба view уже
+в иерархии и нужно лишь спрятать одно и показать другое, добавь опцию
+`.showHideTransitionViews`: тогда метод переключит `isHidden`, а не
+переставит view (документация). Контроллеры метод не трогает — он
+работает только с иерархией view.
 
 Второй вариант — анимировать всё содержимое контейнера:
 
@@ -575,16 +637,24 @@ animator.fractionComplete = 0.5
 animator.continueAnimation(withTimingParameters: nil, durationFactor: 1.0)
 ```
 
-`UIViewPropertyAnimator` (iOS 10+) — анимация-объект. В отличие от
-`UIView.animate`, её можно держать в свойстве и управлять:
+`UIViewPropertyAnimator` (iOS 10+) — анимация-объект: обычный
+`NSObject` (глава 0, раздел 0.9), который живёт столько, сколько ты
+его держишь. В отличие от `UIView.animate`, его можно хранить в
+свойстве и управлять:
 
 - `pauseAnimation()` — заморозить;
 - `fractionComplete = 0.5` — перемотать на середину: `alpha` станет
-  0,5 (с учётом кривой);
+  ровно 0,5. По умолчанию перемотка линейная — `scrubsLinearly = true`
+  (iOS 11+), кривая при ручной перемотке не применяется; замер на
+  симуляторе с кривой `.easeOut` дал presentation-значение `opacity`
+  0,5. Поставь `scrubsLinearly = false`, если хочешь, чтобы палец
+  «чувствовал» кривую;
 - `isReversed = true` — пустить назад;
-- `continueAnimation(...)` — доиграть с текущего места;
-  `durationFactor: 1.0` — оставшаяся часть займёт ту же долю исходной
-  длительности.
+- `continueAnimation(...)` — доиграть с текущего места. Вызывать можно
+  только у активного и поставленного на паузу аниматора
+  (документация). `durationFactor` — множитель к исходной
+  длительности, по которому считается оставшееся время: 1.0 — в темпе
+  исходной анимации, 0.5 — вдвое быстрее.
 
 Главное применение — **интерактивные переходы**: пользователь тянет
 пальцем, и анимация идёт вслед за ним (`fractionComplete` = пройденная
@@ -663,6 +733,9 @@ func pressAnimation(_ button: UIButton) {
 
 - **`UIView.animate`** — задаёшь конечное значение, система
   интерполирует. Модель меняется сразу, на экране — presentation layer.
+  Документированные свойства — `frame`, `bounds`, `center`,
+  `transform`, `alpha`, `backgroundColor`; `isHidden` — нет; свойства
+  `view.layer` на практике анимируются, свои sublayer — нет.
 - **Кривые**: ease-in-out (по умолчанию) — разгон и торможение;
   ease-out — для появления; ease-in — для ухода; linear — для
   вращения.
@@ -675,7 +748,9 @@ func pressAnimation(_ button: UIButton) {
   с номером строки.
 - **SF Symbol effects** (iOS 17+) — только внутри `#available`.
 - **`CABasicAnimation`** — бесконечные анимации и свойства слоя; не
-  меняет модель.
+  меняет модель. «Оставить результат» — выставить модельное значение и
+  добавить анимацию; `fillMode = .forwards` без модели — расхождение
+  экрана и кода.
 - **`CAKeyframeAnimation`** — тряска с затухающей амплитудой и нулём в
   конце.
 - **Констрейнты** — `constant` снаружи, `layoutIfNeeded()` общего
@@ -685,8 +760,9 @@ func pressAnimation(_ button: UIButton) {
   слой после `lifetime`.
 - **Радианы**: π = 180°; бесконечное вращение — через
   `CABasicAnimation`.
-- **`UIViewPropertyAnimator`** — пауза, перемотка, реверс для
-  интерактивных анимаций. Zoom-переход — iOS 18+.
+- **`UIViewPropertyAnimator`** — пауза, перемотка (линейная,
+  `scrubsLinearly`), реверс для интерактивных анимаций. Zoom-переход —
+  iOS 18+.
 
 ## Apple Developer Documentation
 
@@ -695,9 +771,13 @@ func pressAnimation(_ button: UIButton) {
 - [UIView.animateKeyframes(withDuration:delay:options:animations:completion:)](https://developer.apple.com/documentation/uikit/uiview/1622552-animatekeyframes) — последовательность через ключевые кадры.
 - [UIView.transition(with:duration:options:animations:completion:)](https://developer.apple.com/documentation/uikit/uiview/1622574-transition) — наплыв и переворот между view.
 - [UIViewPropertyAnimator](https://developer.apple.com/documentation/uikit/uiviewpropertyanimator) — пауза / перемотка / реверс, iOS 10+.
+- [UIViewPropertyAnimator.scrubsLinearly](https://developer.apple.com/documentation/uikit/uiviewpropertyanimator/scrubslinearly) — линейная перемотка `fractionComplete` (по умолчанию `true`, iOS 11+).
+- [UIView.layoutIfNeeded()](https://developer.apple.com/documentation/uikit/uiview/layoutifneeded()) — раскладывает поддерево от view-получателя; почему вызывать у общего предка.
 - [UISpringTimingParameters](https://developer.apple.com/documentation/uikit/uispringtimingparameters) — параметры пружины для `UIViewPropertyAnimator`.
 - [UICubicTimingParameters](https://developer.apple.com/documentation/uikit/uicubictimingparameters) — собственные кривые разгона и торможения.
 - [CABasicAnimation](https://developer.apple.com/documentation/quartzcore/cabasicanimation) — анимация свойств `CALayer`.
+- [CALayer.add(_:forKey:)](https://developer.apple.com/documentation/quartzcore/calayer/add(_:forkey:)) — анимация копируется при добавлении.
+- [CAAnimation.isRemovedOnCompletion](https://developer.apple.com/documentation/quartzcore/caanimation/isremovedoncompletion) — по умолчанию `true`; вместе с `fillMode` объясняет «отскок».
 - [CAKeyframeAnimation](https://developer.apple.com/documentation/quartzcore/cakeyframeanimation) — несколько ключевых значений (тряска и др.).
 - [CAEmitterLayer](https://developer.apple.com/documentation/quartzcore/caemitterlayer) — система частиц (конфетти).
 - [CAEmitterCell](https://developer.apple.com/documentation/quartzcore/caemittercell) — параметры одного вида частиц.

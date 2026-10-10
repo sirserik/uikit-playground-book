@@ -19,13 +19,21 @@
 новую карточку сверху, `pop` снимает верхнюю, и снова видна
 предыдущая. Видна всегда только верхняя.
 
-**Навигационная панель** (navigation bar) — полоса сверху с
-заголовком и кнопками. Она одна на весь контроллер навигации.
+**Навигационная панель** (navigation bar, класс `UINavigationBar →
+UIView`) — полоса сверху с заголовком и кнопками. Она одна на весь
+контроллер навигации.
 
 **`navigationItem`** — «табличка» каждого экрана: заголовок, кнопки
-слева и справа, строка поиска. Панель показывает табличку того
-экрана, который сейчас сверху стопки. Поэтому кнопки экрана
-настраивают через его `navigationItem`, а не через панель напрямую.
+слева и справа, строка поиска. Это объект класса `UINavigationItem`
+(потомок `NSObject`, не view) и **свойство view controller'а**: UIKit
+создаёт его лениво при первом обращении, по одному на экран. Панель
+сама ничего не хранит — она показывает табличку того экрана, который
+сейчас сверху стопки, а кнопку «назад» берёт у таблички предыдущего.
+Поэтому кнопки экрана настраивают через его `navigationItem`, а не
+через панель напрямую. Сами кнопки в табличке — `UIBarButtonItem →
+UIBarItem → NSObject`: тоже не view, поэтому у них нет `frame`,
+`addSubview` и `addGestureRecognizer`; панель по описанию сама рисует
+для них настоящие кнопки. Лестница классов — глава 0, разделы 0.7 и 0.9.
 
 ## 26.1 Large titles + scroll fade
 
@@ -73,9 +81,11 @@ final class OrderDetailsViewController: UIViewController {
 полэкрана.
 
 Сжатие при прокрутке iOS делает сама, но только если понимает, **за
-каким списком следить**. Когда экран — `UITableViewController` или
-таблица лежит первой в иерархии, обычно всё работает само. Если между
-панелью и таблицей стоят другие view, укажи список явно (iOS 15+):
+каким списком следить**. По документации view controller сам находит
+scroll view, анализируя иерархию view; когда экран —
+`UITableViewController` или таблица лежит первой в иерархии, обычно
+всё работает само. Если иерархия сложнее и между панелью и таблицей
+стоят другие view, укажи список явно (iOS 15+):
 
 ```swift
 setContentScrollView(tableView, for: .top)
@@ -118,7 +128,10 @@ func updateUnreadBadge(unread: Int) {
 ```
 
 `badgeValue` — строка (`String?`). Обычно число, но можно и короткий
-текст вроде «new». `nil` убирает бейдж.
+текст вроде «new». `nil` убирает бейдж (это и значение по умолчанию).
+Сам `tabBarItem` — объект `UITabBarItem → UIBarItem → NSObject`, такое
+же свойство view controller'а, как `navigationItem`: не view, а
+описание вкладки, которое панель `UITabBar → UIView` рисует.
 
 Почему `navigationController?.tabBarItem`: `UITabBarController` берёт
 иконку и бейдж у экрана, который **непосредственно** лежит во
@@ -363,9 +376,12 @@ final class EditorViewController: UIViewController {
 }
 ```
 
-`leftBarButtonItem` — кнопка в левом слоте таблички экрана. Иконка
-`xmark` («крестик») — системный символ SF Symbols. У кнопки-картинки
-нет текста, поэтому VoiceOver нужно подсказать, что это «Закрыть».
+`leftBarButtonItem` — кнопка в левом слоте таблички экрана. Напомню,
+что `UIBarButtonItem` — не view (`UIBarItem → NSObject`): это описание
+кнопки, и настоящую view для неё панель создаёт сама, поэтому
+`accessibilityLabel` мы ставим на сам item. Иконка `xmark`
+(«крестик») — системный символ SF Symbols. У кнопки-картинки нет
+текста, поэтому VoiceOver нужно подсказать, что это «Закрыть».
 
 `target: self, action: #selector(...)` — классический способ UIKit
 сказать «при нажатии вызови у этого объекта этот метод». Метод
@@ -378,11 +394,10 @@ Objective-C.
 края экрана. Правильнее настроить саму системную кнопку:
 
 ```swift
-// В экране, КУДА вернёмся (например, в списке):
+// Всё это — в экране, КУДА вернёмся (например, в списке):
 navigationItem.backButtonTitle = "Список"        // текст кнопки «назад» на экране, открытом из списка
-
-// Или в экране, ГДЕ кнопка показана (iOS 14+):
-navigationItem.backButtonDisplayMode = .minimal  // только стрелка, без текста
+navigationItem.backButtonDisplayMode = .minimal  // iOS 14+: только стрелка, без текста
+navigationItem.backBarButtonItem = UIBarButtonItem(title: "К списку") // старый способ
 
 // Своя стрелка для всей панели:
 let appearance = UINavigationBarAppearance()
@@ -392,13 +407,23 @@ appearance.setBackIndicatorImage(arrow, transitionMaskImage: arrow)
 navigationController?.navigationBar.standardAppearance = appearance
 ```
 
-Обрати внимание на хитрость с `backButtonTitle`: текст кнопки «назад»
-задаёт **предыдущий** экран, а не текущий. Логика такая: кнопка
-ведёт на список, значит и называться должна так, как хочет список.
+Главная хитрость: кнопка «назад» **принадлежит предыдущему экрану**.
+Когда поверх списка лежит карточка, панель берёт кнопку «назад» из
+таблички списка — из его `backBarButtonItem`, а если он `nil`, собирает
+её сама из `backButtonTitle`, `title` и `backButtonDisplayMode` того же
+списка. Логика такая: кнопка ведёт на список, значит и выглядеть должна
+так, как хочет список. Поэтому все три свойства ставят в экране, **куда**
+вернёмся, до того как он сделает push следующего (например, в
+`viewDidLoad`).
 
-`backButtonDisplayMode` работает иначе — его ставят на экран, где
-кнопка видна: `.default` — стрелка и заголовок предыдущего экрана,
-`.generic` — стрелка и «Назад», `.minimal` — одна стрелка.
+`backButtonDisplayMode` (iOS 14+) говорит, из чего собирать подпись:
+`.default` — заголовок предыдущего экрана, а если места мало — «Назад»
+или одна стрелка; `.generic` — только «Назад»; `.minimal` — одна
+стрелка. Документация оговаривает: режим действует, пока
+`backBarButtonItem` равен `nil`, — свой item важнее. У `backBarButtonItem`
+панель берёт заголовок и картинку, а `customView`, по той же
+документации, игнорирует; нажатие на кнопку «назад» всегда означает
+системный pop, своих `target`/`action` от неё не жди.
 
 `setBackIndicatorImage(_:transitionMaskImage:)` меняет саму стрелку.
 Вторая картинка — маска, по которой текст кнопки «уезжает» под
@@ -435,15 +460,22 @@ final class AppNavigationController: UINavigationController,
 `gestureRecognizerShouldBegin` спрашивают прямо перед стартом жеста:
 «можно начинать?». Ответ «да, если в стопке больше одного экрана»
 отключает свайп на корневом экране и возвращает его на всех остальных,
-даже с кастомной левой кнопкой. Подробнее о делегатах жестов — глава
-29.
+даже с кастомной левой кнопкой. Сам жест — экземпляр приватного
+подкласса `UIScreenEdgePanGestureRecognizer` (→ `UIPanGestureRecognizer`
+→ `UIGestureRecognizer`), хотя свойство объявлено просто как
+`UIGestureRecognizer`. Честная оговорка: заголовок
+`UINavigationController.h` разрешает использовать это свойство только
+для настройки зависимостей между жестами (`require(toFail:)`); подмена
+делегата — распространённый приём, который работает много лет, но
+документацией не обещан. Где можно, оставляй системную кнопку.
+Подробнее о делегатах жестов — глава 29.
 
 ## 26.6 Modal vs push — когда какой
 
 **Push** — положить экран в стопку навигации: он въезжает справа,
 слева появляется «назад». **Modal** (модальный показ) — открыть экран
-**поверх** текущего, как отдельное окно: он выезжает снизу и живёт в
-своей стопке, пока его не закроют.
+**поверх** текущего, как отдельное окно: он выезжает снизу и ложится
+поверх всей стопки навигации, а не внутрь неё, пока его не закроют.
 
 | Сценарий                          | Способ показа                              |
 |-----------------------------------|--------------------------------------------|
@@ -555,8 +587,11 @@ final class HeroNavigationController: UINavigationController,
 ```
 
 Контроллер навигации сам себе делегат — это удобно: `delegate`
-хранится **слабой** ссылкой, и отдельный объект-делегат, созданный
-«на лету» и никем не удержанный, исчез бы сразу. Свой контроллер
+хранится **слабой** ссылкой (`weak` в `UINavigationController.h`), и
+отдельный объект-делегат, созданный «на лету» и никем не удержанный,
+исчез бы сразу. Swift 6.3 на присваивание `nav.delegate = Del()`
+выдаёт предупреждение «weak reference will always be nil because the
+referenced object is deallocated here», но собирает. Свой контроллер
 никуда не денется, пока жива стопка.
 
 Аниматор отдаём только для `.push`. Для `.pop` возвращаем `nil`, и
@@ -578,8 +613,8 @@ final class HeroNavigationController: UINavigationController,
 - **Аниматор на pop без интерактивного контроллера** — пропал свайп
   назад.
 - **Делегат не удержан.** `navigationController.delegate =
-  SomeDelegate()` — объект тут же освободится, и анимация молча
-  станет стандартной.
+  SomeDelegate()` — объект тут же освободится, и анимация станет
+  стандартной; компилятор предупредит, но приложение запустится.
 
 ## 26.8 Title view с двумя строками
 
@@ -628,10 +663,12 @@ extension ChatViewController {
 сборку. Минимальная версия проекта — iOS 15, поэтому без этой
 проверки код с `subtitle` не соберётся.
 
-`titleView` принимает любую view и ставит её на место заголовка.
-Стек сам сообщает свой размер через Auto Layout: ширину — по самой
-длинной строке, высоту — по сумме двух строк. Поэтому оборачивать его
-в дополнительный контейнер не нужно.
+`titleView` принимает любую view и ставит её на место заголовка; по
+документации панель центрирует её и при необходимости подгоняет
+размер. Размер панель спрашивает у самой view через Auto Layout, а
+стек с двумя метками умеет его назвать: ширину — по самой длинной
+строке, высоту — по сумме двух строк. Поэтому оборачивать его в
+дополнительный контейнер не нужно.
 
 Шрифты `headline` и `caption1` — стили Dynamic Type: они совпадают с
 тем, чем iOS рисует обычный заголовок и мелкие подписи, и
@@ -696,9 +733,10 @@ bar?.tintColor = .white
 
 Что будет, если какой-то слот не задать. `compactAppearance` возьмёт
 значение из `standardAppearance` — это безопасно. А вот
-`scrollEdgeAppearance` с iOS 15 без явного значения делает фон у края
-прокрутки **прозрачным** — это системная версия по умолчанию для всех
-панелей. Если задать только `standardAppearance`, панель будет синей
+`scrollEdgeAppearance` без явного значения берёт `standardAppearance`,
+**изменённый на прозрачный фон** — так написано в документации; до
+iOS 15 это касалось только панелей с большими заголовками, с iOS 15 —
+всех панелей. Если задать только `standardAppearance`, панель будет синей
 при прокрутке и прозрачной, когда список наверху. Поэтому задавай как
 минимум `standardAppearance` и `scrollEdgeAppearance`.
 
@@ -753,7 +791,9 @@ bar?.tintColor = .white
 ## Что мы выучили
 
 - **`UINavigationController`** — стопка экранов; у каждого экрана своя
-  табличка `navigationItem`.
+  табличка `navigationItem` (`UINavigationItem → NSObject`, свойство view
+  controller'а); `UIBarButtonItem` и `UITabBarItem` — `UIBarItem`, не
+  view: панель рисует их сама.
 - **Large titles** — `prefersLargeTitles` один раз на всю стопку,
   `largeTitleDisplayMode` на каждом экране; для сжатия панель должна
   знать список (`setContentScrollView`).
@@ -763,9 +803,10 @@ bar?.tintColor = .white
   крупнее) или `UIProgressView` с дробным делением.
 - **Breadcrumbs** — скролл с кнопками, возврат через
   `popToViewController`; текущий уровень неактивен.
-- **Кнопка «назад»**: для модального окна — своя `leftBarButtonItem`;
-  для стопки — `backButtonTitle`, `backButtonDisplayMode`,
-  `setBackIndicatorImage`, чтобы не потерять свайп назад.
+- **Кнопка «назад» принадлежит предыдущему экрану**: для модального
+  окна — своя `leftBarButtonItem`; для стопки — `backBarButtonItem`,
+  `backButtonTitle`, `backButtonDisplayMode` в экране, куда вернёмся, и
+  `setBackIndicatorImage` для стрелки, чтобы не потерять свайп назад.
 - **Push или modal**: смотрю и возвращаюсь — push; выполняю задачу и
   закрываю — modal.
 - **Custom transition** — аниматор с `finalFrame(for:)` и
@@ -782,7 +823,9 @@ bar?.tintColor = .white
 - [`UINavigationBar`](https://developer.apple.com/documentation/uikit/uinavigationbar) — сама панель, `prefersLargeTitles`, слоты внешнего вида.
 - [`UINavigationBarAppearance`](https://developer.apple.com/documentation/uikit/uinavigationbarappearance) — описание внешнего вида; `configureWith…Background`, `setBackIndicatorImage(_:transitionMaskImage:)`.
 - [`UINavigationItem.largeTitleDisplayMode`](https://developer.apple.com/documentation/uikit/uinavigationitem/largetitledisplaymode-swift.property) — `.always` / `.never` / `.automatic`.
-- [`UINavigationItem.backButtonDisplayMode`](https://developer.apple.com/documentation/uikit/uinavigationitem/backbuttondisplaymode-swift.property) — вид системной кнопки «назад» (iOS 14+).
+- [`UIViewController.navigationItem`](https://developer.apple.com/documentation/uikit/uiviewcontroller/navigationitem) — табличка экрана: создаётся лениво, принадлежит view controller'у.
+- [`UINavigationItem.backBarButtonItem`](https://developer.apple.com/documentation/uikit/uinavigationitem/backbarbuttonitem) — кнопка «назад», которую этот экран отдаёт следующему.
+- [`UINavigationItem.backButtonDisplayMode`](https://developer.apple.com/documentation/uikit/uinavigationitem/backbuttondisplaymode-swift.property) — из чего собирать подпись кнопки «назад» (iOS 14+), ставится там же.
 - [`UINavigationItem.titleView`](https://developer.apple.com/documentation/uikit/uinavigationitem/titleview) — слот для произвольной view на месте заголовка.
 - [`UINavigationItem.subtitle`](https://developer.apple.com/documentation/uikit/uinavigationitem/subtitle) — подзаголовок в панели (iOS 26+).
 - [`UIViewController.setContentScrollView(_:for:)`](https://developer.apple.com/documentation/uikit/uiviewcontroller/setcontentscrollview(_:for:)) — какой список отслеживает панель (iOS 15+).
