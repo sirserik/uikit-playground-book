@@ -378,7 +378,7 @@ final class TypingIndicatorCell: UITableViewCell {
 режим редактирования и держит поверх фоновых view. `backgroundColor =
 .clear` ставим самой ячейке, а не `contentView`: ячейка — отдельный
 view со своим фоном, и белый квадрат под пузырём рисовала бы она.
-Полная карта ячеек — глава 0, раздел 0.6.
+Полная карта ячеек — глава 0, раздел 0.5.
 
 **Точка — это квадрат 8×8 со скруглением 4.** Скругление, равное
 половине стороны, превращает квадрат в круг.
@@ -422,7 +422,7 @@ Layout guide («направляющая») — невидимый прямоу�
 можно привязывать ограничения Auto Layout, как к обычному виду. При
 этом это не view: `UILayoutGuide → NSObject`, у неё нет слоя, она не
 входит в дерево subviews и не получает касаний — только даёт якоря
-(anchors) и `layoutFrame` (глава 0, раздел 0.9). Самый известный
+(anchors) и `layoutFrame` (глава 0, раздел 0.8). Самый известный
 пример — `safeAreaLayoutGuide`, безопасная зона экрана. В iOS 15
 появился `view.keyboardLayoutGuide` (класс `UIKeyboardLayoutGuide →
 UITrackingLayoutGuide → UILayoutGuide`) — направляющая, которая
@@ -594,7 +594,7 @@ extension ComposerView: UITextViewDelegate {
   нет (проверено рантаймом), об изменениях он сообщает делегату
   (`textViewDidChange`) или уведомлением
   `UITextView.textDidChangeNotification`. Отсюда и `delegate = self`
-  ниже (глава 0, разделы 0.5 и 0.6).
+  ниже (глава 0, разделы 0.4 и 0.5).
 - **Подсказка «Сообщение».** У `UITextView`, в отличие от
   `UITextField`, нет свойства `placeholder`. Поэтому кладём поверх
   серый `UILabel` и прячем его, как только появился текст. Цвет

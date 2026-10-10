@@ -430,7 +430,7 @@ extension NoteStorage {
 presentation — отсюда настройка `definesPresentationContext` ниже.
 `navigationItem` — свойство самого view controller'а (класс
 `UINavigationItem`, потомок `NSObject`); навигационная панель лишь
-читает его и рисует то, что там лежит (глава 0, раздел 0.7).
+читает его и рисует то, что там лежит (глава 0, раздел 0.6).
 
 Начнём со свойств и `viewDidLoad` экрана списка:
 
@@ -572,7 +572,7 @@ extension NoteListViewController {
 `keyboardDismissMode = .onDrag` — клавиатура поиска прячется, как
 только пользователь начинает прокручивать список. Это свойство
 `UIScrollView`, а `UITableView` — его наследник (глава 0,
-раздел 0.6); по умолчанию стоит `.none`, и клавиатура сама не уходит.
+раздел 0.5); по умолчанию стоит `.none`, и клавиатура сама не уходит.
 
 Сам протокол и фильтр:
 
@@ -733,7 +733,7 @@ UIKit не принимает.
 «рецепт» содержимого стандартной ячейки: текст, второй текст,
 картинка и их стили. Это структура, а не view: она реализует
 протокол `UIContentConfiguration`, а ячейка по ней сама создаёт и
-обновляет свою content view (глава 0, раздел 0.10). Мы заполняем
+обновляет свою content view (глава 0, раздел 0.9). Мы заполняем
 рецепт и отдаём ячейке (`cell.contentConfiguration = content`).
 Удобно для переиспользования: каждый раз задаём рецепт целиком, и от
 прошлой строки ничего не остаётся — `prepareForReuse` не нужен.
@@ -908,7 +908,7 @@ final class NoteEditorViewController: UIViewController, UITextViewDelegate {
 `viewDidDisappear` (экран ушёл). Всё, кроме `viewDidLoad`, может
 повторяться: вернулся на экран — снова `viewWillAppear`. Окончательные
 размеры view известны не раньше `viewDidLayoutSubviews` (подробно —
-глава 0, раздел 0.7). Мы используем три метода:
+глава 0, раздел 0.6). Мы используем три метода:
 
 - `viewDidAppear` — ставим курсор в текст новой заметки (почему не
   раньше — см. главу 12, раздел 12.10);
@@ -933,7 +933,7 @@ final class NoteEditorViewController: UIViewController, UITextViewDelegate {
 только накрыли. Для модального случая есть парное свойство
 `isBeingDismissed`; Apple в заголовке `UIViewController.h` советует
 проверять `isBeingDismissed || isMovingFromParent`, если нужно
-поймать «экран уходит навсегда» (глава 0, раздел 0.7).
+поймать «экран уходит навсегда» (глава 0, раздел 0.6).
 
 Разметка:
 
@@ -980,7 +980,7 @@ extension NoteEditorViewController {
 
 `UITextView` — многострочное редактируемое поле. По родословной это
 прокрутка: `UITextView → UIScrollView → UIView` (глава 0,
-раздел 0.6). Текст лежит в прокручиваемом содержимом, а само поле —
+раздел 0.5). Текст лежит в прокручиваемом содержимом, а само поле —
 окошко над ним; поэтому у текста есть всё, что есть у `UIScrollView`:
 `contentOffset`, `contentInset`, `alwaysBounceVertical`,
 `keyboardDismissMode`, а протокол `UITextViewDelegate` наследует
@@ -1100,7 +1100,7 @@ textView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor)
 экрана (над home-индикатором). Сама направляющая — не view:
 `UIKeyboardLayoutGuide → UITrackingLayoutGuide → UILayoutGuide →
 NSObject`, прямоугольник-ориентир для констрейнтов, который ничего не
-рисует и не получает касаний (глава 0, раздел 0.9).
+рисует и не получает касаний (глава 0, раздел 0.8).
 
 До iOS 15 то же самое делали вручную, через уведомления о клавиатуре.
 Этот способ полезно знать: он встречается в старом коде, а ещё в нём
@@ -1149,7 +1149,7 @@ NSObject`, прямоугольник-ориентир для констрейн
    `layoutIfNeeded()` внутри блока заставляет пройти раскладку сейчас:
    рамки меняются внутри блока, и UIKit анимирует именно их. Это
    стандартный приём для анимации любых констрейнтов (глава 0,
-   раздел 0.4).
+   раздел 0.3).
 
 Длительность 0,25 — приближение. Точная длительность и кривая
 анимации клавиатуры приходят в том же `userInfo`
@@ -1217,7 +1217,7 @@ extension NoteEditorViewController {
 (`UIBarButtonItem → UIBarItem → NSObject`), а описание кнопки, по
 которому панель сама рисует настоящую view. Поэтому у него нет
 `frame`, `addSubview` и `addAction` — только `target`/`action`,
-`primaryAction` или `menu` (глава 0, раздел 0.9).
+`primaryAction` или `menu` (глава 0, раздел 0.8).
 
 `attributes: .destructive` — красная подпись и иконка у «Удалить».
 Системный сигнал «осторожно, необратимо».
@@ -1270,7 +1270,7 @@ non-nil sourceView or barButtonItem»). На iPhone свойство тоже н
 обычного view controller'а без стиля `.popover` оно `nil`. Сам
 `UIPopoverPresentationController` — не view и не view controller
 (`→ UIPresentationController → NSObject`), это объект, который
-управляет показом (глава 0, раздел 0.7).
+управляет показом (глава 0, раздел 0.6).
 
 > **Упражнение 13.3.** Добавь в меню редактора пункт «Скопировать» (иконка
 > `doc.on.doc`), который кладёт текст заметки в буфер обмена без

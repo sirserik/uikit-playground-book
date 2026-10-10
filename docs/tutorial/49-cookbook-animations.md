@@ -15,7 +15,7 @@
 `CALayer`. У каждого `UIView` внутри есть ровно один свой слой
 (`view.layer`), и именно слой отображается на экране. Слой — не view:
 `CALayer → NSObject`, он не responder, не получает касаний и не
-участвует в Auto Layout (глава 0, разделы 0.4 и 0.9).
+участвует в Auto Layout (глава 0, разделы 0.3 и 0.8).
 
 Две вещи, которые важно держать в голове:
 
@@ -337,7 +337,7 @@ view.layer.add(pulse, forKey: "pulse")
 
 Сама анимация — не слой и не view, а объект-описание:
 `CABasicAnimation → CAPropertyAnimation → CAAnimation → NSObject`
-(глава 0, раздел 0.9).
+(глава 0, раздел 0.8).
 
 Чем это отличается от `UIView.animate`: `CABasicAnimation` **не
 меняет модель**. Свойство слоя остаётся 1.0 (замер: после `add`
@@ -638,7 +638,7 @@ animator.continueAnimation(withTimingParameters: nil, durationFactor: 1.0)
 ```
 
 `UIViewPropertyAnimator` (iOS 10+) — анимация-объект: обычный
-`NSObject` (глава 0, раздел 0.9), который живёт столько, сколько ты
+`NSObject` (глава 0, раздел 0.8), который живёт столько, сколько ты
 его держишь. В отличие от `UIView.animate`, его можно хранить в
 свойстве и управлять:
 

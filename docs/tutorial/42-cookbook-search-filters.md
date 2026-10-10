@@ -99,7 +99,7 @@ controller, а не view: своей рамки на экране у него н
 через `UISearchBarDelegate`. Поле ввода внутри строки —
 `searchBar.searchTextField` (iOS 13+), класс
 `UISearchTextField → UITextField → UIControl`: вот у него `addAction`
-уже есть. Лестница классов целиком — глава 0, разделы 0.5 и 0.7.
+уже есть. Лестница классов целиком — глава 0, разделы 0.4 и 0.6.
 
 **Минимальный код.**
 
@@ -161,7 +161,7 @@ iOS 15.0 and later, YES otherwise», и на iOS 26.5 свежий контро�
 строку в навигационную панель, под заголовок. `navigationItem` — это
 объект класса `UINavigationItem` (потомок `NSObject`, не view), и он
 принадлежит **view controller'у**: панель лишь показывает табличку
-того экрана, который сейчас сверху (глава 26 и глава 0, раздел 0.7).
+того экрана, который сейчас сверху (глава 26 и глава 0, раздел 0.6).
 Экран должен лежать внутри `UINavigationController`, иначе панели
 нет и строка не появится.
 
@@ -536,7 +536,7 @@ func makeChipsLayout() -> UICollectionViewFlowLayout {
 Сама таблетка — ячейка коллекции. `UICollectionViewCell →
 UICollectionReusableView → UIView`: это view, которую коллекция
 переиспользует, а своё содержимое кладут в её `contentView` (глава 0,
-раздел 0.6).
+раздел 0.5).
 
 ```swift
 final class ChipCell: UICollectionViewCell {
@@ -753,7 +753,7 @@ extension SortableViewController {
 `UIAction` — пункт меню с заголовком и замыканием. Свойство `state`
 со значением `.on` рисует у пункта галочку. И `UIAction`, и `UIMenu` —
 не view и не контролы (`UIAction → UIMenuElement → NSObject`): это
-описание пункта, а рисует и показывает его кнопка (глава 0, раздел 0.9).
+описание пункта, а рисует и показывает его кнопка (глава 0, раздел 0.8).
 
 `showsMenuAsPrimaryAction = true` — меню открывается обычным тапом по
 кнопке. Без этого — только долгим нажатием.

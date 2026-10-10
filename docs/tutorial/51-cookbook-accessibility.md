@@ -50,7 +50,7 @@ button.accessibilityHint = "Удаляет заметку без возможн�
 объявлены не в `UIView`, а в категории `NSObject (UIAccessibility)`
 (заголовок `UIAccessibility.h`) — то есть они есть у любого объекта
 UIKit, в том числе у `UIBarButtonItem` и `UITabBarItem`, которые не
-view (глава 0, разделы 0.2 и 0.9). `isAccessibilityElement` по
+view (глава 0, разделы 0.1 и 0.8). `isAccessibilityElement` по
 умолчанию `false`, а у стандартных контролов UIKit — `true`
 (комментарий в заголовке и документация).
 

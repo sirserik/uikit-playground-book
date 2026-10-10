@@ -127,8 +127,8 @@ struct OnboardingPage {
 > <UIPageViewControllerDataSource> dataSource`), поэтому контейнер не
 > держит экран онбординга и цикла ссылок не возникает. Оставишь
 > `dataSource` пустым — листание жестами просто отключится. Почему
-> делегат и data source в UIKit всегда weak — глава 0, раздел 0.10;
-> семейство контейнеров — раздел 0.7.
+> делегат и data source в UIKit всегда weak — глава 0, раздел 0.9;
+> семейство контейнеров — раздел 0.6.
 
 ## 6.3 Параметры контейнера
 
@@ -156,7 +156,7 @@ controller** (child view controller). Это отдельный механизм
 появления и смены размеров, делится safe area. Так устроены и
 `UINavigationController`, и `UITabBarController`, и сам
 `UIPageViewController` по отношению к своим страницам (глава 0,
-раздел 0.7).
+раздел 0.6).
 
 ```swift
 private func embedPageController() {
@@ -220,7 +220,7 @@ nil)` (здесь UIKit за тебя его не вызовет), затем
 `child.view.removeFromSuperview()`, затем `child.removeFromParent()` —
 последний сам зовёт `didMove(toParent: nil)`. В онбординге убирать
 ничего не нужно: страницы контейнер убирает сам. Подробно про
-containment — глава 0, раздел 0.7.
+containment — глава 0, раздел 0.6.
 
 `insertSubview(_:at: 0)` кладёт страницы **под** всё остальное:
 индекс 0 — самый нижний слой. Кнопки и точки мы добавим позже, и они
@@ -327,7 +327,7 @@ pageControl.addTarget(self, action: #selector(pageControlChanged), for: .valueCh
 view, которая умеет отслеживать касания и рассылать события
 target-action. У `UILabel` или `UIImageView` такого метода нет — они
 не наследуют `UIControl` (таблица «кто контрол, а кто нет» — глава 0,
-раздел 0.5).
+раздел 0.4).
 
 `UIPageControl` сам по себе интерактивный. Тап справа от активной
 точки переключает на страницу вперёд, слева — назад — ровно на одну.
@@ -873,7 +873,7 @@ private final class OnboardingPageViewController: UIViewController {
   контроллера уважает системный минимум `systemMinimumLayoutMargins`:
   на iPhone 16 это 16 точек слева и справа, а сверху и снизу в поля
   входит ещё и safe area (59 и 34 точки — проверено на симуляторе).
-  Подробнее про поля и safe area — глава 0, раздел 0.4.
+  Подробнее про поля и safe area — глава 0, раздел 0.3.
 - Цвета фона и текста — системные (`.systemBackground`,
   `.secondaryLabel`), поэтому тёмная тема работает без единой строки
   кода.

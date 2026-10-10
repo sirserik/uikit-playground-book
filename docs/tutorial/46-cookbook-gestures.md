@@ -33,7 +33,7 @@ view, он переедет: на iOS 26.5 после `v2.addGestureRecognizer(g
 двух view — создай два распознавателя. Значения по умолчанию:
 `cancelsTouchesInView = true`, `delaysTouchesBegan = false`,
 `delaysTouchesEnded = true`, `isEnabled = true`, `delegate = nil`
-(глава 0, разделы 0.3 и 0.9).
+(глава 0, разделы 0.2 и 0.8).
 
 У распознавателя есть **состояние** (`state`); пока жест не начался,
 оно `.possible`. Жесты бывают двух видов:

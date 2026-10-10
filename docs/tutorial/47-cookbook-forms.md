@@ -17,7 +17,7 @@
 **First responder** («первый отвечающий») — объект, которому UIKit
 первым отдаёт события клавиатуры. Поле ввода может им стать, потому
 что `UITextField` и `UITextView` — view, а всякий `UIView` — наследник
-`UIResponder` (глава 0, раздел 0.3). Когда ты тапаешь в поле, оно
+`UIResponder` (глава 0, раздел 0.2). Когда ты тапаешь в поле, оно
 становится first responder, и iOS показывает клавиатуру.
 `becomeFirstResponder()` — сделать поле активным из кода,
 `resignFirstResponder()` — отпустить, после чего клавиатура уедет.
@@ -28,7 +28,7 @@ target-action: `addAction(_:for:)`, события `.editingChanged` и
 `.editingDidEnd`. `UITextView` — не контрол, а scroll view
 (`UITextView → UIScrollView → UIView`): событий `UIControl.Event` у
 него нет, об изменениях сообщает делегат `UITextViewDelegate`
-(подробно — глава 0, разделы 0.5 и 0.6).
+(подробно — глава 0, разделы 0.4 и 0.5).
 
 **Валидация** — проверка введённого: похоже ли это на email, хватает
 ли длины пароля, все ли цифры телефона на месте.
@@ -612,7 +612,7 @@ final class WizardViewController: UIViewController {
 
 `UIPageViewController` — container view controller (контейнер),
 который показывает по одному экрану и умеет анимировать переход к
-другому; семейство контейнеров — глава 0, раздел 0.7. Он встроен в
+другому; семейство контейнеров — глава 0, раздел 0.6. Он встроен в
 мастер как **дочерний контроллер** (child view controller):
 `addChild`, добавить его view, прибить ограничениями,
 `didMove(toParent:)`. Эти три шага обязательны — без `addChild`
@@ -718,7 +718,7 @@ final class ReportViewController: UIViewController, UITextViewDelegate {
 `UIKeyboardLayoutGuide → UITrackingLayoutGuide → UILayoutGuide →
 NSObject` (цепочка снята на симуляторе): невидимый прямоугольник с
 якорями, к которым можно привязывать констрейнты (о layout guide —
-глава 0, раздел 0.4). Пока клавиатура пристыкована к нижнему краю
+глава 0, раздел 0.3). Пока клавиатура пристыкована к нижнему краю
 экрана, направляющая совпадает с ней; когда клавиатуры нет, её верх
 (`topAnchor`) совпадает с низом `safeAreaLayoutGuide`. Достаточно
 привязать к ней низ формы:

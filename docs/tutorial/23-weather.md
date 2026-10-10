@@ -1071,7 +1071,7 @@ final class WeatherCityCell: UITableViewCell {
   сопротивляется **сжатию** меньше естественного размера.
 
 По умолчанию у любого view hugging 250 и compression resistance 750
-(проверено в симуляторе iOS 26.5; глава 0, раздел 0.4) — у названия,
+(проверено в симуляторе iOS 26.5; глава 0, раздел 0.3) — у названия,
 описания и температуры одинаковые, то есть ничья, и кого резать при
 нехватке места, Auto Layout решал бы сам. У температуры мы ставим оба
 на максимум (`.required`): «23°» всегда ровно такой ширины, как
@@ -1170,7 +1170,7 @@ final class SkeletonView: UIView {
   участвует в Auto Layout и не получает касаний, поэтому его рамку мы
   задаём руками, `gradient.frame = bounds`, и делаем это в
   `layoutSubviews` — там `bounds` view уже окончательные (глава 0,
-  разделы 0.4 и 0.9). `clipsToBounds = true` — то же самое, что
+  разделы 0.3 и 0.8). `clipsToBounds = true` — то же самое, что
   `layer.masksToBounds` (одно свойство под двумя именами); без него
   градиент вылез бы за скруглённые углы.
 - **`locations`** — где стоит каждый из трёх цветов, в долях ширины
@@ -1200,7 +1200,7 @@ CAAnimation → NSObject` — описание анимации одного с�
 ширина). Размеры становятся известны в проходе раскладки — в
 `layoutSubviews` у view и в `viewDidLayoutSubviews` у view
 controller'а; в `init`, `viewDidLoad` и `cellForRowAt` их ещё нет
-(глава 0, раздел 0.4). Так анимация «от 0 до 0» не двигалась вовсе.
+(глава 0, раздел 0.3). Так анимация «от 0 до 0» не двигалась вовсе.
 Анимация `locations` не зависит от размеров: доли остаются долями при
 любой ширине.
 
@@ -1271,7 +1271,7 @@ refreshControl.addTarget(self, action: #selector(pulledToRefresh), for: .valueCh
 и `addTarget` можно заменить на `addAction(UIAction { … }, for:
 .valueChanged)`; в заголовке `UIRefreshControl.h` так и написано —
 «when a user has pulled-to-refresh, the UIRefreshControl fires its
-UIControlEventValueChanged event» (глава 0, раздел 0.5).
+UIControlEventValueChanged event» (глава 0, раздел 0.4).
 
 `force: true` — мимо 10-минутного кеша, гарантированно в сеть. Это
 то, чего пользователь ждёт от жеста «обновить».
@@ -1540,7 +1540,7 @@ final class WeatherDetailViewController: UIViewController {
   размер определяет, насколько далеко можно листать.
 
 Обе — обычные `UILayoutGuide`, не view: прямоугольники-ориентиры для
-констрейнтов (глава 0, раздел 0.9). Верх и низ стека привязаны к
+констрейнтов (глава 0, раздел 0.8). Верх и низ стека привязаны к
 `contentLayoutGuide`: высота содержимого = высота стека + отступы 16
 сверху и снизу — так Auto Layout вычисляет `contentSize`. Если стек
 выше экрана — появляется прокрутка. Лево и право стека привязаны не к
@@ -1554,7 +1554,7 @@ area, но под навигационную панель содержимое �
 `contentInsetAdjustmentBehavior` по умолчанию `.automatic`, и прокрутка
 сама добавляет safe area в `contentInset`. Прокрутка как таковая — это
 сдвиг `bounds.origin` scroll view, он же `contentOffset`; подробно —
-глава 0, раздел 0.6.
+глава 0, раздел 0.5.
 
 **`RelativeDateTimeFormatter`** (iOS 13+) — «N минут назад»:
 

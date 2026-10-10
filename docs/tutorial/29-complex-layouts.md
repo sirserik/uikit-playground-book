@@ -37,7 +37,7 @@
 `bounds.origin` самого scroll view: сдвиг начала `bounds` сдвигает всё
 содержимое, а `frame` при этом не меняется (замер: `contentOffset.y = 120` →
 `bounds.origin = (0, 120)`, `frame.origin = (0, 0)`). Подробно о `UIScrollView`
-и его наследниках — глава 0, раздел 0.6.
+и его наследниках — глава 0, раздел 0.5.
 
 **`contentInset`** — дополнительные поля вокруг содержимого, внутри которых
 тоже можно прокручивать. `contentInset.top = 280` значит: «над первой строкой
@@ -187,10 +187,10 @@ final class StretchyHeaderViewController: UIViewController {
 ## 21.3 ScrollViewDelegate — главная логика
 
 `UITableView` — наследник `UIScrollView` (цепочку мы проверили в рантайме,
-см. главу 22 и главу 0, раздел 0.6), а протокол `UITableViewDelegate`
+см. главу 22 и главу 0, раздел 0.5), а протокол `UITableViewDelegate`
 наследует `UIScrollViewDelegate` — в заголовке `UITableView.h` так и написано:
 `@protocol UITableViewDelegate<NSObject, UIScrollViewDelegate>` (глава 0,
-раздел 0.10). Поэтому делегат таблицы получает и события прокрутки, а
+раздел 0.9). Поэтому делегат таблицы получает и события прокрутки, а
 отдельного «делегата прокрутки» таблице назначать не нужно (и нельзя:
 `delegate` у неё один):
 
@@ -303,7 +303,7 @@ subviews — **с конца массива `subviews`**, то есть снач
 `hitTest` пропускает view с `isHidden = true`, с `alpha` меньше 0,01 и с
 `isUserInteractionEnabled = false`, а точку за пределами `bounds` view не
 считает попаданием, даже если там торчит её subview (подробно — глава 0,
-раздел 0.4). Жест прокрутки таблицы (`UIPanGestureRecognizer` внутри
+раздел 0.3). Жест прокрутки таблицы (`UIPanGestureRecognizer` внутри
 `UIScrollView`) получает только те касания, которые достались самой
 таблице или её subview.
 
@@ -396,7 +396,7 @@ final class StretchyHeaderView: UIView {
 `UIView` есть ровно один **layer** (слой) — то, что реально рисуется на
 экране; view управляет им и добавляет касания и Auto Layout. Сам слой — не
 view и не responder: `CAGradientLayer → CALayer → NSObject`, у него нет
-constraints и он не получает касаний (глава 0, разделы 0.4 и 0.9).
+constraints и он не получает касаний (глава 0, разделы 0.3 и 0.8).
 
 **`override class var layerClass`** — говорим UIKit: «слой этого view —
 не обычный `CALayer`, а `CAGradientLayer`». UIKit читает это свойство один

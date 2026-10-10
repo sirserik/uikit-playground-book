@@ -38,7 +38,7 @@
 под лупой (`scrollView`): scroll view может увеличивать лист и двигать
 его под лупой.
 
-Как устроен зум внутри. `UIScrollView → UIView` (глава 0, раздел 0.6)
+Как устроен зум внутри. `UIScrollView → UIView` (глава 0, раздел 0.5)
 масштабирует не себя, а **один** свой subview — тот, что делегат вернёт из
 `viewForZooming(in:)`. Scroll view ставит этому view `transform` с нужным
 масштабом и сам пересчитывает `contentSize`. На симуляторе iOS 26.5:
@@ -111,7 +111,7 @@ final class PhotoViewerViewController: UIViewController {
   растягивается вместе с экраном (например, при повороте). Для такого
   простого случая это короче констрейнтов. Это же спасает от ловушки
   `viewDidLoad`: `view.bounds` здесь ещё не окончательные — view только
-  что создано и не разложено (глава 0, раздел 0.7), — но благодаря маске
+  что создано и не разложено (глава 0, раздел 0.6), — но благодаря маске
   scroll view подтянется под настоящий размер в первом же проходе
   раскладки.
 - `contentInsetAdjustmentBehavior = .never` — не сдвигать содержимое
@@ -211,7 +211,7 @@ iPhone 16 — 393 × 852 точки. Во сколько раз уменьшит
 которому scroll view задаёт вопросы и сообщает о событиях; здесь это
 наш контроллер. Как у всех делегатов UIKit, `scrollView.delegate` —
 слабая ссылка (`weak` в `UIScrollView.h`): контроллер владеет scroll
-view, а не наоборот, и цикла не возникает (глава 0, раздел 0.10).
+view, а не наоборот, и цикла не возникает (глава 0, раздел 0.9).
 
 `viewWillTransition` — экран поворачивается. Сбрасываем зум, и в
 `viewDidLayoutSubviews` фото впишется заново под новые размеры.
@@ -356,7 +356,7 @@ extension PhotoViewerViewController: UIGestureRecognizerDelegate {
    показе со стилем `.fullScreen` UIKit **убирает** view экрана-источника
    из иерархии, как только анимация показа закончилась (за это отвечает
    `shouldRemovePresentersView` у `UIPresentationController`, глава 0,
-   раздел 0.7). Чтобы при смахивании просвечивала галерея, экран
+   раздел 0.6). Чтобы при смахивании просвечивала галерея, экран
    показывают со стилем `.overFullScreen` — он оставляет источник на месте
    (см. 37.7).
 
@@ -385,9 +385,9 @@ AirDrop, сообщения, мессенджеры, «Сохранить в Ф�
 используется — строка безвредна, а код один для обоих устройств.
 `UIPopoverPresentationController → UIPresentationController → NSObject` —
 это не view и не view controller, а объект, который управляет показом
-(глава 0, раздел 0.7). У него два якоря: `sourceView` для обычных view и
+(глава 0, раздел 0.6). У него два якоря: `sourceView` для обычных view и
 отдельный `barButtonItem` — потому что `UIBarButtonItem` не view
-(`UIBarItem → NSObject`, раздел 0.9), и `convert` или `frame` у него нет.
+(`UIBarItem → NSObject`, раздел 0.8), и `convert` или `frame` у него нет.
 Этот метод и те, что ниже, живут в `PhotoPagerViewController` (37.6), у
 которого есть панель с кнопками.
 
@@ -518,7 +518,7 @@ final class PhotoPagerViewController: UIViewController {
   `pageVC` — наш ребёнок, чтобы он получал события жизненного цикла
   (`viewWillAppear` и другие) и повороты. `addChild` сам вызывает
   `willMove(toParent:)`, а `didMove(toParent:)` после `addSubview` —
-  наша обязанность (containment — глава 0, раздел 0.7).
+  наша обязанность (containment — глава 0, раздел 0.6).
 - `dataSource` и `delegate` у `UIPageViewController` — слабые ссылки
   (`weak` в заголовке SDK); без `dataSource` листание жестом вообще
   выключено.
@@ -685,7 +685,7 @@ final class PhotoZoomTransition: NSObject, UIViewControllerAnimatedTransitioning
    даёт координаты окна. Поэтому передаём `bounds`, а не `frame`: на
    симуляторе для миниатюры (20, 10, 100 × 100) в ячейке на y = 300
    `convert(bounds, to:)` даёт правильные (20, 310), а `convert(frame,
-   to:)` — (40, 320), сдвинутые на лишний origin (глава 0, раздел 0.4).
+   to:)` — (40, 320), сдвинутые на лишний origin (глава 0, раздел 0.3).
    Если у view есть `transform`, результат — описывающий прямоугольник
    (bounding box): миниатюра 100 × 100, повёрнутая на 45°, вернётся как
    141 × 141.
@@ -818,7 +818,7 @@ final class GalleryViewController: UIViewController {
 панель `UINavigationBar` показывает `navigationItem` верхнего экрана как
 свой `topItem` (на симуляторе `vc.navigationItem === navigationBar.topItem`),
 и Apple пишет, что `standardAppearance` у item'а перекрывает одноимённое
-свойство панели (глава 0, разделы 0.7 и 0.9). `standardAppearance` —
+свойство панели (глава 0, разделы 0.6 и 0.8). `standardAppearance` —
 обычное состояние, `scrollEdgeAppearance` — когда контент прокручен к
 самому верху. `shadowColor = .clear` убирает тонкую линию под панелью.
 

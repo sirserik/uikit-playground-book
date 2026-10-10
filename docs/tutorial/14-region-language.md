@@ -225,7 +225,7 @@ forCellReuseIdentifier: "cell")` (см. 10.12). Раз класс
 `init(style:reuseIdentifier:)`. Сама ячейка — обычная view
 (`UITableViewCell → UIView`), а не контрол: нажатие на строку
 обрабатывает таблица, а не ячейка. Подробно про таблицу, ячейки и
-reuse — глава 0, раздел 0.6.
+reuse — глава 0, раздел 0.5.
 
 **`UIListContentConfiguration`** (iOS 14+) — современный способ задать
 содержимое стандартной ячейки. `defaultContentConfiguration()` даёт
@@ -381,7 +381,7 @@ datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
 `UIDatePicker` — наследник `UIControl` (`UIDatePicker → UIControl →
 UIView`): у него есть target-action и событие `.valueChanged`, как у
 `UISwitch` или `UISlider`. У `UILabel` или `UIPickerView` такого
-механизма нет — они не контролы (глава 0, раздел 0.5).
+механизма нет — они не контролы (глава 0, раздел 0.4).
 
 `dateChanged` вызывается при каждом повороте барабана. В нём
 пересчитываем возраст и обновляем подпись:
@@ -913,7 +913,7 @@ final class AgeGateViewController: UIViewController {
   (`tableView.bottomAnchor` = верх кнопки минус 12 точек), а кнопка
   прижата к низу safe area. Таблица сама прокручивается, если стран
   станет много: `UITableView` — наследник `UIScrollView` (глава 0,
-  раздел 0.6).
+  раздел 0.5).
 - Оба стека возрастного гейта центрируются по вертикали одинаково: они
   лежат друг на друге, а виден в каждый момент только один.
 

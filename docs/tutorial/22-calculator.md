@@ -887,7 +887,7 @@ simultaneously satisfy constraints», и система сама выбрала 
 выкинуть. С приоритетом 750 он уступает, кнопки становятся ниже, но
 всё помещается. Одна тонкость: у надписи дисплея вертикальное
 сопротивление сжатию тоже 750 — это значение по умолчанию у любого
-view (глава 0, раздел 0.4), так что при нехватке места Auto Layout
+view (глава 0, раздел 0.3), так что при нехватке места Auto Layout
 вправе ужать и её. Если хочешь, чтобы дисплей никогда не сжимался,
 подними ему вертикальный compression resistance до `.required` через
 `setContentCompressionResistancePriority(_:for:)`.
@@ -964,7 +964,7 @@ Auto Layout: в верхних рядах 4 равные кнопки, в ниж
 и две обычные, и сетка совпадает.
 
 **Что такое `UIStackView`.** Это `UIView` (`UIStackView →
-UIView`, глава 0, раздел 0.4), который сам создаёт констрейнты для
+UIView`, глава 0, раздел 0.3), который сам создаёт констрейнты для
 своих *arranged subviews* — «расставленных» view. Список
 `arrangedSubviews` — всегда подмножество `subviews`:
 `addArrangedSubview` добавляет view и как subview, а обычный
@@ -1109,7 +1109,7 @@ UIKit зовёт его при каждой смене `state`. Ещё у кно
 контрола. Вся эта механика (target-action) живёт в `UIControl`:
 `UIButton → UIControl → UIView`, и `addAction`/`addTarget` есть у
 любого контрола, а у `UILabel` или `UIImageView` их нет — они не
-контролы (глава 0, раздел 0.5). Поэтому в упражнении 14.2 дисплею
+контролы (глава 0, раздел 0.4). Поэтому в упражнении 14.2 дисплею
 понадобится gesture recognizer, а не действие.
 
 > **`addAction` и `addTarget`.** Старый `addTarget(self, action:
@@ -1197,7 +1197,7 @@ extension CalculatorViewController {
 удар на каждую цифру утомляет. Генераторы — не view
 (`UIImpactFeedbackGenerator → UIFeedbackGenerator → NSObject`): это
 обычные объекты, которые просят систему дать отклик, и держать их
-можно где угодно (глава 0, раздел 0.9).
+можно где угодно (глава 0, раздел 0.8).
 
 `UINotificationFeedbackGenerator` — отклик-«сообщение», три вида:
 `.success`, `.warning`, `.error`. Каждый — короткая
@@ -1346,10 +1346,10 @@ displayLabel.isUserInteractionEnabled = true
 `isUserInteractionEnabled = true` обязателен: у `UILabel` он по
 умолчанию выключен (у обычного `UIView` — включён), а view с
 выключенным флагом hit-testing пропускает, и касания до её жестов не
-доходят (глава 0, раздел 0.4). Сам `UISwipeGestureRecognizer` — не
+доходят (глава 0, раздел 0.3). Сам `UISwipeGestureRecognizer` — не
 view (`→ UIGestureRecognizer → NSObject`): распознаватель прикреплён
 ровно к одной view и получает её касания; поэтому мы вешаем его на
-`displayLabel`, а не на `view` контроллера (глава 0, раздел 0.9).
+`displayLabel`, а не на `view` контроллера (глава 0, раздел 0.8).
 
 **Упражнение 14.3.** Ожидаемые результаты — в самом задании. Если
 разделитель «.», а не «,», проверь регион в настройках симулятора:

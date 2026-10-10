@@ -74,7 +74,7 @@ final class FeedViewController: UITableViewController {
 (замер: после присваивания `refreshControl.superview` — `UITableView`).
 
 `UIRefreshControl` — это `UIControl` (`UIRefreshControl → UIControl → UIView`,
-глава 0, раздел 0.5). Отсюда и `addAction(_:for:)`, и событие
+глава 0, раздел 0.4). Отсюда и `addAction(_:for:)`, и событие
 `.valueChanged` — тот же механизм target-action, что у `UIButton` или
 `UISwitch`; документация прямо советует слушать именно `.valueChanged`.
 
@@ -322,7 +322,7 @@ final class SkeletonView: UIView {
 на прямоугольнике любой ширины и даже переживает поворот экрана.
 
 `layoutSubviews` + `CATransaction.setDisableActions(true)` — `CALayer` — не
-view (`CALayer → NSObject`, глава 0, раздел 0.9) и в Auto Layout не
+view (`CALayer → NSObject`, глава 0, раздел 0.8) и в Auto Layout не
 участвует, поэтому размер отдельного слоя обновляем руками при каждой
 раскладке. А у отдельного (не «своего» для view) слоя любое изменение
 `frame` по умолчанию **неявно анимируется** за 0,25 секунды: блик бы
@@ -744,7 +744,7 @@ extension UIViewController {
 оказалась бы не закрыта (и доступна для тапов). Заметь:
 `translatesAutoresizingMaskIntoConstraints` здесь **не** выключаем — для view,
 которую раскладываем рамкой, значение по умолчанию `true` как раз и нужно
-(глава 0, раздел 0.4).
+(глава 0, раздел 0.3).
 
 `UIView` по умолчанию принимает касания (`isUserInteractionEnabled == true`,
 замер) — поэтому overlay их и «съедает»: hit-testing находит его первым,
@@ -766,7 +766,7 @@ extension UIViewController {
 `UINavigationController`, навигационная панель **не** закрыта — кнопка
 «Назад» останется нажимаемой. Если это недопустимо, клади overlay в
 `navigationController?.view` или в окно (`view.window`). Окно — это тоже view
-(`UIWindow → UIView → UIResponder`, глава 0, раздел 0.8), просто корень
+(`UIWindow → UIView → UIResponder`, глава 0, раздел 0.7), просто корень
 дерева: `addSubview` у него работает как у любой другой view, и z-порядок
 тот же — кто добавлен позже, тот выше. Overlay, положенный в окно поверх
 `rootViewController.view`, накрывает весь экран приложения вместе с

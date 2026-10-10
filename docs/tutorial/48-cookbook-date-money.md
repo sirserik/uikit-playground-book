@@ -515,7 +515,7 @@ picker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
   границы игнорируются.
 - `addTarget(_:action:for: .valueChanged)` — target-action. Он есть у
   пикера потому, что `UIDatePicker` — контрол: `UIDatePicker →
-  UIControl → UIView` (глава 0, раздел 0.5); с iOS 14 подойдёт и
+  UIControl → UIView` (глава 0, раздел 0.4); с iOS 14 подойдёт и
   `addAction(UIAction { … }, for: .valueChanged)`. `picker.date` — это
   `Date`, то есть момент времени; показывать его пользователю снова
   надо через форматтер. Исключение — режим `.countDownTimer`: там

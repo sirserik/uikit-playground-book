@@ -238,7 +238,7 @@ playground'а сразу создались бы десять view controller'о
 `@MainActor` в типе замыкания говорит: «вызывать это замыкание можно
 только на главном потоке». Вызывать его в другом месте всё равно
 нельзя: внутри создаётся view controller, а весь UIKit работает на
-главном потоке (см. раздел 0.2 введения).
+главном потоке (см. раздел 0.1 введения).
 
 Строго говоря, в нашем проекте эту пометку можно не писать: с Default
 Actor Isolation = MainActor замыкание, написанное в нашем коде, и так
@@ -402,7 +402,7 @@ final class PlaceholderViewController: UIViewController {
 сверху. Мы проверили на симуляторе: после `title = "T"` у
 `navigationItem.title` то же значение, а `navigationItem` в
 `UINavigationController` совпадает с `navigationBar.topItem` (подробно
-— глава 0, разделы 0.7 и 0.9).
+— глава 0, разделы 0.6 и 0.8).
 
 `.systemBackground`, `.secondaryLabel` — **семантические цвета**: их
 имя говорит не «какой цвет», а «для чего». `systemBackground` — фон
@@ -425,7 +425,7 @@ view и в тот, и в другой, а простой `addSubview` — тол
 subview стек сам выставляет `translatesAutoresizingMaskIntoConstraints
 = false` и строит constraints по его `intrinsicContentSize` — мы
 проверили это на симуляторе, поэтому иконке и лейблу эта строка не
-нужна (подробно — глава 0, раздел 0.4).
+нужна (подробно — глава 0, раздел 0.3).
 
 `readableContentGuide` — полоса «удобной для чтения ширины». На
 iPhone она почти совпадает с полями экрана, а на широком iPad

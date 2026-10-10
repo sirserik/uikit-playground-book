@@ -304,7 +304,7 @@ let example = "это код, который можно (и нужно) набр
 ## Apple Developer Documentation
 
 - [The Swift Programming Language](https://docs.swift.org/swift-book/) — официальный справочник по языку. Книга предполагает, что базовые конструкции отсюда уже знакомы.
-- [Concurrency — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — акторы, `async`/`await`, изоляция: то, что стоит за настройками из раздела 0.2.
+- [Concurrency — Swift Book](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency) — акторы, `async`/`await`, изоляция: то, что стоит за настройками из раздела 0.1.
 - [UIKit](https://developer.apple.com/documentation/uikit) — каталог фреймворка, на котором построены все mini-app.
 - [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines) — продуктовые правила Apple. На них опираемся, когда обсуждаем UX-решения (splash, onboarding, permission primer).
 - [Xcode](https://developer.apple.com/documentation/xcode) — справочник по самой IDE, настройкам сборки и схемам.

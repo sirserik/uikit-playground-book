@@ -76,7 +76,7 @@ Configuration → Application Session Role → Item 0*, а в Build Settings
 их может быть несколько. Сцена — не view (`UIWindowScene → UIScene →
 UIResponder`). `SceneDelegate` получает событие «сцена подключилась» и
 создаёт окно (`UIWindow`) — подробно об этом в главе 5 и в главе 0,
-раздел 0.8.
+раздел 0.7.
 
 <!-- file: Todo/SceneDelegate.swift -->
 ```swift
@@ -103,7 +103,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 (контейнерный view controller): своего содержимого у него нет, он
 управляет стопкой дочерних экранов (`viewControllers`) и рисует сверху
 навигационную панель `UINavigationBar`, в которую выводит
-`navigationItem` верхнего экрана (глава 0, раздел 0.7). Нам он нужен
+`navigationItem` верхнего экрана (глава 0, раздел 0.6). Нам он нужен
 ради панели: туда встанет кнопка фильтра. `window` мы сохраняем в
 свойство: сцена окно сильно не держит, и если на него нет ни одной
 сильной ссылки, оно освобождается сразу (проверено в симуляторе:
@@ -860,7 +860,7 @@ final class TodoListViewController: UIViewController {
 окне (`view.window == nil`), safe area и настоящие рамки известны
 только начиная с `viewDidLayoutSubviews`. Поэтому в `viewDidLoad` мы
 описываем правила раскладки, а не считаем точки. Подробно — глава 0,
-раздел 0.7.
+раздел 0.6.
 
 `UITableView(frame: .zero, style: .insetGrouped)` — таблица в стиле
 «Настроек»: секции-карточки со скруглёнными углами и отступом от
@@ -930,7 +930,7 @@ satisfy constraints», Auto Layout разорвёт одно из правил �
 свойство нужно только у своих view: у `view` контроллера, ячеек и
 `arrangedSubviews` стека им управляет UIKit (документация
 `translatesAutoresizingMaskIntoConstraints`; подробно — глава 0,
-раздел 0.4).
+раздел 0.3).
 
 `dataSource` и `delegate` — два помощника таблицы. *Data source*
 («источник данных») отвечает на вопросы «сколько секций и строк» и
@@ -941,7 +941,7 @@ satisfy constraints», Auto Layout разорвёт одно из правил �
 retained»): таблица контроллер не удерживает, он должен жить сам — у
 нас его держит навигационный контроллер. Протокол `UITableViewDelegate`
 наследует `UIScrollViewDelegate`, поэтому через тот же делегат приходят
-и события прокрутки (глава 0, раздел 0.10).
+и события прокрутки (глава 0, раздел 0.9).
 
 `register(_:forCellReuseIdentifier:)` — говорим таблице, какой класс
 создавать для ячеек с идентификатором `"TodoCell"`. Таблица не создаёт
@@ -951,7 +951,7 @@ retained»): таблица контроллер не удерживает, он
 ячейка — это только «рамка», которую каждый раз заново заполняют.
 Сама ячейка — `UIView` (`UITableViewCell → UIView`), не контрол:
 нажатия на строку обрабатывает таблица, которая, в свою очередь, —
-`UIScrollView` (глава 0, раздел 0.6).
+`UIScrollView` (глава 0, раздел 0.5).
 
 `contentInset.bottom = 88` — дополнительная прокрутка снизу на 88
 точек (*точка*, point — единица размеров в iOS; на экране @3x одна
@@ -1111,7 +1111,7 @@ UIView → UIResponder`) со служебными подвидами, кото�
 `_UITableViewCellSeparatorView`. Своя ячейка — подкласс с
 собственной разметкой внутри `contentView`: кружок-чек (`UIButton`),
 заголовок, подпись (категория, приоритет, дата) и иконка категории
-справа. Подробно про ячейки — глава 0, раздел 0.6.
+справа. Подробно про ячейки — глава 0, раздел 0.5.
 
 Главное решение — **чек через `UIButton`, а не `UISwitch`**.
 Переключатель выглядит тяжело для одной строки списка; кружок, который
@@ -1428,7 +1428,7 @@ extension TodoListViewController: UITableViewDelegate {
 `UIContextualAction` — одна кнопка в свайпе, точнее её **описание**:
 и `UIContextualAction`, и `UISwipeActionsConfiguration` — наследники
 `NSObject`, а не view; сами кнопки по этому описанию рисует таблица
-(глава 0, раздел 0.9). Стиль `.destructive` — «действие удаляет данные
+(глава 0, раздел 0.8). Стиль `.destructive` — «действие удаляет данные
 или делает что-то необратимое», фон по умолчанию красный
 (`systemRed`). Стиль `.normal` — серый по умолчанию (`systemGray3`),
 мы перекрашиваем его в зелёный через `backgroundColor`. Цвета сняты в
@@ -1509,7 +1509,7 @@ extension TodoListViewController {
 
 **Тень.** `layer` — слой Core Animation, через который в итоге
 рисуется любая view; у каждой view ровно один такой слой (глава 0,
-раздел 0.4). Тень — свойство слоя, а не view:
+раздел 0.3). Тень — свойство слоя, а не view:
 
 - `shadowOpacity = 0.2` — тень чёрная на 20% (почти прозрачная);
 - `shadowRadius = 8` — размытие на 8 точек: край тени мягкий;
@@ -1581,7 +1581,7 @@ extension TodoListViewController {
 **`sheetPresentationController`** (iOS 15+) — настройки листа. Это
 объект класса `UISheetPresentationController → UIPresentationController
 → NSObject`: не view и не view controller, а «управляющий показом»
-(глава 0, раздел 0.7). Он не `nil`, потому что у view controller'а
+(глава 0, раздел 0.6). Он не `nil`, потому что у view controller'а
 `modalPresentationStyle` по умолчанию — лист (`.automatic`: form sheet
 в iOS 18+, page sheet раньше), а не `.fullScreen`.
 `detents` («упоры») — высоты, на которых лист может остановиться:
@@ -1610,7 +1610,7 @@ NSObject`), а описание кнопки: у него нет `frame` и `add
 рисует его сама панель. Кладём мы его в `navigationItem` — свойство
 нашего view controller'а (`UINavigationItem → NSObject`), а
 `UINavigationBar` лишь показывает элементы верхнего экрана стопки
-(глава 0, разделы 0.7 и 0.9).
+(глава 0, разделы 0.6 и 0.8).
 `UIAction` — пункт меню; `state: .on` рисует галочку у текущего
 фильтра. После выбора пересоздаём меню (чтобы галочка переехала) и
 перегружаем список.
@@ -1687,7 +1687,7 @@ final class TodoEditorViewController: UIViewController {
 
 **`becomeFirstResponder()`** в `viewDidAppear`. *First responder*
 («первый отвечающий») — responder, которому идут события без
-координат: ввод с клавиатуры, команды меню (глава 0, раздел 0.3).
+координат: ввод с клавиатуры, команды меню (глава 0, раздел 0.2).
 Сделать поле первым отвечающим — значит поставить в него курсор и
 показать клавиатуру. Для новой задачи это экономит тап. Почему в
 `viewDidAppear`, а не в `viewDidLoad`: документация Apple разрешает
@@ -1814,7 +1814,7 @@ extension TodoEditorViewController {
 и события вроде `.editingChanged`. У `UITextView` и `UILabel` такого
 нет — они наследуют `UIView` напрямую (точнее, `UITextView` — через
 `UIScrollView`), и события от них получают через делегат (глава 0,
-раздел 0.5). `.editingChanged` срабатывает на каждую введённую букву;
+раздел 0.4). `.editingChanged` срабатывает на каждую введённую букву;
 `updateSaveButton()` проверяет, есть ли в поле что-то кроме
 пробелов (`trimmingCharacters(in: .whitespacesAndNewlines)` обрезает
 пробелы и переводы строк по краям). Задачу «   » сохранить нельзя.
@@ -1840,7 +1840,7 @@ extension TodoEditorViewController {
 (`intrinsicContentSize` равен `(-1, -1)`, то есть
 `UIView.noIntrinsicMetric`) — ему нечего «обнимать», и он растягивается
 без сопротивления. Проверено: в стеке шириной 300 подпись заняла 41
-точку, переключатель 63, распорка — остальные 198 (глава 0, раздел 0.4).
+точку, переключатель 63, распорка — остальные 198 (глава 0, раздел 0.3).
 
 **`setCustomSpacing(_:after:)`** — промежуток после конкретного
 элемента стека больше, чем общий `spacing`: так подпись «Категория»

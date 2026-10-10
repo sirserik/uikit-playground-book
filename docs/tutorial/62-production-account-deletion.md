@@ -126,7 +126,7 @@ enum AccountAPI {
   исполнению») — сервер поставил удаление в очередь; в теле он
   возвращает дату, когда данные будут стёрты окончательно.
 - `nonisolated struct DeletionReceipt` — в нашем проекте весь код по
-  умолчанию на главном акторе (введение, раздел 0.2).
+  умолчанию на главном акторе (введение, раздел 0.1).
   Модель, которую декодируют из JSON, помечаем `nonisolated`, чтобы
   её можно было спокойно передавать между потоками.
 - `dateDecodingStrategy = .iso8601` — сервер присылает дату строкой вида
@@ -260,7 +260,7 @@ final class ProfileViewController: UIViewController {
 - Центр спиннера — середина **`bounds`** нашего view, а не `view.center`.
   `center` — это центр `frame`, он задан в координатах superview; `bounds`
   — своя система координат view, и именно в ней живут subviews (глава 0,
-  раздел 0.4). У корневого view экрана на весь экран эти точки совпадают,
+  раздел 0.3). У корневого view экрана на весь экран эти точки совпадают,
   поэтому ошибка `spinner.center = view.center` долго не замечается. Но
   стоит вложить этот экран как child view controller со сдвигом — и
   спиннер уедет: на симуляторе у view с `frame.origin.y = 400` и высотой
@@ -268,7 +268,7 @@ final class ProfileViewController: UIViewController {
   `center`, оказался за нижней границей view.
 - Спиннер и `isUserInteractionEnabled = false` — пока идёт запрос,
   касания к этому view и всем его subviews не доставляются (глава 0,
-  раздел 0.4), и человек не нажмёт «Удалить» дважды. Панель навигации в
+  раздел 0.3), и человек не нажмёт «Удалить» дважды. Панель навигации в
   это не входит: `UINavigationBar` лежит не внутри `view` экрана, а рядом,
   в контейнере `UINavigationController` (на симуляторе
   `navigationBar.isDescendant(of: view)` даёт `false`), так что кнопка
@@ -494,7 +494,7 @@ extension ProfileViewController {
   (`UIWindowScene`), берём её у `view.window`. Сцена — это не view:
   `UIWindowScene → UIScene → UIResponder`, она владеет окнами
   (`windows`) и экраном (`screen`), а окно `UIWindow → UIView` знает свою
-  сцену через `windowScene` (глава 0, раздел 0.8). Пока view не в окне,
+  сцену через `windowScene` (глава 0, раздел 0.7). Пока view не в окне,
   `view.window` — `nil`, и `guard` просто выйдет.
 - Если лист показать не удалось, открываем ссылку
   `https://apps.apple.com/account/subscriptions` — её Apple приводит на
